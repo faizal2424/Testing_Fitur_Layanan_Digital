@@ -66,6 +66,121 @@
     }
   }
 
+  // Handle number input validation
+  function handleNumberKeyDown(event: KeyboardEvent) {
+    // Allow: backspace, delete, tab, escape, enter
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (allowedKeys.includes(event.key) || 
+        // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Command+A, etc.
+        (event.ctrlKey === true || event.metaKey === true)) {
+      return;
+    }
+    // Prevent if not a number
+    if (!/^[0-9]$/.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  function handleNumberPaste(event: ClipboardEvent) {
+    const pastedData = event.clipboardData?.getData('text');
+    if (pastedData && !/^\d+$/.test(pastedData)) {
+      event.preventDefault();
+    }
+  }
+
+  // ── File upload state & helpers ──
+  let filePreviews: Record<string, { name: string; size: number; url: string | null; type: 'image' | 'pdf' | 'other' }> = {};
+  let fileErrors: Record<string, string> = {};
+  let fileInputs: Record<string, HTMLInputElement> = {};
+
+  // Get accepted file types from meta.mimes (e.g. "pdf,jpg,jpeg,png"), convert to HTML accept format
+  function getFileAccept(field: any): string {
+    const meta = parseMeta(field.meta);
+    const mimes = meta.mimes || 'pdf,jpg,jpeg,png';
+    return mimes.split(',').map((m: string) => '.' + m.trim()).join(',');
+  }
+
+  // Get max file size in bytes from meta.max_kb (stored in KB), default 2048 KB = 2MB
+  function getFileMaxSize(field: any): number {
+    const meta = parseMeta(field.meta);
+    const maxKb = meta.max_kb || 2048;
+    return maxKb * 1024; // convert KB to bytes
+  }
+
+  // Human-readable file size
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  // Friendly accept string for display, e.g. "pdf,jpg" → "PDF, JPG"
+  function getAcceptDisplay(field: any): string {
+    const meta = parseMeta(field.meta);
+    const mimes = meta.mimes || 'pdf,jpg,jpeg,png';
+    return mimes.split(',').map((m: string) => m.trim().toUpperCase()).join(', ');
+  }
+
+  function handleFileChange(event: Event, field: any) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const fieldKey = `field_${field.id}`;
+    const maxSize = getFileMaxSize(field);
+
+    // Clear previous state
+    delete fileErrors[fieldKey];
+
+    if (!file) {
+      delete filePreviews[fieldKey];
+      filePreviews = filePreviews;
+      fileErrors = fileErrors;
+      return;
+    }
+
+    // Validate file size
+    if (file.size > maxSize) {
+      fileErrors[fieldKey] = `Ukuran file terlalu besar. Maksimal ${formatFileSize(maxSize)}.`;
+      fileErrors = fileErrors;
+      // Clear file input
+      input.value = '';
+      delete filePreviews[fieldKey];
+      filePreviews = filePreviews;
+      return;
+    }
+
+    // Build preview
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf';
+    const previewUrl = (isImage || isPdf) ? URL.createObjectURL(file) : null;
+
+    filePreviews[fieldKey] = {
+      name: file.name,
+      size: file.size,
+      url: previewUrl,
+      type: isImage ? 'image' : isPdf ? 'pdf' : 'other'
+    };
+    filePreviews = filePreviews;
+    fileErrors = fileErrors;
+  }
+
+  function removeFile(field: any) {
+    const fieldKey = `field_${field.id}`;
+
+    // Revoke object URL to avoid memory leak
+    if (filePreviews[fieldKey]?.url) {
+      URL.revokeObjectURL(filePreviews[fieldKey].url!);
+    }
+
+    delete filePreviews[fieldKey];
+    delete fileErrors[fieldKey];
+    filePreviews = filePreviews;
+    fileErrors = fileErrors;
+
+    // Reset native input
+    const input = fileInputs[fieldKey];
+    if (input) input.value = '';
+  }
+
   function getFieldError(fieldName: string): string {
     const f = form as any;
     if (!f?.errors) return '';
@@ -214,8 +329,10 @@
                       type="number"
                       required={field.is_required}
                       placeholder={field.placeholder || ''}
+                      on:keydown={handleNumberKeyDown}
+                      on:paste={handleNumberPaste}
                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 
-                        focus:ring-2 focus:ring-red-500/20 focus:border-red-300 focus:bg-white transition-all text-sm"
+                        focus:ring-2 focus:ring-red-500/20 focus:border-red-300 focus:bg-white transition-all text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       class:border-red-300={getFieldError(`field_${field.id}`)}
                     />
 
@@ -289,30 +406,117 @@
                   <!-- File Upload -->
                   {:else if field.type === 'file'}
                     <div class="relative">
-                      <label
-                        for="field_{field.id}"
-                        class="flex flex-col items-center justify-center w-full py-8 px-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer 
-                          hover:border-red-300 hover:bg-red-50/20 transition-all group/upload"
-                        class:border-red-300={getFieldError(`field_${field.id}`)}
-                      >
-                        <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center mb-3 shadow-sm group-hover/upload:shadow-md transition-shadow">
-                          <svg class="w-6 h-6 text-slate-400 group-hover/upload:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                          </svg>
-                        </div>
-                        <span class="text-sm font-semibold text-slate-600 group-hover/upload:text-red-600 transition-colors">
-                          Klik untuk mengunggah file
-                        </span>
-                        <span class="text-xs text-slate-400 mt-1">PDF, DOC, JPG, PNG (maks. 10MB)</span>
-                      </label>
+                      <!-- Upload dropzone (hidden when file is selected) -->
+                      {#if !filePreviews[`field_${field.id}`]}
+                        <label
+                          for="field_{field.id}"
+                          class="flex flex-col items-center justify-center w-full py-8 px-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer 
+                            hover:border-red-300 hover:bg-red-50/20 transition-all group/upload"
+                          class:border-red-300={getFieldError(`field_${field.id}`) || fileErrors[`field_${field.id}`]}
+                        >
+                          <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center mb-3 shadow-sm group-hover/upload:shadow-md transition-shadow">
+                            <svg class="w-6 h-6 text-slate-400 group-hover/upload:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                          </div>
+                          <span class="text-sm font-semibold text-slate-600 group-hover/upload:text-red-600 transition-colors">
+                            Klik untuk mengunggah file
+                          </span>
+                          <span class="text-xs text-slate-400 mt-1">
+                            {getAcceptDisplay(field)} (maks. {formatFileSize(getFileMaxSize(field))})
+                          </span>
+                        </label>
+                      {/if}
+
                       <input
                         id="field_{field.id}"
                         name="field_{field.id}"
                         type="file"
-                        required={field.is_required}
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        required={field.is_required && !filePreviews[`field_${field.id}`]}
+                        accept={getFileAccept(field)}
+                        on:change={(e) => handleFileChange(e, field)}
+                        bind:this={fileInputs[`field_${field.id}`]}
                         class="sr-only"
                       />
+
+                      <!-- File Preview -->
+                      {#if filePreviews[`field_${field.id}`]}
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden" transition:fly={{ y: 8, duration: 200 }}>
+                          <!-- PDF Preview -->
+                          {#if filePreviews[`field_${field.id}`].type === 'pdf' && filePreviews[`field_${field.id}`].url}
+                            <div class="w-full border-b border-slate-200">
+                              <object
+                                data={filePreviews[`field_${field.id}`].url}
+                                type="application/pdf"
+                                title="Preview PDF"
+                                class="w-full h-[280px]"
+                              >
+                                <p class="p-4 text-sm text-slate-500 text-center">Preview PDF tidak tersedia di browser ini.
+                                  <a href={filePreviews[`field_${field.id}`].url} target="_blank" rel="noopener" class="text-red-600 underline">Buka PDF</a>
+                                </p>
+                              </object>
+                            </div>
+                          {/if}
+
+                          <div class="flex items-center gap-4 p-4">
+                          <!-- Thumbnail or file icon -->
+                          {#if filePreviews[`field_${field.id}`].type === 'image' && filePreviews[`field_${field.id}`].url}
+                            <img
+                              src={filePreviews[`field_${field.id}`].url}
+                              alt="Preview"
+                              class="w-16 h-16 object-cover rounded-lg border border-slate-200 flex-shrink-0"
+                            />
+                          {:else if filePreviews[`field_${field.id}`].type === 'pdf'}
+                            <div class="w-16 h-16 bg-red-50 rounded-lg border border-red-100 flex items-center justify-center flex-shrink-0">
+                              <svg class="w-7 h-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                          {:else}
+                            <div class="w-16 h-16 bg-white rounded-lg border border-slate-200 flex items-center justify-center flex-shrink-0">
+                              <svg class="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                          {/if}
+
+                          <!-- File info -->
+                          <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slate-700 truncate">
+                              {filePreviews[`field_${field.id}`].name}
+                            </p>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                              {formatFileSize(filePreviews[`field_${field.id}`].size)}
+                            </p>
+                          </div>
+
+                          <!-- Remove button -->
+                          <button
+                            type="button"
+                            on:click={() => removeFile(field)}
+                            class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-red-600 
+                              hover:bg-red-50 hover:border-red-200 transition-all flex-shrink-0"
+                          >
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Hapus
+                          </button>
+                          </div>
+                        </div>
+                      {/if}
+
+                      <!-- File size error -->
+                      {#if fileErrors[`field_${field.id}`]}
+                        <p class="mt-1.5 text-xs text-red-500 font-medium" transition:fly={{ y: -4, duration: 150 }}>
+                          {fileErrors[`field_${field.id}`]}
+                        </p>
+                      {/if}
+
+                      <!-- Info note -->
+                      <p class="mt-1.5 text-xs text-slate-400">
+                        Maksimal ukuran file {formatFileSize(getFileMaxSize(field))}.
+                      </p>
                     </div>
 
                   <!-- Default: text -->
