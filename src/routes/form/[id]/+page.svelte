@@ -88,6 +88,54 @@
     }
   }
 
+  function handleTelpKeyDown(event: KeyboardEvent) {
+    const input = event.target as HTMLInputElement;
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    
+    if (allowedKeys.includes(event.key) || (event.ctrlKey === true || event.metaKey === true)) {
+      return;
+    }
+
+    // Must be digit
+    if (!/^[0-9]$/.test(event.key)) {
+      event.preventDefault();
+      return;
+    }
+
+    // First character must be 0
+    if (input.selectionStart === 0 && event.key !== '0') {
+      event.preventDefault();
+      return;
+    }
+
+    // Max 15 characters
+    if (input.value.length >= 15 && input.selectionStart === input.selectionEnd) {
+      event.preventDefault();
+    }
+  }
+
+  function handleTelpPaste(event: ClipboardEvent) {
+    const pastedData = event.clipboardData?.getData('text') || '';
+    const input = event.target as HTMLInputElement;
+    
+    // Check if numeric and starts with 0
+    if (!/^\d+$/.test(pastedData)) {
+      event.preventDefault();
+      return;
+    }
+
+    if (input.selectionStart === 0 && pastedData[0] !== '0' && input.value.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    // Check total length after paste
+    const newValue = input.value.substring(0, input.selectionStart!) + pastedData + input.value.substring(input.selectionEnd!);
+    if (newValue.length > 15 || !newValue.startsWith('0')) {
+      event.preventDefault();
+    }
+  }
+
   // ── File upload state & helpers ──
   let filePreviews: Record<string, { name: string; size: number; url: string | null; type: 'image' | 'pdf' | 'other' }> = {};
   let fileErrors: Record<string, string> = {};
@@ -333,6 +381,22 @@
                       on:paste={handleNumberPaste}
                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 
                         focus:ring-2 focus:ring-red-500/20 focus:border-red-300 focus:bg-white transition-all text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      class:border-red-300={getFieldError(`field_${field.id}`)}
+                    />
+
+                  <!-- Telp Number Input -->
+                  {:else if field.type === 'numbertelp'}
+                    <input
+                      id="field_{field.id}"
+                      name="field_{field.id}"
+                      type="tel"
+                      required={field.is_required}
+                      placeholder={field.placeholder || 'Contoh: 081234567890'}
+                      on:keydown={handleTelpKeyDown}
+                      on:paste={handleTelpPaste}
+                      maxlength="15"
+                      class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 
+                        focus:ring-2 focus:ring-red-500/20 focus:border-red-300 focus:bg-white transition-all text-sm"
                       class:border-red-300={getFieldError(`field_${field.id}`)}
                     />
 
