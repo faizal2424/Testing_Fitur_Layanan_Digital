@@ -3,6 +3,7 @@
   import { enhance } from '$app/forms';
   import { cubicOut } from 'svelte/easing';
   import type { PageData, ActionData } from './$types';
+  import { onMount } from 'svelte';
 
   export let data: PageData;
   export let form: ActionData;
@@ -136,7 +137,55 @@
     }
   }
 
-  // ── File upload state & helpers ──
+  // Searchable Select State
+  let openSelectId: number | null = null;
+  let selectSearch: Record<number, string> = {};
+  let selectedDisplay: Record<number, string> = {};
+
+  function toggleSelect(id: number) {
+    if (openSelectId === id) {
+      openSelectId = null;
+    } else {
+      openSelectId = id;
+      selectSearch[id] = ''; // Reset search on open
+    }
+  }
+
+  function selectOption(fieldId: number, option: string) {
+    selectedDisplay[fieldId] = option;
+    openSelectId = null;
+    
+    // Set value to hidden select/input
+    const el = document.getElementById(`field_${fieldId}`) as HTMLSelectElement;
+    if (el) {
+      el.value = option;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+
+  function getFilteredOptions(optionsStr: string | null, search: string): string[] {
+    const options = parseOptions(optionsStr);
+    if (!search) return options;
+    const s = search.toLowerCase();
+    return options.filter(opt => opt.toLowerCase().includes(s));
+  }
+
+  // Handle click outside to close dropdowns
+  function handleClickOutside(event: MouseEvent) {
+    if (openSelectId !== null) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.searchable-select-container')) {
+        openSelectId = null;
+      }
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  });
+
+  // ── File upload state & helpers ─
   let filePreviews: Record<string, { name: string; size: number; url: string | null; type: 'image' | 'pdf' | 'other' }> = {};
   let fileErrors: Record<string, string> = {};
   let fileInputs: Record<string, HTMLInputElement> = {};
@@ -433,19 +482,91 @@
 
                   <!-- Select -->
                   {:else if field.type === 'select'}
-                    <select
-                      id="field_{field.id}"
-                      name="field_{field.id}"
-                      required={field.is_required}
-                      class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 
-                        focus:ring-2 focus:ring-red-500/20 focus:border-red-300 focus:bg-white transition-all text-sm appearance-none"
-                      class:border-red-300={getFieldError(`field_${field.id}`)}
-                    >
-                      <option value="">— Pilih —</option>
-                      {#each parseOptions(field.options) as opt}
-                        <option value={opt}>{opt}</option>
-                      {/each}
-                    </select>
+                    <div class="relative searchable-select-container">
+                      <!-- Hidden native select for form submission -->
+                      <select
+                        id="field_{field.id}"
+                        name="field_{field.id}"
+                        required={field.is_required}
+                        class="sr-only"
+                        aria-hidden="true"
+                        tabindex="-1"
+                      >
+                        <option value="">— Pilih —</option>
+                        {#each parseOptions(field.options) as opt}
+                          <option value={opt}>{opt}</option>
+                        {/each}
+                      </select>
+
+                      <!-- Custom Select Button -->
+                      <button
+                        type="button"
+                        on:click={() => toggleSelect(field.id)}
+                        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-left flex items-center justify-between
+                          focus:ring-2 focus:ring-red-500/20 focus:border-red-300 focus:bg-white transition-all text-sm group/btn"
+                        class:border-red-300={getFieldError(`field_${field.id}`)}
+                      >
+                        <span class={selectedDisplay[field.id] ? 'text-slate-800 font-medium' : 'text-slate-400'}>
+                          {selectedDisplay[field.id] || '— Pilih —'}
+                        </span>
+                        <svg 
+                          class="w-4 h-4 text-slate-400 group-hover/btn:text-slate-600 transition-transform duration-200" 
+                          class:rotate-180={openSelectId === field.id}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      <!-- Dropdown Menu -->
+                      {#if openSelectId === field.id}
+                        <div 
+                          class="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden"
+                          transition:fly={{ y: 10, duration: 200 }}
+                        >
+                          <!-- Search Bar -->
+                          <div class="p-2 border-b border-slate-100 bg-slate-50/50">
+                            <div class="relative">
+                              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
+                              <input
+                                type="text"
+                                bind:value={selectSearch[field.id]}
+                                placeholder="Cari pilihan..."
+                                class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-300 outline-none transition-all"
+                                on:click|stopPropagation
+                              />
+                            </div>
+                          </div>
+
+                          <!-- Options List -->
+                          <div class="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                            {#if getFilteredOptions(field.options, selectSearch[field.id] || '').length > 0}
+                              {#each getFilteredOptions(field.options, selectSearch[field.id] || '') as opt}
+                                <button
+                                  type="button"
+                                  on:click={() => selectOption(field.id, opt)}
+                                  class="w-full text-left px-4 py-2.5 text-sm rounded-lg transition-colors flex items-center justify-between
+                                    {selectedDisplay[field.id] === opt ? 'bg-red-50 text-red-700 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
+                                >
+                                  <span>{opt}</span>
+                                  {#if selectedDisplay[field.id] === opt}
+                                    <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  {/if}
+                                </button>
+                              {/each}
+                            {:else}
+                              <div class="py-6 px-4 text-center">
+                                <p class="text-xs text-slate-400">Pilihan tidak ditemukan</p>
+                              </div>
+                            {/if}
+                          </div>
+                        </div>
+                      {/if}
+                    </div>
 
                   <!-- Radio -->
                   {:else if field.type === 'radio'}
