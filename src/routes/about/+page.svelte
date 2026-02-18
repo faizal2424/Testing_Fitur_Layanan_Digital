@@ -1,6 +1,9 @@
 <script lang="ts">
   import { fade, slide, fly } from 'svelte/transition';
   import { onMount } from 'svelte';
+  import type { PageData } from './$types';
+
+  export let data: PageData;
   
   let ready = false;
   onMount(() => {
@@ -92,7 +95,7 @@
                 
                 <div class="flex gap-8 pt-4 border-t border-slate-100">
                     <div>
-                        <span class="block text-3xl font-bold text-slate-900"></span>
+                        <span class="block text-3xl font-bold text-slate-900">{data.serviceCount}+</span>
                         <span class="text-sm text-slate-400 font-medium uppercase tracking-wider">Jenis Layanan</span>
                     </div>
                     <div>
