@@ -126,19 +126,7 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         const FH = 'Helvetica';
         const FHB = 'Helvetica-Bold';
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  PAGE BORDER — thin elegant frame
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        doc.save();
-        doc.rect(15, 15, PW - 30, PH - 30)
-            .lineWidth(1.5)
-            .strokeColor(COLORS.primary)
-            .stroke();
-        doc.rect(18, 18, PW - 36, PH - 36)
-            .lineWidth(0.4)
-            .strokeColor(COLORS.accent)
-            .stroke();
-        doc.restore();
+
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  HEADER BACKGROUND — navy blue band
@@ -288,7 +276,6 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
             ['Layanan', submission.services?.name || '-'],
             ['Kode Pengajuan', submission.tracking_code],
             ['Tanggal Pengajuan', submission.created_at ? formatDateIndo(new Date(submission.created_at)) : '-'],
-            ['Status', 'Menunggu Proses'],
         ];
 
         // Table header
@@ -322,20 +309,7 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
             doc.fillColor(COLORS.textLight).font(FH).fontSize(8.5);
             doc.text(label, tableX + padX, y + 6, { width: colLabel - padX, lineBreak: false });
 
-            if (label === 'Status') {
-                // Render status badge
-                const badgeW = 90;
-                const badgeH = 14;
-                const badgeX = tableX + colLabel + padX;
-                const badgeY = y + 4;
-                doc.save();
-                doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 3).fill(COLORS.successBg);
-                doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 3)
-                    .lineWidth(0.5).strokeColor(COLORS.success).stroke();
-                doc.restore();
-                doc.fillColor(COLORS.success).font(FHB).fontSize(7);
-                doc.text('● Menunggu Proses', badgeX + 6, badgeY + 3.5, { width: badgeW - 12, lineBreak: false });
-            } else if (label === 'Kode Pengajuan') {
+            if (label === 'Kode Pengajuan') {
                 doc.fillColor(COLORS.primary).font(FHB).fontSize(9);
                 doc.text(value, tableX + colLabel + padX, y + 6, { width: tableW - colLabel - padX * 2, lineBreak: false });
             } else {
@@ -362,7 +336,6 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
             // Check page space
             if (y > PH - 200) {
                 addPage();
-                drawPageBorder(doc, PW, PH);
                 y = 40;
             }
 
@@ -390,7 +363,6 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
 
                 if (y > PH - 80) {
                     addPage();
-                    drawPageBorder(doc, PW, PH);
                     y = 40;
                 }
 
@@ -427,7 +399,6 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         y += 18;
         if (y > PH - 180) {
             addPage();
-            drawPageBorder(doc, PW, PH);
             y = 40;
         }
 
@@ -443,7 +414,6 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         y += 25;
         if (y > PH - 130) {
             addPage();
-            drawPageBorder(doc, PW, PH);
             y = 40;
         }
 
@@ -485,12 +455,6 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
             ML, footY + 6, { width: CW, align: 'center', lineBreak: false }
         );
 
-        // Small logo/text on footer right
-        doc.fillColor(COLORS.accent).font(FHB).fontSize(6.5);
-        doc.text('DISKOMINFO KAB. SEMARANG', PW - MR - 140, footY + 16, {
-            width: 140, align: 'right', lineBreak: false
-        });
-
         // ── Watermark (subtle diagonal lines on current page) ──
         doc.save();
         doc.opacity(0.035);
@@ -509,19 +473,6 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
 }
 
 
-/** Draw page border */
-function drawPageBorder(doc: any, PW: number, PH: number) {
-    doc.save();
-    doc.rect(15, 15, PW - 30, PH - 30)
-        .lineWidth(1.5)
-        .strokeColor(COLORS.primary)
-        .stroke();
-    doc.rect(18, 18, PW - 36, PH - 36)
-        .lineWidth(0.4)
-        .strokeColor(COLORS.accent)
-        .stroke();
-    doc.restore();
-}
 
 function formatDateIndo(date: Date): string {
     const day = date.getDate().toString().padStart(2, '0');
