@@ -48,6 +48,16 @@
         </svg>
     </div>
     
+    <!-- Menu / Navigation Link -->
+    <div class="absolute top-6 right-6 z-20">
+        <a href="/about" class="text-sm font-semibold text-slate-600 hover:text-red-600 transition-colors bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-sm ring-1 ring-slate-200 hover:ring-red-200 hover:shadow-md flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Tentang Kami
+        </a>
+    </div>
+
     <div class="relative z-10 max-w-4xl mx-auto text-center">
       <div class="inline-flex items-center justify-center p-3 mb-8 bg-white/50 backdrop-blur-sm rounded-full shadow-sm ring-1 ring-slate-200">
           <img src="/img/diskominfosmg.png" alt="Logo" class="h-8 mr-3" />
