@@ -41,6 +41,8 @@
 	"dependencies": {
 		"@prisma/adapter-mariadb": "^7.3.0",
 		"@prisma/client": "^7.3.0",
-		"mariadb": "^3.4.5"
+		"@types/pdfkit": "^0.17.5",
+		"mariadb": "^3.4.5",
+		"pdfkit": "^0.17.2"
 	}
 }

@@ -54,7 +54,7 @@
 
   function handleDateChange(event: Event, field: any) {
     const input = event.target as HTMLInputElement;
-    const value = input.value;
+    const value = input.value; 
     const fieldKey = `field_${field.id}`;
     const minDate = getDateMin(field);
 
