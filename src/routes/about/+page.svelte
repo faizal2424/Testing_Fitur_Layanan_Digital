@@ -2,6 +2,7 @@
   import { fade, slide, fly } from 'svelte/transition';
   import { onMount } from 'svelte';
   import type { PageData } from './$types';
+  import Footer from '$lib/components/Footer.svelte';
 
   export let data: PageData;
   
@@ -228,11 +229,7 @@
 
   </main>
 
-  <footer class="mt-20 border-t border-slate-100 py-10 bg-slate-50">
-      <div class="max-w-7xl mx-auto px-4 text-center">
-        <p class="text-slate-400 text-sm">© 2026 Dinas Komunikasi dan Informatika. All rights reserved.</p>
-      </div>
-  </footer>
+  <Footer />
 
 </div>
 

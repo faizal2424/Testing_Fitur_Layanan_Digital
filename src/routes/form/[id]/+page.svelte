@@ -4,6 +4,7 @@
   import { cubicOut } from 'svelte/easing';
   import type { PageData, ActionData } from './$types';
   import { onMount } from 'svelte';
+  import Footer from '$lib/components/Footer.svelte';
 
   export let data: PageData;
   export let form: ActionData;
@@ -779,6 +780,8 @@
       </p>
     </div>
   </main>
+
+  <Footer />
 </div>
 
 <style>

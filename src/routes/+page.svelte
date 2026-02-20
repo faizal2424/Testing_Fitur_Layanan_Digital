@@ -3,6 +3,7 @@
   import { enhance } from '$app/forms';
   import { cubicOut } from 'svelte/easing';
   import type { PageData, ActionData } from './$types';
+  import Footer from '$lib/components/Footer.svelte';
 
   export let data: PageData;
   export let form: ActionData;
@@ -345,6 +346,8 @@
       </div>
     </div>
   {/if}
+
+  <Footer />
 
   <!-- WhatsApp Floating Button -->
   <a
