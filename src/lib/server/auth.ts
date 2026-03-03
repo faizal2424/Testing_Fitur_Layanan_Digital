@@ -2,6 +2,7 @@ import { db } from './db';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import type { Cookies } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 
 const SESSION_COOKIE = 'session_id';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
@@ -114,6 +115,12 @@ export async function getSessionUser(cookies: Cookies) {
 	} catch {
 		return null;
 	}
+}
+export function requireAdmin(event: any) {
+  const user = event.locals.user;
+  if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+    throw redirect(302, '/mlebet');
+  }
 }
 
 // ============================================================
