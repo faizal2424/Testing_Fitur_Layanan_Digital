@@ -28,6 +28,7 @@ export function getAllowedStatuses(currentStatus: string, role: string): string[
 	if (role === 'admin') {
 		switch (currentStatus) {
 			case 'baru':
+			case 'ditolak_pic':
 				return ['ditugaskan', 'ditolak_pengajuan'];
 			case 'diselesaikan_pic':
 				return ['selesai'];

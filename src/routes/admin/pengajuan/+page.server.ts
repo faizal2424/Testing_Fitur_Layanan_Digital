@@ -1,7 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
 	const serviceFilter = url.searchParams.get('layanan') || '';
 	const statusFilter = url.searchParams.get('status') || '';
 	const search = url.searchParams.get('cari') || '';
@@ -11,6 +11,11 @@ export const load: PageServerLoad = async ({ url }) => {
 	const perPage = 15;
 
 	const where: any = {};
+	const user = (locals as any).user;
+
+	if (user?.role === 'pic') {
+		where.assigned_to = BigInt(user.id);
+	}
 
 	if (serviceFilter) where.service_id = BigInt(serviceFilter);
 	if (statusFilter) where.status = statusFilter;
