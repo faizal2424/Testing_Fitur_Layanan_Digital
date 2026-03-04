@@ -4,9 +4,10 @@ import { db } from '$lib/server/db';
 import { verifyPassword, createSession, generateCaptcha, checkRateLimit } from '$lib/server/auth';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// If already logged in, redirect to admin
+	// If already logged in, redirect based on role
 	if (locals.user) {
-		throw redirect(302, '/admin');
+		const redirectPath = locals.user.role === 'pic' ? '/admin/pengajuan' : '/admin';
+		throw redirect(302, redirectPath);
 	}
 
 	const captcha = generateCaptcha();
@@ -59,6 +60,13 @@ export const actions: Actions = {
 					{ username: username },
 					{ email: username }
 				]
+			},
+			include: {
+				user_roles: {
+					include: {
+						roles: true
+					}
+				}
 			}
 		});
 
@@ -81,7 +89,9 @@ export const actions: Actions = {
 		// Create session
 		await createSession(user.id, cookies);
 
-		// Redirect to admin dashboard
-		throw redirect(302, '/admin');
+		// Redirect based on role
+		const role = user.user_roles[0]?.roles.name.toLowerCase() || 'pic';
+		const redirectPath = role === 'pic' ? '/admin/pengajuan' : '/admin';
+		throw redirect(302, redirectPath);
 	}
 };

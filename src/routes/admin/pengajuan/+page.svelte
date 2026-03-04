@@ -184,11 +184,40 @@
 				</table>
 			</div>
 
+			<!-- Pagination -->
 			{#if data.pagination.totalPages > 1}
 				<div class="pagination">
-					<button class="page-btn" disabled={data.pagination.page <= 1} onclick={() => goToPage(data.pagination.page - 1)}>←</button>
-					<span class="page-info">Hal. {data.pagination.page} / {data.pagination.totalPages}</span>
-					<button class="page-btn" disabled={data.pagination.page >= data.pagination.totalPages} onclick={() => goToPage(data.pagination.page + 1)}>→</button>
+					<button
+						class="page-btn"
+						disabled={data.pagination.page <= 1}
+						onclick={() => goToPage(data.pagination.page - 1)}
+					>
+						← Sebelumnya
+					</button>
+
+					<div class="page-numbers">
+						{#each Array.from({ length: data.pagination.totalPages }, (_, i) => i + 1) as p}
+							{#if p === 1 || p === data.pagination.totalPages || (p >= data.pagination.page - 2 && p <= data.pagination.page + 2)}
+								<button
+									class="page-num"
+									class:active={p === data.pagination.page}
+									onclick={() => goToPage(p)}
+								>
+									{p}
+								</button>
+							{:else if p === data.pagination.page - 3 || p === data.pagination.page + 3}
+								<span class="page-dots">...</span>
+							{/if}
+						{/each}
+					</div>
+
+					<button
+						class="page-btn"
+						disabled={data.pagination.page >= data.pagination.totalPages}
+						onclick={() => goToPage(data.pagination.page + 1)}
+					>
+						Selanjutnya →
+					</button>
 				</div>
 			{/if}
 		{/if}
@@ -270,11 +299,77 @@
 	.empty-state { padding: 3rem 2rem; text-align: center; color: #9ca3af; }
 	.empty-state p { margin-top: 0.75rem; font-size: 0.9rem; }
 
-	.pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1rem; border-top: 1px solid #f3f4f6; }
-	.page-btn { padding: 0.45rem 0.75rem; background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
-	.page-btn:hover:not(:disabled) { background: #f9fafb; }
-	.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-	.page-info { font-size: 0.82rem; color: #6b7280; }
+	/* Pagination */
+	.pagination {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 1rem 1.25rem;
+		border-top: 1px solid #f3f4f6;
+	}
+
+	.page-btn {
+		padding: 0.45rem 1rem;
+		background: white;
+		border: 1.5px solid #e5e7eb;
+		border-radius: 8px;
+		font-size: 0.8rem;
+		font-weight: 500;
+		color: #374151;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.2s;
+	}
+
+	.page-btn:hover:not(:disabled) {
+		background: #f9fafb;
+		border-color: #d1d5db;
+	}
+
+	.page-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.page-numbers {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.page-num {
+		width: 36px;
+		height: 36px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: white;
+		border: 1.5px solid #e5e7eb;
+		border-radius: 8px;
+		font-size: 0.8rem;
+		font-weight: 500;
+		color: #374151;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.2s;
+	}
+
+	.page-num:hover {
+		background: #f9fafb;
+	}
+
+	.page-num.active {
+		background: #800020;
+		color: white;
+		border-color: #800020;
+	}
+
+	.page-dots {
+		color: #9ca3af;
+		font-size: 0.8rem;
+		padding: 0 0.25rem;
+	}
 
 	@media (max-width: 1024px) { .filters-grid { grid-template-columns: repeat(3, 1fr); } .span-2 { grid-column: span 3; } }
 	@media (max-width: 640px) { .filters-grid { grid-template-columns: 1fr; } .span-2 { grid-column: span 1; } }
