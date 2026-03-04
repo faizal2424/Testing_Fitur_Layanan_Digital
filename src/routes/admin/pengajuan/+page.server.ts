@@ -14,7 +14,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const user = (locals as any).user;
 
 	if (user?.role === 'pic') {
-		where.assigned_to = BigInt(user.id);
+		where.OR = [
+			{ assigned_to: BigInt(user.id) },
+			{ submission_team_members: { some: { user_id: BigInt(user.id) } } }
+		];
 	}
 
 	if (serviceFilter) where.service_id = BigInt(serviceFilter);
@@ -39,7 +42,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			where,
 			include: {
 				services: { select: { name: true } },
-				users: { select: { name: true } }
+				users: { select: { name: true } },
+				submission_team_members: {
+					select: { user_id: true }
+				}
 			},
 			orderBy: [
 				{ is_priority: 'desc' },
@@ -56,17 +62,29 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	]);
 
 	return {
-		submissions: submissions.map((s) => ({
-			id: s.id.toString(),
-			applicant_name: s.applicant_name || '-',
-			applicant_email: s.applicant_email || '-',
-			status: s.status,
-			tracking_code: s.tracking_code,
-			is_priority: s.is_priority,
-			service_name: s.services.name,
-			assigned_to_name: s.users?.name || null,
-			created_at: s.created_at?.toISOString() || null
-		})),
+		submissions: submissions.map((s) => {
+			let userRoleInSubmission = null;
+			if (user?.role === 'pic') {
+				if (s.assigned_to === BigInt(user.id)) {
+					userRoleInSubmission = 'PIC Utama';
+				} else if (s.submission_team_members.some((tm) => tm.user_id === BigInt(user.id))) {
+					userRoleInSubmission = 'Anggota Tim';
+				}
+			}
+
+			return {
+				id: s.id.toString(),
+				applicant_name: s.applicant_name || '-',
+				applicant_email: s.applicant_email || '-',
+				status: s.status,
+				tracking_code: s.tracking_code,
+				is_priority: s.is_priority,
+				service_name: s.services.name,
+				assigned_to_name: s.users?.name || null,
+				created_at: s.created_at?.toISOString() || null,
+				userRoleInSubmission
+			};
+		}),
 		services: allServices.map((s) => ({ id: s.id.toString(), name: s.name })),
 		pagination: { page, perPage, totalPages: Math.ceil(total / perPage), total },
 		filters: { layanan: serviceFilter, status: statusFilter, cari: search, dari: dateFrom, sampai: dateTo }

@@ -6,13 +6,56 @@
 
 	let showProcessModal = $state(false);
 	let newNote = $state('');
+	
+	// Local state for modal fields, initialized from props
 	let selectedStatus = $state(data.submission?.status || '');
 	let selectedPic = $state(data.submission?.assigned_to || '');
+
+	// Reset local state if data props change (Svelte 5 recommendation for copy-state)
+	$effect(() => {
+		selectedStatus = data.submission?.status || '';
+		selectedPic = data.submission?.assigned_to || '';
+	});
 
 	$effect(() => {
 		if (selectedStatus !== 'ditugaskan') {
 			selectedPic = data.submission?.assigned_to || '';
 		}
+	});
+
+	let teamSearch = $state('');
+	let showTeamDropdown = $state(false);
+	let selectedTeamIds = $state<string[]>((data.teamMembers || []).map(tm => tm.id));
+
+	$effect(() => {
+		selectedTeamIds = (data.teamMembers || []).map(tm => tm.id);
+	});
+
+	let filteredAssistantPICs = $derived(
+		(data.assistantPICs || []).filter(u => 
+			u.id !== selectedPic && 
+			(u.name.toLowerCase().includes(teamSearch.toLowerCase()) || 
+			 u.email.toLowerCase().includes(teamSearch.toLowerCase()))
+		)
+	);
+
+	function toggleTeamMember(id: string) {
+		if (selectedTeamIds.includes(id)) {
+			selectedTeamIds = selectedTeamIds.filter(i => i !== id);
+		} else {
+			selectedTeamIds = [...selectedTeamIds, id];
+		}
+	}
+
+	let teamContainer = $state<HTMLElement>();
+	$effect(() => {
+		const handleClick = (e: MouseEvent) => {
+			if (teamContainer && !teamContainer.contains(e.target as Node)) {
+				showTeamDropdown = false;
+			}
+		};
+		window.addEventListener('click', handleClick);
+		return () => window.removeEventListener('click', handleClick);
 	});
 
 	const statusLabels: Record<string, string> = {
@@ -131,16 +174,18 @@
 							<span class="info-label">Terakhir Diperbarui</span>
 							<span class="info-value">{formatDate(data.submission.updated_at)}</span>
 						</div>
-						<div class="info-item" style="grid-column: span 2;">
-							<span class="info-label">Anggota Tim</span>
-							<span class="info-value">
-								{#if data.teamMembers.length > 0}
-									{data.teamMembers.map((tm) => tm.name).join(', ')}
-								{:else}
-									<span class="empty-text">Belum ada anggota tim</span>
-								{/if}
-							</span>
-						</div>
+						{#if data.userRole === 'pic' || (data.submission.status !== 'baru' && data.submission.status !== 'ditugaskan')}
+							<div class="info-item" style="grid-column: span 2;">
+								<span class="info-label">Anggota Tim</span>
+								<span class="info-value">
+									{#if data.teamMembers.length > 0}
+										{data.teamMembers.map((tm) => tm.name).join(', ')}
+									{:else}
+										<span class="empty-text">Belum ada anggota tim</span>
+									{/if}
+								</span>
+							</div>
+						{/if}
 					</div>
 				</div>
 
@@ -236,7 +281,7 @@
 				>
 				Kembali
 			</a>
-			{#if data.allowedStatuses.length > 0}
+			{#if data.allowedStatuses.length > 0 && !data.isAssistantOnly}
 				<button
 					class="btn btn-primary btn-lg"
 					onclick={() => {
@@ -266,9 +311,18 @@
 			onclick={() => {
 				showProcessModal = false;
 			}}
+			onkeydown={(e) => {
+				if (e.key === 'Escape') showProcessModal = false;
+			}}
 			role="presentation"
 		>
-			<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog">
+			<div 
+				class="modal" 
+				onclick={(e) => e.stopPropagation()} 
+				onkeydown={(e) => e.stopPropagation()}
+				role="dialog"
+				tabindex="-1"
+			>
 				<div class="modal-header">
 					<h3>Proses Pengajuan</h3>
 					<button
@@ -356,29 +410,110 @@
 							</div>
 						{/if}
 
-						<div class="form-group">
-							<label>Pilih Anggota Tim (Bantuan PIC)</label>
-							<div class="team-selection">
-								{#each data.picUsers as u}
-									{#if u.id !== selectedPic}
-										<label class="checkbox-label sm">
-											<input
-												type="checkbox"
-												name="team_members"
-												value={u.id}
-												checked={data.teamMembers.some((tm) => tm.id === u.id)}
-											/>
-											<span>{u.name}</span>
-										</label>
+						{#if data.userRole === 'pic'}
+							<!-- PIC can manage team during ditugaskan or diproses_pic -->
+							{#if (data.submission.status === 'ditugaskan' || data.submission.status === 'diproses_pic') && !data.isAssistantOnly}
+								<div class="form-group">
+									<label for="team-search">Anggota Tim (Bantuan PIC)</label>
+									<div class="custom-multi-select" bind:this={teamContainer}>
+										<div 
+											class="select-trigger" 
+											onclick={() => showTeamDropdown = !showTeamDropdown}
+											onkeydown={(e) => e.key === 'Enter' && (showTeamDropdown = !showTeamDropdown)}
+											role="button"
+											tabindex="0"
+										>
+											{#if selectedTeamIds.length > 0}
+												<div class="selected-tags">
+													{#each selectedTeamIds as id}
+														{@const pic = data.assistantPICs.find(u => u.id === id)}
+														{#if pic}
+															<span class="tag">
+																{pic.name}
+																<button type="button" onclick={(e) => { e.stopPropagation(); toggleTeamMember(id); }}>✕</button>
+															</span>
+														{/if}
+													{/each}
+												</div>
+											{:else}
+												<span class="placeholder">Pilih Anggota Tim...</span>
+											{/if}
+											<span class="arrow">{showTeamDropdown ? '▲' : '▼'}</span>
+										</div>
+
+										{#if showTeamDropdown}
+											<div class="select-dropdown" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="presentation">
+												<div class="search-box">
+													<input 
+														type="text" 
+														id="team-search"
+														placeholder="Cari PIC..." 
+														bind:value={teamSearch}
+														autocomplete="off"
+													/>
+												</div>
+												<div class="options-list">
+													{#each filteredAssistantPICs as u}
+														<label class="option-item">
+															<input 
+																type="checkbox" 
+																checked={selectedTeamIds.includes(u.id)}
+																onchange={() => toggleTeamMember(u.id)}
+															/>
+															<div class="option-info">
+																<span class="option-name">{u.name}</span>
+																<span class="option-email">{u.email}</span>
+															</div>
+														</label>
+													{:else}
+														<div class="empty-results">Tidak ada PIC ditemukan.</div>
+													{/each}
+												</div>
+											</div>
+										{/if}
+									</div>
+									
+									<!-- Hidden inputs for form submission -->
+									{#each selectedTeamIds as id}
+										<input type="hidden" name="team_members" value={id} />
+									{/each}
+									
+									<small class="help-text">Klik untuk mencari dan memilih beberapa anggota tim pembantu.</small>
+								</div>
+							{:else}
+								<!-- Locked for PIC after diproses_pic or if Assistant -->
+								<div class="form-group">
+									<span class="fake-label">Anggota Tim</span>
+									<div class="read-only-box">
+										{#if data.teamMembers.length > 0}
+											{data.teamMembers.map((tm) => tm.name).join(', ')}
+										{:else}
+											<span class="empty-text">Tidak ada anggota tim</span>
+										{/if}
+									</div>
+									<small class="help-text">
+										{#if data.isAssistantOnly}
+											Hanya PIC Utama yang dapat mengelola anggota tim.
+										{:else}
+											Daftar tim dikunci setelah tahap "Diproses" selesai.
+										{/if}
+									</small>
+								</div>
+							{/if}
+						{:else if data.submission.status !== 'baru' && data.submission.status !== 'ditugaskan'}
+							<!-- Admin sees read-only list after assignment stage -->
+							<div class="form-group">
+								<span class="fake-label">Anggota Tim</span>
+								<div class="read-only-box">
+									{#if data.teamMembers.length > 0}
+										{data.teamMembers.map((tm) => tm.name).join(', ')}
+									{:else}
+										<span class="empty-text">Belum ada anggota tim</span>
 									{/if}
-								{:else}
-									<p class="empty-text">Tidak ada PIC lain tersedia.</p>
-								{/each}
+								</div>
+								<small class="help-text">Hanya PIC yang dapat mengelola anggota tim pembantu.</small>
 							</div>
-							<small class="help-text"
-								>Centang PIC lain yang membantu menangani pengajuan ini (selain PIC Utama).</small
-							>
-						</div>
+						{/if}
 
 						<div class="form-group">
 							<label for="status-note">Catatan Tambahan</label>
@@ -884,23 +1019,171 @@
 		margin-top: 0.2rem;
 	}
 
-	.team-selection {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem;
-		max-height: 150px;
-		overflow-y: auto;
+
+	.read-only-box {
 		padding: 0.75rem;
 		background: #f9fafb;
 		border: 1.5px solid #e5e7eb;
 		border-radius: 10px;
+		font-size: 0.85rem;
+		color: #374151;
+		min-height: 40px;
+		display: flex;
+		align-items: center;
 	}
-	.checkbox-label.sm {
+
+	.fake-label {
+		display: block;
+		font-size: 0.88rem;
+		font-weight: 600;
+		color: #374151;
+		margin-bottom: 0.5rem;
+	}
+
+	/* Custom Multi-select Searchable Dropdown */
+	.custom-multi-select {
+		position: relative;
+		width: 100%;
+	}
+
+	.select-trigger {
+		background: #f9fafb;
+		border: 1.5px solid #e5e7eb;
+		border-radius: 10px;
+		padding: 0.6rem 2.5rem 0.6rem 0.75rem;
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		cursor: pointer;
+		position: relative;
+		transition: all 0.2s;
+	}
+
+	.select-trigger:focus {
+		outline: none;
+		border-color: #800020;
+		box-shadow: 0 0 0 3px rgba(128,0,32,0.1);
+	}
+
+	.select-trigger .arrow {
+		position: absolute;
+		right: 1rem;
+		font-size: 0.7rem;
+		color: #9ca3af;
+	}
+
+	.placeholder {
+		color: #9ca3af;
+		font-size: 0.85rem;
+	}
+
+	.selected-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+
+	.tag {
+		background: #ebf5ff;
+		color: #1e40af;
+		padding: 0.15rem 0.5rem;
+		border-radius: 6px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		border: 1px solid #bfdbfe;
+	}
+
+	.tag button {
+		background: none;
+		border: none;
+		color: #1e40af;
 		font-size: 0.8rem;
+		cursor: pointer;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
-	.checkbox-label.sm input {
-		width: 0.9rem;
-		height: 0.9rem;
+
+	.select-dropdown {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		right: 0;
+		z-index: 100;
+		background: white;
+		border: 1px solid #e5e7eb;
+		border-radius: 12px;
+		margin-top: 0.5rem;
+		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		max-height: 300px;
+	}
+
+	.search-box {
+		padding: 0.75rem;
+		border-bottom: 1px solid #f3f4f6;
+	}
+
+	.search-box input {
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid #e5e7eb;
+		border-radius: 8px;
+		font-size: 0.85rem;
+	}
+
+	.options-list {
+		overflow-y: auto;
+		padding: 0.5rem;
+	}
+
+	.option-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.6rem 0.75rem;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+
+	.option-item:hover {
+		background: #f9fafb;
+	}
+
+	.option-item input[type="checkbox"] {
+		width: 16px;
+		height: 16px;
+		accent-color: #800020;
+	}
+
+	.option-info {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.option-name {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: #374151;
+	}
+
+	.option-email {
+		font-size: 0.75rem;
+		color: #6b7280;
+	}
+
+	.empty-results {
+		padding: 2rem 1rem;
+		text-align: center;
+		font-size: 0.85rem;
+		color: #9ca3af;
 	}
 
 	@media (max-width: 900px) {
