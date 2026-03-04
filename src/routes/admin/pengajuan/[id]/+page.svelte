@@ -6,6 +6,14 @@
 
 	let showProcessModal = $state(false);
 	let newNote = $state('');
+	let selectedStatus = $state(data.submission?.status || '');
+	let selectedPic = $state(data.submission?.assigned_to || '');
+
+	$effect(() => {
+		if (selectedStatus !== 'ditugaskan') {
+			selectedPic = data.submission?.assigned_to || '';
+		}
+	});
 
 	const statusLabels: Record<string, string> = {
 		baru: 'Baru', ditugaskan: 'Ditugaskan', diproses_pic: 'Diproses PIC',
@@ -20,6 +28,12 @@
 
 	function getStatusLabel(s: string) { return statusLabels[s] || s; }
 	function getStatusColor(s: string) { return statusColors[s] || 'gray'; }
+
+	let canEditPriority = $derived(
+		(data.userRole === 'admin' || data.userRole === 'superadmin') && 
+		(data.submission?.status === 'baru' || data.submission?.status === 'ditolak_pic') && 
+		selectedStatus === 'ditugaskan'
+	);
 
 	function formatDate(d: string | null) {
 		if (!d) return '-';
@@ -160,10 +174,12 @@
 				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
 				Kembali
 			</a>
-			<button class="btn btn-primary btn-lg" onclick={() => { showProcessModal = true; }}>
-				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-				Proses Pengajuan
-			</button>
+			{#if data.allowedStatuses.length > 0}
+				<button class="btn btn-primary btn-lg" onclick={() => { showProcessModal = true; }}>
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+					Proses Pengajuan
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -181,8 +197,8 @@
 					<div class="modal-body">
 						<div class="form-group">
 							<label for="new-status">Status Pengajuan</label>
-							<select id="new-status" name="status" required>
-								<option value={data.submission.status} selected>{statusLabels[data.submission.status]}</option>
+							<select id="new-status" name="status" bind:value={selectedStatus} required>
+								<option value={data.submission.status}>{statusLabels[data.submission.status]}</option>
 								{#each data.allowedStatuses as v}
 									{#if statusLabels[v] && v !== data.submission.status}
 										<option value={v}>{statusLabels[v]}</option>
@@ -191,23 +207,36 @@
 							</select>
 						</div>
 
-						<div class="form-group checkbox-group">
-							<label for="is_priority" class="checkbox-label">
-								<input type="checkbox" id="is_priority" name="is_priority" checked={data.submission.is_priority}>
+						<div class="form-group checkbox-group" style={!canEditPriority ? 'opacity: 0.7;' : ''}>
+							<label for="is_priority" class="checkbox-label" style={!canEditPriority ? 'cursor: not-allowed;' : ''}>
+								<input type="checkbox" id="is_priority" name="is_priority" checked={data.submission?.is_priority} disabled={!canEditPriority}>
 								<span>Tandai sebagai Prioritas Tinggi ⚡</span>
 							</label>
+							{#if !canEditPriority && data.userRole !== 'pic'}
+								<small class="help-text">Prioritas hanya dapat diatur saat menugaskan PIC untuk pertama kali (dari Baru/Ditolak PIC).</small>
+							{:else}
+								<small class="help-text">Read-only untuk PIC.</small>
+							{/if}
 						</div>
 
-						<div class="form-group">
-							<label for="pic-select">Penugasan PIC</label>
-							<select id="pic-select" name="pic_id">
-								<option value="">— Tidak ada PIC —</option>
-								{#each data.picUsers as u}
-									<option value={u.id} selected={u.id === data.submission.assigned_to}>{u.name} ({u.email})</option>
-								{/each}
-							</select>
-							<small class="help-text">Wajib diisi jika status diubah menjadi Ditugaskan.</small>
-						</div>
+						{#if data.userRole !== 'pic'}
+							<div class="form-group" style={selectedStatus !== 'ditugaskan' ? 'opacity: 0.6;' : ''}>
+								<label for="pic-select">Penugasan PIC</label>
+								<select id="pic-select" name="pic_id" bind:value={selectedPic} disabled={selectedStatus !== 'ditugaskan'} required={selectedStatus === 'ditugaskan'}>
+									<option value="">— Tidak ada PIC —</option>
+									{#each data.picUsers as u}
+										<option value={u.id}>{u.name} ({u.email})</option>
+									{/each}
+								</select>
+								<small class="help-text">
+									{#if selectedStatus === 'ditugaskan'}
+										Pilih PIC yang akan ditugaskan.
+									{:else}
+										Penugasan PIC hanya dapat diubah pada status "Ditugaskan".
+									{/if}
+								</small>
+							</div>
+						{/if}
 
 						<div class="form-group">
 							<label for="status-note">Catatan Tambahan</label>

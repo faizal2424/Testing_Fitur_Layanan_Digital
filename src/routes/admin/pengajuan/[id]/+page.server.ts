@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { getAllowedStatuses } from '$lib/utils/submissionFlow';
@@ -25,6 +25,12 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 
 	if (!submission) {
 		return { submission: null, picUsers: [], values: [], notes: [] };
+	}
+
+	// PIC Access Control: only allow if assigned to this PIC
+	const user = locals.user;
+	if (user?.role === 'pic' && submission.assigned_to !== BigInt(user.id)) {
+		throw error(403, 'Anda tidak memiliki akses ke pengajuan ini.');
 	}
 
 	// Get PIC users for assignment
@@ -72,7 +78,8 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 			name: u.name,
 			email: u.email
 		})),
-		allowedStatuses: getAllowedStatuses(submission.status, locals.user?.role || '')
+		allowedStatuses: getAllowedStatuses(submission.status, locals.user?.role || ''),
+		userRole: locals.user?.role || ''
 	};
 };
 
@@ -118,13 +125,17 @@ export const actions: Actions = {
 			return fail(400, { error: 'PIC wajib ditempatkan ketika status adalah ditugaskan.' });
 		}
 
+		// Priority locking logic
+		const isAssignmentPhase = (oldStatus === 'baru' || oldStatus === 'ditolak_pic') && newStatus === 'ditugaskan';
+		const canChangePriority = (userRole === 'admin' || userRole === 'superadmin') && isAssignmentPhase;
+
 		await db.$transaction([
 			db.service_submissions.update({
 				where: { id: submissionId },
 				data: { 
 					status: newStatus, 
-					assigned_to: newPicId,
-					is_priority: newIsPriority,
+					assigned_to: newStatus === 'ditugaskan' ? newPicId : submission.assigned_to,
+					is_priority: canChangePriority ? newIsPriority : submission.is_priority,
 					updated_at: new Date() 
 				}
 			}),
