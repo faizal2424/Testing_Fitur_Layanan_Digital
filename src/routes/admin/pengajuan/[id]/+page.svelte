@@ -11,12 +11,22 @@
 	let selectedStatus = $state(data.submission?.status || '');
 	let selectedPic = $state(data.submission?.assigned_to || '');
 	let statusError = $state('');
+	let showToast = $state(false);
+	let toastMessage = $state('');
 
 	$effect(() => {
 		if (selectedStatus !== data.submission?.status) {
 			statusError = '';
 		}
 	});
+
+	function triggerToast(message: string) {
+		toastMessage = message;
+		showToast = true;
+		setTimeout(() => {
+			showToast = false;
+		}, 5000);
+	}
 
 	// Reset local state if data props change (Svelte 5 recommendation for copy-state)
 	$effect(() => {
@@ -121,10 +131,6 @@
 	<div class="page"><p>Pengajuan tidak ditemukan.</p></div>
 {:else}
 	<div class="page">
-		<div class="breadcrumb">
-			<a href="/admin/pengajuan">← Kembali ke Pengajuan</a>
-		</div>
-
 		<!-- Header -->
 		<div class="detail-header">
 			<div class="header-left">
@@ -149,9 +155,6 @@
 			</div>
 		</div>
 
-		{#if form?.success}
-			<div class="alert alert-success">{form.message}</div>
-		{/if}
 		{#if form?.error}
 			<div class="alert alert-error">{form.error}</div>
 		{/if}
@@ -348,9 +351,12 @@
 							cancel();
 							return;
 						}
-						return async ({ update }) => {
+						return async ({ update, result }) => {
 							showProcessModal = false;
 							await update();
+							if (result.type === 'success' && result.data?.success) {
+								triggerToast(result.data.message as string);
+							}
 						};
 					}}
 				>
@@ -556,23 +562,21 @@
 			</div>
 		</div>
 	{/if}
+
+	{#if showToast}
+		<div class="toast-container">
+			<div class="toast success">
+				<div class="toast-icon">✓</div>
+				<div class="toast-content">{toastMessage}</div>
+			</div>
+		</div>
+	{/if}
 {/if}
 
 <style>
 	.page {
 		max-width: 1200px;
 		margin: 0 auto;
-	}
-	.breadcrumb {
-		margin-bottom: 1rem;
-	}
-	.breadcrumb a {
-		font-size: 0.85rem;
-		color: #6b7280;
-		text-decoration: none;
-	}
-	.breadcrumb a:hover {
-		color: #800020;
 	}
 
 	.detail-header {
@@ -1201,6 +1205,57 @@
 		text-align: center;
 		font-size: 0.85rem;
 		color: #9ca3af;
+	}
+
+	/* Toast Notification */
+	.toast-container {
+		position: fixed;
+		top: 2rem;
+		right: 2rem;
+		z-index: 9999;
+		animation: toast-in 0.3s ease-out;
+	}
+
+	.toast {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 1rem 1.5rem;
+		background: white;
+		border-radius: 12px;
+		box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+		min-width: 300px;
+		border-left: 4px solid #10b981;
+	}
+
+	.toast-icon {
+		background: #10b981;
+		color: white;
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.8rem;
+		font-weight: bold;
+	}
+
+	.toast-content {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #111827;
+	}
+
+	@keyframes toast-in {
+		from {
+			transform: translateX(100%);
+			opacity: 0;
+		}
+		to {
+			transform: translateX(0);
+			opacity: 1;
+		}
 	}
 
 	@media (max-width: 900px) {
