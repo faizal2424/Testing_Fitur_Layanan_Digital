@@ -41,7 +41,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				services: { select: { name: true } },
 				users: { select: { name: true } }
 			},
-			orderBy: { created_at: 'desc' },
+			orderBy: [
+				{ is_priority: 'desc' },
+				{ created_at: 'desc' }
+			],
 			skip: (page - 1) * perPage,
 			take: perPage
 		}),

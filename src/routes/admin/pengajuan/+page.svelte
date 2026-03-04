@@ -143,10 +143,18 @@
 					<tbody>
 						{#each data.submissions as sub}
 							<tr>
-								<td><code class="tracking-code">{sub.tracking_code}</code></td>
+								<td>
+									<div class="code-with-icon">
+										{#if sub.is_priority}<span class="priority-icon" title="Prioritas Tinggi">⚡</span>{/if}
+										<code class="tracking-code">{sub.tracking_code}</code>
+									</div>
+								</td>
 								<td>
 									<div class="applicant-info">
-										<span class="applicant-name">{sub.applicant_name}</span>
+										<div class="name-with-badge">
+											<span class="applicant-name">{sub.applicant_name}</span>
+											{#if sub.is_priority}<span class="priority-badge">Prioritas</span>{/if}
+										</div>
 										<span class="applicant-email">{sub.applicant_email}</span>
 									</div>
 								</td>
@@ -206,7 +214,12 @@
 	tbody tr { transition: background 0.15s; }
 	tbody tr:hover { background: #fafafa; }
 	.tracking-code { background: #f3f4f6; padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.78rem; font-weight: 600; color: #374151; }
+	.code-with-icon { display: flex; align-items: center; gap: 0.4rem; }
+	.priority-icon { color: #d97706; font-size: 1rem; filter: drop-shadow(0 0 2px rgba(217,119,6,0.2)); }
+	
 	.applicant-info { display: flex; flex-direction: column; }
+	.name-with-badge { display: flex; align-items: center; gap: 0.5rem; }
+	.priority-badge { background: #fef2f2; color: #dc2626; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px; text-transform: uppercase; border: 1px solid #fee2e2; }
 	.applicant-name { font-weight: 600; color: #111827; }
 	.applicant-email { font-size: 0.75rem; color: #9ca3af; }
 	.status-badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }

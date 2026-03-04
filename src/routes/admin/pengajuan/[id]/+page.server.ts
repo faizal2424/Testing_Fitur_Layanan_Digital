@@ -19,6 +19,9 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 			submission_notes: {
 				include: { users: { select: { name: true } } },
 				orderBy: { created_at: 'desc' }
+			},
+			submission_team_members: {
+				include: { users: { select: { id: true, name: true } } }
 			}
 		}
 	});
@@ -78,6 +81,10 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 			name: u.name,
 			email: u.email
 		})),
+		teamMembers: submission.submission_team_members.map((tm) => ({
+			id: tm.users.id.toString(),
+			name: tm.users.name
+		})),
 		allowedStatuses: getAllowedStatuses(submission.status, locals.user?.role || ''),
 		userRole: locals.user?.role || ''
 	};
@@ -89,6 +96,7 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const newStatus = formData.get('status')?.toString();
 		const picIdStr = formData.get('pic_id')?.toString();
+		const teamMemberIds = formData.getAll('team_members').map((id) => id.toString());
 		const isPriorityStr = formData.get('is_priority')?.toString(); // 'true' or 'false' or undefined
 		const note = formData.get('note')?.toString()?.trim() || null;
 		
@@ -149,7 +157,19 @@ export const actions: Actions = {
 					created_at: new Date(),
 					updated_at: new Date()
 				}
-			})
+			}),
+			// Sync team members (many-to-many pivot)
+			db.submission_team_members.deleteMany({
+				where: { submission_id: submissionId }
+			}),
+			...(teamMemberIds.length > 0 ? [
+				db.submission_team_members.createMany({
+					data: teamMemberIds.map(id => ({
+						submission_id: submissionId,
+						user_id: BigInt(id)
+					}))
+				})
+			] : [])
 		]);
 
 		return { success: true, message: 'Pengajuan berhasil diproses dan diperbarui.' };
