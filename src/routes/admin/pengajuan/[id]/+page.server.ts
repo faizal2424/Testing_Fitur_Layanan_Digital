@@ -175,6 +175,8 @@ export const actions: Actions = {
 			if (userRole === 'pic' && submission.is_priority && newStatus === 'ditolak_pic') {
 				return fail(400, { error: 'Pengajuan prioritas tinggi tidak boleh ditolak.' });
 			}
+		} else {
+			return fail(400, { error: 'Status belum diubah. Silakan pilih status baru sebelum menyimpan perubahan.' });
 		}
 
 		// Validation: if status is ditugaskan, there must be a PIC
@@ -208,8 +210,8 @@ export const actions: Actions = {
 				}
 			}),
 			// Sync team members (many-to-many pivot)
-			// Rule: Only PIC can change team members, and only during ditugaskan or diproses_pic phase
-			...(userRole === 'pic' && (oldStatus === 'ditugaskan' || oldStatus === 'diproses_pic') ? [
+			// Rule: Only PIC can change team members, and only during transition from 'ditugaskan' to 'diproses_pic'
+			...(userRole === 'pic' && oldStatus === 'ditugaskan' ? [
 				db.submission_team_members.deleteMany({
 					where: { submission_id: submissionId }
 				}),

@@ -10,6 +10,13 @@
 	// Local state for modal fields, initialized from props
 	let selectedStatus = $state(data.submission?.status || '');
 	let selectedPic = $state(data.submission?.assigned_to || '');
+	let statusError = $state('');
+
+	$effect(() => {
+		if (selectedStatus !== data.submission?.status) {
+			statusError = '';
+		}
+	});
 
 	// Reset local state if data props change (Svelte 5 recommendation for copy-state)
 	$effect(() => {
@@ -335,7 +342,12 @@
 				<form
 					method="POST"
 					action="?/process"
-					use:enhance={() => {
+					use:enhance={({ cancel }) => {
+						if (selectedStatus === data.submission?.status) {
+							statusError = 'Status belum diubah. Silakan pilih status baru sebelum menyimpan perubahan.';
+							cancel();
+							return;
+						}
 						return async ({ update }) => {
 							showProcessModal = false;
 							await update();
@@ -343,6 +355,11 @@
 					}}
 				>
 					<div class="modal-body">
+						{#if statusError}
+							<div class="alert alert-error" style="margin-bottom: 1rem;">
+								{statusError}
+							</div>
+						{/if}
 						<div class="form-group">
 							<label for="new-status">Status Pengajuan</label>
 							<select id="new-status" name="status" bind:value={selectedStatus} required>
@@ -411,8 +428,8 @@
 						{/if}
 
 						{#if data.userRole === 'pic'}
-							<!-- PIC can manage team during ditugaskan or diproses_pic -->
-							{#if (data.submission.status === 'ditugaskan' || data.submission.status === 'diproses_pic') && !data.isAssistantOnly}
+							<!-- PIC can manage team ONLY during transition from ditugaskan -->
+							{#if data.submission.status === 'ditugaskan' && !data.isAssistantOnly}
 								<div class="form-group">
 									<label for="team-search">Anggota Tim (Bantuan PIC)</label>
 									<div class="custom-multi-select" bind:this={teamContainer}>
@@ -495,7 +512,7 @@
 										{#if data.isAssistantOnly}
 											Hanya PIC Utama yang dapat mengelola anggota tim.
 										{:else}
-											Daftar tim dikunci setelah tahap "Diproses" selesai.
+											Anggota tim hanya dapat diatur saat status "Ditugaskan".
 										{/if}
 									</small>
 								</div>
