@@ -4,8 +4,7 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	let showStatusModal = $state(false);
-	let showAssignModal = $state(false);
+	let showProcessModal = $state(false);
 	let newNote = $state('');
 
 	const statusLabels: Record<string, string> = {
@@ -57,21 +56,6 @@
 				<p class="detail-meta">
 					Diajukan oleh <strong>{data.submission.applicant_name}</strong> • {formatDate(data.submission.created_at)}
 				</p>
-			</div>
-			<div class="header-actions">
-				<form method="POST" action="?/togglePriority" use:enhance>
-					<button type="submit" class="btn btn-outline btn-sm" title="Toggle Prioritas">
-						{data.submission.is_priority ? '⚡ Batalkan Prioritas' : '☆ Tandai Prioritas'}
-					</button>
-				</form>
-				<button class="btn btn-outline btn-sm" onclick={() => { showAssignModal = true; }}>
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-					{data.submission.assigned_to_name ? 'Ganti PIC' : 'Tugaskan PIC'}
-				</button>
-				<button class="btn btn-primary btn-sm" onclick={() => { showStatusModal = true; }}>
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-					Ubah Status
-				</button>
 			</div>
 		</div>
 
@@ -135,18 +119,6 @@
 
 			<!-- Right: Notes & Timeline -->
 			<div class="detail-sidebar">
-				<!-- Add Note -->
-				<div class="card">
-					<h3 class="card-title">Tambah Catatan</h3>
-					<form method="POST" action="?/addNote" use:enhance={() => {
-						return async ({ update }) => { newNote = ''; await update(); };
-					}}>
-						<textarea name="note" rows="3" placeholder="Tulis catatan..." bind:value={newNote}></textarea>
-						<button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.5rem; width: 100%;" disabled={!newNote.trim()}>
-							Kirim Catatan
-						</button>
-					</form>
-				</div>
 
 				<!-- Timeline -->
 				<div class="card">
@@ -182,73 +154,65 @@
 				</div>
 			</div>
 		</div>
+
+		<div class="bottom-actions">
+			<button class="btn btn-primary btn-lg" onclick={() => { showProcessModal = true; }}>
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+				Proses Pengajuan
+			</button>
+		</div>
 	</div>
 
-	<!-- Status Modal -->
-	{#if showStatusModal}
-		<div class="modal-overlay" onclick={() => { showStatusModal = false; }} role="presentation">
+	<!-- Process Modal -->
+	{#if showProcessModal}
+		<div class="modal-overlay" onclick={() => { showProcessModal = false; }} role="presentation">
 			<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog">
 				<div class="modal-header">
-					<h3>Ubah Status</h3>
-					<button class="modal-close" onclick={() => { showStatusModal = false; }}>✕</button>
+					<h3>Proses Pengajuan</h3>
+					<button class="modal-close" onclick={() => { showProcessModal = false; }}>✕</button>
 				</div>
-				<form method="POST" action="?/changeStatus" use:enhance={() => {
-					return async ({ update }) => { showStatusModal = false; await update(); };
+				<form method="POST" action="?/process" use:enhance={() => {
+					return async ({ update }) => { showProcessModal = false; await update(); };
 				}}>
 					<div class="modal-body">
-						<p class="current-status-label">Status saat ini: <span class="status-badge {getStatusColor(data.submission.status)}">{getStatusLabel(data.submission.status)}</span></p>
 						<div class="form-group">
-							<label for="new-status">Status Baru</label>
+							<label for="new-status">Status Pengajuan</label>
 							<select id="new-status" name="status" required>
-								{#each Object.entries(statusLabels) as [v, l]}
-									{#if v !== data.submission.status}
-										<option value={v}>{l}</option>
+								<option value={data.submission.status} selected>{statusLabels[data.submission.status]}</option>
+								{#each data.allowedStatuses as v}
+									{#if statusLabels[v] && v !== data.submission.status}
+										<option value={v}>{statusLabels[v]}</option>
 									{/if}
 								{/each}
 							</select>
 						</div>
-						<div class="form-group">
-							<label for="status-note">Catatan (opsional)</label>
-							<textarea id="status-note" name="note" rows="3" placeholder="Alasan perubahan status..."></textarea>
-						</div>
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-outline" onclick={() => { showStatusModal = false; }}>Batal</button>
-						<button type="submit" class="btn btn-primary">Ubah Status</button>
-					</div>
-				</form>
-			</div>
-		</div>
-	{/if}
 
-	<!-- Assign Modal -->
-	{#if showAssignModal}
-		<div class="modal-overlay" onclick={() => { showAssignModal = false; }} role="presentation">
-			<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog">
-				<div class="modal-header">
-					<h3>Tugaskan PIC</h3>
-					<button class="modal-close" onclick={() => { showAssignModal = false; }}>✕</button>
-				</div>
-				<form method="POST" action="?/assign" use:enhance={() => {
-					return async ({ update }) => { showAssignModal = false; await update(); };
-				}}>
-					<div class="modal-body">
-						{#if data.submission.assigned_to_name}
-							<p class="current-status-label">PIC saat ini: <strong>{data.submission.assigned_to_name}</strong></p>
-						{/if}
+						<div class="form-group checkbox-group">
+							<label for="is_priority" class="checkbox-label">
+								<input type="checkbox" id="is_priority" name="is_priority" checked={data.submission.is_priority}>
+								<span>Tandai sebagai Prioritas Tinggi ⚡</span>
+							</label>
+						</div>
+
 						<div class="form-group">
-							<label for="pic-select">Pilih PIC</label>
-							<select id="pic-select" name="pic_id" required>
-								<option value="">— Pilih PIC —</option>
+							<label for="pic-select">Penugasan PIC</label>
+							<select id="pic-select" name="pic_id">
+								<option value="">— Tidak ada PIC —</option>
 								{#each data.picUsers as u}
 									<option value={u.id} selected={u.id === data.submission.assigned_to}>{u.name} ({u.email})</option>
 								{/each}
 							</select>
+							<small class="help-text">Wajib diisi jika status diubah menjadi Ditugaskan.</small>
+						</div>
+
+						<div class="form-group">
+							<label for="status-note">Catatan Tambahan</label>
+							<textarea id="status-note" name="note" rows="4" placeholder="Tuliskan catatan terkait pemrosesan ini..."></textarea>
 						</div>
 					</div>
 					<div class="modal-footer">
-						<button type="button" class="btn btn-outline" onclick={() => { showAssignModal = false; }}>Batal</button>
-						<button type="submit" class="btn btn-primary">Tugaskan</button>
+						<button type="button" class="btn btn-outline" onclick={() => { showProcessModal = false; }}>Batal</button>
+						<button type="submit" class="btn btn-primary">Simpan Perubahan</button>
 					</div>
 				</form>
 			</div>
@@ -345,6 +309,14 @@
 	.form-group select, .form-group textarea { padding: 0.6rem 0.85rem; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 0.85rem; color: #1f2937; background: #f9fafb; font-family: inherit; }
 	.form-group select:focus, .form-group textarea:focus { outline: none; border-color: #800020; box-shadow: 0 0 0 3px rgba(128,0,32,0.1); background: white; }
 	.current-status-label { font-size: 0.85rem; color: #374151; margin: 0; }
+
+	.bottom-actions { display: flex; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #e5e7eb; }
+	.btn-lg { padding: 0.8rem 1.5rem; font-size: 1.05rem; }
+
+	.checkbox-group { flex-direction: row; align-items: center; }
+	.checkbox-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 500; color: #111827; }
+	.checkbox-label input[type="checkbox"] { width: 1.1rem; height: 1.1rem; cursor: pointer; accent-color: #800020; }
+	.help-text { font-size: 0.75rem; color: #6b7280; margin-top: 0.2rem; }
 
 	@media (max-width: 900px) {
 		.detail-grid { grid-template-columns: 1fr; }
