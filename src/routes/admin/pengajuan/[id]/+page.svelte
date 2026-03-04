@@ -156,6 +156,10 @@
 		</div>
 
 		<div class="bottom-actions">
+			<a href="/admin/pengajuan" class="btn btn-outline btn-lg">
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+				Kembali
+			</a>
 			<button class="btn btn-primary btn-lg" onclick={() => { showProcessModal = true; }}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
 				Proses Pengajuan
@@ -234,7 +238,7 @@
 	.detail-meta { font-size: 0.85rem; color: #6b7280; margin: 0; }
 	.header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
-	.btn { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 10px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; border: none; }
+	.btn { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 10px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; border: none; text-decoration: none; }
 	.btn-sm { padding: 0.45rem 0.85rem; font-size: 0.82rem; }
 	.btn-primary { background: linear-gradient(135deg, #800020, #a80030); color: white; box-shadow: 0 2px 8px rgba(128,0,32,0.25); }
 	.btn-primary:hover { transform: translateY(-1px); }
@@ -310,7 +314,7 @@
 	.form-group select:focus, .form-group textarea:focus { outline: none; border-color: #800020; box-shadow: 0 0 0 3px rgba(128,0,32,0.1); background: white; }
 	.current-status-label { font-size: 0.85rem; color: #374151; margin: 0; }
 
-	.bottom-actions { display: flex; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #e5e7eb; }
+	.bottom-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed #e5e7eb; }
 	.btn-lg { padding: 0.8rem 1.5rem; font-size: 1.05rem; }
 
 	.checkbox-group { flex-direction: row; align-items: center; }
