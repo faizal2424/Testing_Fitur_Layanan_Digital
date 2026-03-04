@@ -556,7 +556,22 @@
 								showProcessModal = false;
 							}}>Batal</button
 						>
-						<button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+						<button type="submit" class="btn btn-primary">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2.5"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<polyline points="20 6 9 17 4 12" />
+							</svg>
+							Simpan Perubahan
+						</button>
 					</div>
 				</form>
 			</div>
@@ -631,7 +646,8 @@
 	.btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.4rem;
+		gap: 0.5rem;
+		padding: 0.6rem 1.25rem;
 		border-radius: 10px;
 		font-weight: 600;
 		cursor: pointer;
@@ -639,6 +655,7 @@
 		transition: all 0.2s;
 		border: none;
 		text-decoration: none;
+		white-space: nowrap;
 	}
 	.btn-sm {
 		padding: 0.45rem 0.85rem;
