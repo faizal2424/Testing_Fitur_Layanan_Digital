@@ -11,6 +11,14 @@
 	let filterDari = $state(data.filters.dari);
 	let filterSampai = $state(data.filters.sampai);
 
+	$effect(() => {
+		filterLayanan = data.filters.layanan;
+		filterStatus = data.filters.status;
+		filterCari = data.filters.cari;
+		filterDari = data.filters.dari;
+		filterSampai = data.filters.sampai;
+	});
+
 	const statusLabels: Record<string, string> = {
 		baru: 'Baru', ditugaskan: 'Ditugaskan', diproses_pic: 'Diproses PIC',
 		ditolak_pic: 'Ditolak PIC', diselesaikan_pic: 'Diselesaikan PIC',
@@ -154,6 +162,11 @@
 										<div class="name-with-badge">
 											<span class="applicant-name">{sub.applicant_name}</span>
 											{#if sub.is_priority}<span class="priority-badge">Prioritas</span>{/if}
+											{#if sub.userRoleInSubmission}
+												<span class="role-badge {sub.userRoleInSubmission === 'PIC Utama' ? 'primary' : 'assistant'}">
+													{sub.userRoleInSubmission}
+												</span>
+											{/if}
 										</div>
 										<span class="applicant-email">{sub.applicant_email}</span>
 									</div>
@@ -222,6 +235,24 @@
 	.priority-badge { background: #fef2f2; color: #dc2626; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px; text-transform: uppercase; border: 1px solid #fee2e2; }
 	.applicant-name { font-weight: 600; color: #111827; }
 	.applicant-email { font-size: 0.75rem; color: #9ca3af; }
+
+	.role-badge {
+		font-size: 0.65rem;
+		padding: 0.1rem 0.4rem;
+		border-radius: 4px;
+		font-weight: 700;
+		text-transform: uppercase;
+	}
+	.role-badge.primary {
+		background: #ebf5ff;
+		color: #1e40af;
+		border: 1px solid #bfdbfe;
+	}
+	.role-badge.assistant {
+		background: #f0fdf4;
+		color: #166534;
+		border: 1px solid #bbf7d0;
+	}
 	.status-badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
 	.status-badge.blue { background: #eff6ff; color: #2563eb; }
 	.status-badge.amber { background: #fffbeb; color: #d97706; }

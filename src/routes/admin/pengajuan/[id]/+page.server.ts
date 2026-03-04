@@ -30,16 +30,33 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 		return { submission: null, picUsers: [], values: [], notes: [] };
 	}
 
-	// PIC Access Control: only allow if assigned to this PIC
+	// PIC Access Control: only allow if Primary PIC or Team Member
 	const user = locals.user;
-	if (user?.role === 'pic' && submission.assigned_to !== BigInt(user.id)) {
+	if (!user) throw error(401, 'Unauthorized');
+	
+	const isPrimaryPic = user.role === 'pic' && submission.assigned_to === BigInt(user.id);
+	const isTeamMember = submission.submission_team_members.some(
+		(tm) => tm.user_id === BigInt(user.id)
+	);
+
+	if (user.role === 'pic' && !isPrimaryPic && !isTeamMember) {
 		throw error(403, 'Anda tidak memiliki akses ke pengajuan ini.');
 	}
 
-	// Get PIC users for assignment
+	const isAssistantOnly = user?.role === 'pic' && !isPrimaryPic && isTeamMember;
+
+	// Get PIC users for assignment (Primary PIC: Pic, Admin, Superadmin)
 	const picUsers = await db.users.findMany({
 		where: {
 			user_roles: { some: { roles: { name: { in: ['pic', 'admin', 'superadmin'] } } } }
+		},
+		select: { id: true, name: true, email: true }
+	});
+
+	// Assistant PICs (Only role 'pic')
+	const assistantPICs = await db.users.findMany({
+		where: {
+			user_roles: { some: { roles: { name: 'pic' } } }
 		},
 		select: { id: true, name: true, email: true }
 	});
@@ -81,12 +98,18 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 			name: u.name,
 			email: u.email
 		})),
+		assistantPICs: assistantPICs.map((u) => ({
+			id: u.id.toString(),
+			name: u.name,
+			email: u.email
+		})),
 		teamMembers: submission.submission_team_members.map((tm) => ({
 			id: tm.users.id.toString(),
 			name: tm.users.name
 		})),
 		allowedStatuses: getAllowedStatuses(submission.status, locals.user?.role || ''),
-		userRole: locals.user?.role || ''
+		userRole: locals.user?.role || '',
+		isAssistantOnly
 	};
 };
 
@@ -106,13 +129,39 @@ export const actions: Actions = {
 
 		const submission = await db.service_submissions.findUnique({
 			where: { id: submissionId },
-			select: { status: true, is_priority: true, assigned_to: true }
+			select: { 
+				status: true, 
+				is_priority: true, 
+				assigned_to: true,
+				submission_team_members: {
+					select: { user_id: true }
+				}
+			}
 		});
 
 		if (!submission) return fail(404, { error: 'Pengajuan tidak ditemukan.' });
 
 		const oldStatus = submission.status;
-		const userRole = locals.user?.role || '';
+		const user = locals.user;
+		if (!user) return fail(401, { error: 'Unauthorized' });
+		
+		const userRole = user.role || '';
+		
+		// Access Check for PIC
+		const isPrimaryPic = userRole === 'pic' && submission.assigned_to === BigInt(user.id);
+		const isTeamMember = submission.submission_team_members.some(
+			(tm) => tm.user_id === BigInt(user.id)
+		);
+
+		if (userRole === 'pic') {
+			if (!isPrimaryPic && !isTeamMember) {
+				return fail(403, { error: 'Akses ditolak.' });
+			}
+			if (!isPrimaryPic && isTeamMember) {
+				return fail(403, { error: 'Anggota tim (asisten) tidak dapat melakukan aksi pemrosesan.' });
+			}
+		}
+
 		const newPicId = picIdStr ? BigInt(picIdStr) : null;
 		const newIsPriority = isPriorityStr === 'on' || isPriorityStr === 'true'; // checkboxes often post 'on'
 
@@ -159,16 +208,19 @@ export const actions: Actions = {
 				}
 			}),
 			// Sync team members (many-to-many pivot)
-			db.submission_team_members.deleteMany({
-				where: { submission_id: submissionId }
-			}),
-			...(teamMemberIds.length > 0 ? [
-				db.submission_team_members.createMany({
-					data: teamMemberIds.map(id => ({
-						submission_id: submissionId,
-						user_id: BigInt(id)
-					}))
-				})
+			// Rule: Only PIC can change team members, and only during ditugaskan or diproses_pic phase
+			...(userRole === 'pic' && (oldStatus === 'ditugaskan' || oldStatus === 'diproses_pic') ? [
+				db.submission_team_members.deleteMany({
+					where: { submission_id: submissionId }
+				}),
+				...(teamMemberIds.length > 0 ? [
+					db.submission_team_members.createMany({
+						data: teamMemberIds.map(id => ({
+							submission_id: submissionId,
+							user_id: BigInt(id)
+						}))
+					})
+				] : [])
 			] : [])
 		]);
 
