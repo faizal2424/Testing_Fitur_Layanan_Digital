@@ -49,13 +49,11 @@ export const actions: Actions = {
             };
 
             const result = {
+                ...pengajuan,
                 code: pengajuan.tracking_code,
-                status: pengajuan.status,
                 status_txt: statusLabels[pengajuan.status] || pengajuan.status,
                 service_name: pengajuan.services.name,
-                pic_phone: pengajuan.users?.phone || 'Menunggu Penugasan',
-                // Keep other fields if needed
-                ...pengajuan
+                pic_phone: pengajuan.users?.phone || 'Menunggu Penugasan'
             };
 
             // Return safe data (BigInt handled)
