@@ -153,7 +153,6 @@
 							<tr>
 								<td>
 									<div class="code-with-icon">
-										{#if sub.is_priority}<span class="priority-icon" title="Prioritas Tinggi">⚡</span>{/if}
 										<code class="tracking-code">{sub.tracking_code}</code>
 									</div>
 								</td>
