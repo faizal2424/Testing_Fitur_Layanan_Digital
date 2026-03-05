@@ -1,23 +1,21 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
 	const serviceFilter = url.searchParams.get('layanan') || '';
 	const statusFilter = url.searchParams.get('status') || '';
-	const userFilter = url.searchParams.get('user') || '';
 	const search = url.searchParams.get('cari') || '';
 	const dateFrom = url.searchParams.get('dari') || '';
 	const dateTo = url.searchParams.get('sampai') || '';
 	const page = parseInt(url.searchParams.get('halaman') || '1');
 	const perPage = 20;
 
-	const where: any = {};
+	const where: any = {
+		user_id: locals.user?.id
+	};
 
 	// Filter by status_to
 	if (statusFilter) where.status_to = statusFilter;
-
-	// Filter by user
-	if (userFilter) where.user_id = BigInt(userFilter);
 
 	// Filter by service (via submission)
 	if (serviceFilter) {
@@ -26,9 +24,14 @@ export const load: PageServerLoad = async ({ url }) => {
 
 	// Search tracking code or note
 	if (search) {
-		where.OR = [
-			{ note: { contains: search } },
-			{ service_submissions: { tracking_code: { contains: search } } }
+		where.AND = [
+			{ user_id: locals.user?.id },
+			{
+				OR: [
+					{ note: { contains: search } },
+					{ service_submissions: { tracking_code: { contains: search } } }
+				]
+			}
 		];
 	}
 
@@ -39,7 +42,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		if (dateTo) where.created_at.lte = new Date(dateTo + 'T23:59:59');
 	}
 
-	const [logs, total, services, users] = await Promise.all([
+	const [logs, total, services] = await Promise.all([
 		db.submission_notes.findMany({
 			where,
 			include: {
@@ -60,11 +63,6 @@ export const load: PageServerLoad = async ({ url }) => {
 		db.services.findMany({
 			select: { id: true, name: true },
 			orderBy: { order: 'asc' }
-		}),
-		db.users.findMany({
-			where: { user_roles: { some: {} } },
-			select: { id: true, name: true },
-			orderBy: { name: 'asc' }
 		})
 	]);
 
@@ -82,8 +80,7 @@ export const load: PageServerLoad = async ({ url }) => {
 			created_at: l.created_at?.toISOString() || null
 		})),
 		services: services.map((s) => ({ id: s.id.toString(), name: s.name })),
-		users: users.map((u) => ({ id: u.id.toString(), name: u.name })),
 		pagination: { page, perPage, totalPages: Math.ceil(total / perPage), total },
-		filters: { layanan: serviceFilter, status: statusFilter, user: userFilter, cari: search, dari: dateFrom, sampai: dateTo }
+		filters: { layanan: serviceFilter, status: statusFilter, cari: search, dari: dateFrom, sampai: dateTo }
 	};
 };

@@ -7,7 +7,6 @@
 
 	let filterLayanan = $state(data.filters.layanan);
 	let filterStatus = $state(data.filters.status);
-	let filterUser = $state(data.filters.user);
 	let filterCari = $state(data.filters.cari);
 	let filterDari = $state(data.filters.dari);
 	let filterSampai = $state(data.filters.sampai);
@@ -35,7 +34,6 @@
 		const p = new URLSearchParams();
 		if (filterLayanan) p.set('layanan', filterLayanan);
 		if (filterStatus) p.set('status', filterStatus);
-		if (filterUser) p.set('user', filterUser);
 		if (filterCari) p.set('cari', filterCari);
 		if (filterDari) p.set('dari', filterDari);
 		if (filterSampai) p.set('sampai', filterSampai);
@@ -43,7 +41,7 @@
 	}
 
 	function resetFilters() {
-		filterLayanan = ''; filterStatus = ''; filterUser = ''; filterCari = ''; filterDari = ''; filterSampai = '';
+		filterLayanan = ''; filterStatus = ''; filterCari = ''; filterDari = ''; filterSampai = '';
 		goto('/admin/log-status');
 	}
 
@@ -75,7 +73,7 @@
 		URL.revokeObjectURL(url);
 	}
 
-	let hasActiveFilter = $derived(!!data.filters.layanan || !!data.filters.status || !!data.filters.user || !!data.filters.cari || !!data.filters.dari || !!data.filters.sampai);
+	let hasActiveFilter = $derived(!!data.filters.layanan || !!data.filters.status || !!data.filters.cari || !!data.filters.dari || !!data.filters.sampai);
 </script>
 
 <svelte:head><title>Log Status — Layanan Digital</title></svelte:head>
@@ -125,13 +123,7 @@
 					{#each Object.entries(statusLabels) as [v, l]}<option value={v}>{l}</option>{/each}
 				</select>
 			</div>
-			<div class="filter-group">
-				<label for="f-user">Pengguna</label>
-				<select id="f-user" bind:value={filterUser}>
-					<option value="">Semua</option>
-					{#each data.users as u}<option value={u.id}>{u.name}</option>{/each}
-				</select>
-			</div>
+
 			<div class="filter-group">
 				<label for="f-dari">Dari</label>
 				<input type="date" id="f-dari" bind:value={filterDari} />
