@@ -137,7 +137,7 @@
 				<div class="tracking-row">
 					<code class="tracking-code">{data.submission.tracking_code}</code>
 					{#if data.submission.is_priority}
-						<span class="priority-badge">⚡ Prioritas</span>
+						<span class="priority-badge">Prioritas</span>
 					{/if}
 					<span class="status-badge {getStatusColor(data.submission.status)}"
 						>{getStatusLabel(data.submission.status)}</span
@@ -393,7 +393,7 @@
 									checked={data.submission?.is_priority}
 									disabled={!canEditPriority}
 								/>
-								<span>Tandai sebagai Prioritas Tinggi ⚡</span>
+								<span>Tandai sebagai Prioritas Tinggi</span>
 							</label>
 							{#if !canEditPriority && data.userRole !== 'pic'}
 								<small class="help-text"
