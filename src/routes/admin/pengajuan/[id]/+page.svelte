@@ -473,6 +473,12 @@
 														placeholder="Cari PIC..." 
 														bind:value={teamSearch}
 														autocomplete="off"
+														onkeydown={(e) => {
+															if (e.key === 'Enter') {
+																e.preventDefault();
+																showTeamDropdown = false;
+															}
+														}}
 													/>
 												</div>
 												<div class="options-list">
@@ -491,6 +497,15 @@
 													{:else}
 														<div class="empty-results">Tidak ada PIC ditemukan.</div>
 													{/each}
+												</div>
+												<div class="dropdown-footer">
+													<button 
+														type="button" 
+														class="btn-done"
+														onclick={() => showTeamDropdown = false}
+													>
+														Selesai
+													</button>
 												</div>
 											</div>
 										{/if}
@@ -1179,6 +1194,31 @@
 	.options-list {
 		overflow-y: auto;
 		padding: 0.5rem;
+		flex: 1;
+	}
+
+	.dropdown-footer {
+		padding: 0.75rem;
+		border-top: 1px solid #f3f4f6;
+		display: flex;
+		justify-content: flex-end;
+		background: #f9fafb;
+	}
+
+	.btn-done {
+		padding: 0.4rem 1rem;
+		background: #800020;
+		color: white;
+		border: none;
+		border-radius: 6px;
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.btn-done:hover {
+		background: #6a001a;
 	}
 
 	.option-item {
