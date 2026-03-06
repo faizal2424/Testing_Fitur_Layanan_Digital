@@ -52,18 +52,24 @@ export const actions: Actions = {
 		const placeholder = formData.get('placeholder')?.toString()?.trim() || null;
 		const help_text = formData.get('help_text')?.toString()?.trim() || null;
 		const options = formData.get('options')?.toString()?.trim() || null;
-		const meta = formData.get('meta')?.toString()?.trim() || null;
+		const order = formData.get('order')?.toString() || '0';
+		
+		// Collect meta based on type
+		let metaObj: any = {};
+		if (type === 'file') {
+			metaObj.mimes = formData.get('mimes')?.toString();
+			metaObj.max_size = formData.get('max_size')?.toString() || '2048';
+		} else if (type === 'date') {
+			metaObj.date_mode = formData.get('date_mode')?.toString();
+		}
+		const meta = Object.keys(metaObj).length > 0 ? JSON.stringify(metaObj) : null;
 
 		if (!label || !name || !type) {
-			return fail(400, { error: 'Label, nama field, dan tipe wajib diisi.' });
+			return fail(400, { 
+				error: 'Label, nama field, dan tipe wajib diisi.',
+				values: { label, name, type, is_required, placeholder, help_text, options, order, metaObj }
+			});
 		}
-
-		// Get max order
-		const maxOrder = await db.service_form_fields.aggregate({
-			where: { service_id: serviceId },
-			_max: { order: true }
-		});
-		const newOrder = (maxOrder._max.order || 0) + 1;
 
 		try {
 			await db.service_form_fields.create({
@@ -77,7 +83,7 @@ export const actions: Actions = {
 					help_text,
 					options,
 					meta,
-					order: newOrder,
+					order: parseInt(order),
 					created_at: new Date(),
 					updated_at: new Date()
 				}
@@ -85,9 +91,15 @@ export const actions: Actions = {
 			return { success: true, message: 'Field berhasil ditambahkan.' };
 		} catch (e: any) {
 			if (e?.code === 'P2002') {
-				return fail(400, { error: `Nama field "${name}" sudah digunakan di layanan ini.` });
+				return fail(400, { 
+					error: `Nama field "${name}" sudah digunakan di layanan ini.`,
+					values: { label, name, type, is_required, placeholder, help_text, options, order, metaObj }
+				});
 			}
-			throw e;
+			return fail(500, { 
+				error: 'Terjadi kesalahan sistem.',
+				values: { label, name, type, is_required, placeholder, help_text, options, order, metaObj }
+			});
 		}
 	},
 
@@ -102,28 +114,54 @@ export const actions: Actions = {
 		const placeholder = formData.get('placeholder')?.toString()?.trim() || null;
 		const help_text = formData.get('help_text')?.toString()?.trim() || null;
 		const options = formData.get('options')?.toString()?.trim() || null;
-		const meta = formData.get('meta')?.toString()?.trim() || null;
+		const order = formData.get('order')?.toString() || '0';
+
+		// Collect meta based on type
+		let metaObj: any = {};
+		if (type === 'file') {
+			metaObj.mimes = formData.get('mimes')?.toString();
+			metaObj.max_size = formData.get('max_size')?.toString() || '2048';
+		} else if (type === 'date') {
+			metaObj.date_mode = formData.get('date_mode')?.toString();
+		}
+		const meta = Object.keys(metaObj).length > 0 ? JSON.stringify(metaObj) : null;
 
 		if (!id || !label || !name || !type) {
-			return fail(400, { error: 'Data tidak lengkap.' });
+			return fail(400, { 
+				error: 'Data tidak lengkap.',
+				values: { id, label, name, type, is_required, placeholder, help_text, options, order, metaObj }
+			});
 		}
 
-		await db.service_form_fields.update({
-			where: { id: BigInt(id) },
-			data: {
-				label,
-				name,
-				type,
-				is_required,
-				placeholder,
-				help_text,
-				options,
-				meta,
-				updated_at: new Date()
+		try {
+			await db.service_form_fields.update({
+				where: { id: BigInt(id) },
+				data: {
+					label,
+					name,
+					type,
+					is_required,
+					placeholder,
+					help_text,
+					options,
+					meta,
+					order: parseInt(order),
+					updated_at: new Date()
+				}
+			});
+			return { success: true, message: 'Field berhasil diperbarui.' };
+		} catch (e: any) {
+			if (e?.code === 'P2002') {
+				return fail(400, { 
+					error: `Nama field "${name}" sudah digunakan.`,
+					values: { id, label, name, type, is_required, placeholder, help_text, options, order, metaObj }
+				});
 			}
-		});
-
-		return { success: true, message: 'Field berhasil diperbarui.' };
+			return fail(500, { 
+				error: 'Terjadi kesalahan sistem.',
+				values: { id, label, name, type, is_required, placeholder, help_text, options, order, metaObj }
+			});
+		}
 	},
 
 	// Delete field
