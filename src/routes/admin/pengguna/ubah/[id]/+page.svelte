@@ -3,13 +3,15 @@
 	import UserForm from '$lib/components/admin/UserForm.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { toast } from '$lib/stores/toast';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let loading = $state(false);
 
-	onMount(() => {
+	$effect(() => {
 		if (form?.success) {
+			toast.success('Data pengguna berhasil diperbarui');
 			goto('/admin/pengguna');
 		}
 	});
@@ -28,20 +30,13 @@
 
 	<h2 class="page-title">Ubah Data Pengguna</h2>
 
-	{#if form?.message}
-		<div class="alert" class:error={!form.success} class:success={form.success}>
-			{#if form.success}
-				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-					<polyline points="22 4 12 14.01 9 11.01" />
-				</svg>
-			{:else}
-				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<circle cx="12" cy="12" r="10" />
-					<line x1="12" y1="8" x2="12" y2="12" />
-					<line x1="12" y1="16" x2="12.01" y2="16" />
-				</svg>
-			{/if}
+	{#if form?.message && !form.success}
+		<div class="alert error">
+			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<circle cx="12" cy="12" r="10" />
+				<line x1="12" y1="8" x2="12" y2="12" />
+				<line x1="12" y1="16" x2="12.01" y2="16" />
+			</svg>
 			{form.message}
 		</div>
 	{/if}

@@ -40,7 +40,7 @@
     loading = true;
     return async ({ update }) => {
         loading = false;
-        await update();
+        await update({ reset: false });
     };
 }} class="user-form">
     

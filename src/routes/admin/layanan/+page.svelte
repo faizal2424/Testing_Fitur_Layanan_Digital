@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
+	import { goto } from '$app/navigation';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -14,6 +16,18 @@
 	// Sync when data changes
 	$effect(() => {
 		localServices = [...data.services];
+	});
+
+	// Handle form results
+	$effect(() => {
+		if (form?.success) {
+			toast.success(form.message || 'Operasi berhasil');
+			showCreateModal = false;
+			editingService = null;
+			deletingService = null;
+		} else if (form?.error) {
+			toast.error(form.error);
+		}
 	});
 
 	function openEdit(service: any) {
@@ -92,13 +106,7 @@
 		</div>
 	</div>
 
-	<!-- Success/Error Message -->
-	{#if form?.success}
-		<div class="alert alert-success">{form.message}</div>
-	{/if}
-	{#if form?.error}
-		<div class="alert alert-error">{form.error}</div>
-	{/if}
+
 
 	<!-- Services List -->
 	<div class="services-grid">
@@ -185,8 +193,7 @@
 			</div>
 			<form method="POST" action="?/create" use:enhance={() => {
 				return async ({ update }) => {
-					showCreateModal = false;
-					await update();
+					await update({ reset: false });
 				};
 			}}>
 				<div class="modal-body">
@@ -224,8 +231,7 @@
 			</div>
 			<form method="POST" action="?/update" use:enhance={() => {
 				return async ({ update }) => {
-					editingService = null;
-					await update();
+					await update({ reset: false });
 				};
 			}}>
 				<input type="hidden" name="id" value={editingService.id} />
@@ -264,7 +270,6 @@
 			</div>
 			<form method="POST" action="?/delete" use:enhance={() => {
 				return async ({ update }) => {
-					deletingService = null;
 					await update();
 				};
 			}}>
