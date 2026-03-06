@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
+	import { toast } from '$lib/stores/toast';
+
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -29,6 +31,18 @@
 
 	$effect(() => {
 		localFields = [...data.fields];
+	});
+
+	// Handle form results
+	$effect(() => {
+		if (form?.success) {
+			toast.success(form.message || 'Operasi berhasil');
+			showCreateModal = false;
+			editingField = null;
+			deletingField = null;
+		} else if (form?.error) {
+			toast.error(form.error);
+		}
 	});
 
 	const fieldTypes = [
@@ -145,7 +159,10 @@
 		<div class="header-actions">
 			{#if reorderMode}
 				<form method="POST" action="?/reorder" use:enhance={() => {
-					return async ({ update }) => { reorderMode = false; await update(); };
+					return async ({ update }) => { 
+						reorderMode = false; 
+						await update({ reset: false }); 
+					};
 				}}>
 					<input type="hidden" name="order" value={JSON.stringify(localFields.map((f, i) => ({ id: f.id, order: i })))} />
 					<button type="submit" class="btn btn-primary">
@@ -169,12 +186,7 @@
 		</div>
 	</div>
 
-	{#if form?.success}
-		<div class="alert alert-success">{form.message}</div>
-	{/if}
-	{#if form?.error && !showCreateModal && !editingField}
-		<div class="alert alert-error">{form.error}</div>
-	{/if}
+
 
 	<!-- Fields List -->
 	<div class="fields-list">
@@ -256,12 +268,10 @@
 				</button>
 			</div>
 			<form method="POST" action="?/create" use:enhance={() => {
-				return async ({ update }) => { showCreateModal = false; await update(); };
+				return async ({ update }) => { await update({ reset: false }); };
 			}}>
 				<div class="modal-body">
-					{#if form?.error}
-						<div class="alert alert-error">{form.error}</div>
-					{/if}
+
 					
 					<div class="form-row">
 						<div class="form-group flex-2">
@@ -371,7 +381,7 @@
 				</button>
 			</div>
 			<form method="POST" action="?/update" use:enhance={() => {
-				return async ({ update }) => { editingField = null; await update(); };
+				return async ({ update }) => { await update({ reset: false }); };
 			}}>
 				<input type="hidden" name="id" value={editingField.id} />
 				<div class="modal-body">
@@ -475,7 +485,7 @@
 				</button>
 			</div>
 			<form method="POST" action="?/delete" use:enhance={() => {
-				return async ({ update }) => { deletingField = null; await update(); };
+				return async ({ update }) => { await update(); };
 			}}>
 				<input type="hidden" name="id" value={deletingField.id} />
 				<div class="modal-body">

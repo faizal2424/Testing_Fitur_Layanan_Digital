@@ -2,6 +2,7 @@
 	import type { LayoutData } from './$types';
 	import Sidebar from '$lib/components/admin/Sidebar.svelte';
 	import Topbar from '$lib/components/admin/Topbar.svelte';
+	import Toast from '$lib/components/admin/Toast.svelte';
 
 	let { data, children }: { data: LayoutData; children: any } = $props();
 	let sidebarOpen = $state(false);
@@ -29,6 +30,8 @@
 	{#if sidebarOpen}
 		<div class="sidebar-overlay" onclick={closeSidebar} role="presentation"></div>
 	{/if}
+
+	<Toast />
 
 	<!-- Sidebar -->
 	<aside class="sidebar" class:open={sidebarOpen}>
