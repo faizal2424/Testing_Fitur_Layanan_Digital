@@ -11,24 +11,41 @@
 	let draggedIndex = $state<number | null>(null);
 	let localFields = $state([...data.fields]);
 
+	// Auto-reopen modal if there's an error from server
+	$effect(() => {
+		if (form?.error && (form as any).values) {
+			if (editingField?.id) {
+				// We're in edit mode but the server returned values
+				// For now let's focus on Create auto-reopen as per requirement
+			} else {
+				showCreateModal = true;
+				// Repopulate create state from form.values if needed
+				const vals = (form as any).values;
+				createLabel = vals.label || '';
+				createType = vals.type || 'text';
+			}
+		}
+	});
+
 	$effect(() => {
 		localFields = [...data.fields];
 	});
 
 	const fieldTypes = [
 		{ value: 'text', label: 'Teks' },
-		{ value: 'textarea', label: 'Teks Panjang' },
 		{ value: 'email', label: 'Email' },
 		{ value: 'number', label: 'Angka' },
 		{ value: 'telp', label: 'No. Telepon' },
+		{ value: 'date', label: 'Tanggal' },
+		{ value: 'textarea', label: 'Teks Panjang' },
 		{ value: 'select', label: 'Dropdown/Pilihan' },
 		{ value: 'radio', label: 'Radio Button' },
 		{ value: 'checkbox', label: 'Checkbox' },
-		{ value: 'file', label: 'Upload File' },
-		{ value: 'date', label: 'Tanggal' }
+		{ value: 'file', label: 'Upload File' }
 	];
 
 	function getTypeLabel(type: string): string {
+		if (type === 'telp') return 'No. Telepon';
 		return fieldTypes.find((t) => t.value === type)?.label || type;
 	}
 
@@ -36,25 +53,59 @@
 		return ['select', 'radio', 'checkbox'].includes(type);
 	}
 
-	// Auto-generate field name from label
-	function generateName(label: string): string {
-		return label
+	function isFile(type: string): boolean {
+		return type === 'file';
+	}
+
+	function isDate(type: string): boolean {
+		return type === 'date';
+	}
+
+	// Slugify function for field name
+	function slugify(text: string): string {
+		return text
+			.toString()
 			.toLowerCase()
-			.replace(/[^a-z0-9\s]/g, '')
-			.replace(/\s+/g, '_')
-			.substring(0, 50);
+			.trim()
+			.replace(/\s+/g, '_')           // Replace spaces with _
+			.replace(/[^\w-]+/g, '')        // Remove all non-word chars
+			.replace(/--+/g, '_')           // Replace multiple - with single _
+			.replace(/^-+/, '')             // Trim - from start of text
+			.replace(/-+$/, '');            // Trim - from end of text
 	}
 
 	// Create form state
-	let createType = $state('text');
 	let createLabel = $state('');
+	let createType = $state('text');
+	let createNameManual = $state(false);
+	let createName = $state('');
+
+	$effect(() => {
+		if (!createNameManual) {
+			createName = slugify(createLabel);
+		}
+	});
 
 	// Edit form state
 	let editType = $state('text');
+	let editMeta = $state<any>({});
+
+	function openCreate() {
+		showCreateModal = true;
+		createLabel = '';
+		createType = 'text';
+		createName = '';
+		createNameManual = false;
+	}
 
 	function openEdit(field: any) {
 		editingField = { ...field };
 		editType = field.type;
+		try {
+			editMeta = field.meta ? JSON.parse(field.meta) : {};
+		} catch {
+			editMeta = {};
+		}
 	}
 
 	function handleDragStart(index: number) { draggedIndex = index; }
@@ -68,6 +119,9 @@
 		draggedIndex = index;
 	}
 	function handleDragEnd() { draggedIndex = null; }
+
+	// Get next order
+	let nextOrder = $derived(localFields.length > 0 ? Math.max(...localFields.map(f => f.order)) + 1 : 1);
 </script>
 
 <svelte:head>
@@ -107,7 +161,7 @@
 						Atur Urutan
 					</button>
 				{/if}
-				<button class="btn btn-primary" onclick={() => { showCreateModal = true; createLabel = ''; createType = 'text'; }}>
+				<button class="btn btn-primary" onclick={openCreate}>
 					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 					Tambah Field
 				</button>
@@ -118,7 +172,7 @@
 	{#if form?.success}
 		<div class="alert alert-success">{form.message}</div>
 	{/if}
-	{#if form?.error}
+	{#if form?.error && !showCreateModal && !editingField}
 		<div class="alert alert-error">{form.error}</div>
 	{/if}
 
@@ -205,6 +259,10 @@
 				return async ({ update }) => { showCreateModal = false; await update(); };
 			}}>
 				<div class="modal-body">
+					{#if form?.error}
+						<div class="alert alert-error">{form.error}</div>
+					{/if}
+					
 					<div class="form-row">
 						<div class="form-group flex-2">
 							<label for="c-label">Label *</label>
@@ -212,7 +270,15 @@
 						</div>
 						<div class="form-group flex-1">
 							<label for="c-name">Nama Field *</label>
-							<input type="text" id="c-name" name="name" required placeholder="nama_lengkap" value={generateName(createLabel)} />
+							<input 
+								type="text" 
+								id="c-name" 
+								name="name" 
+								required 
+								placeholder="nama_lengkap" 
+								bind:value={createName}
+								oninput={() => createNameManual = true}
+							/>
 						</div>
 					</div>
 					<div class="form-row">
@@ -225,30 +291,65 @@
 							</select>
 						</div>
 						<div class="form-group flex-1">
-							<label for="c-placeholder">Placeholder</label>
-							<input type="text" id="c-placeholder" name="placeholder" placeholder="Teks petunjuk..." />
+							<label for="c-order">Urutan *</label>
+							<input type="number" id="c-order" name="order" required value={nextOrder} />
 						</div>
 					</div>
+
+					<div class="form-group">
+						<label for="c-required">Wajib diisi?</label>
+						<select id="c-required" name="is_required">
+							<option value="off">Tidak</option>
+							<option value="on">Ya</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="c-placeholder">Contoh Isi (Placeholder)</label>
+						<input type="text" id="c-placeholder" name="placeholder" placeholder="Teks bayangan..." />
+					</div>
+
+					<div class="form-group">
+						<label for="c-help">Teks Bantuan (Help Text)</label>
+						<input type="text" id="c-help" name="help_text" placeholder="Petunjuk di bawah input..." />
+					</div>
+
+					<!-- Dynamic Inputs -->
 					{#if needsOptions(createType)}
 						<div class="form-group">
-							<label for="c-options">Opsi (pisahkan dengan koma)</label>
-							<input type="text" id="c-options" name="options" placeholder="Opsi 1, Opsi 2, Opsi 3" />
+							<label for="c-options">Opsi (Tiap Baris = Satu Pilihan)</label>
+							<textarea id="c-options" name="options" rows="4" placeholder="Pilihan 1&#10;Pilihan 2&#10;Pilihan 3"></textarea>
+						</div>
+					{:else}
+						<input type="hidden" name="options" value="" />
+					{/if}
+
+					{#if isFile(createType)}
+						<div class="form-row">
+							<div class="form-group flex-1">
+								<label for="c-mimes">Tipe File (Mimes)</label>
+								<select id="c-mimes" name="mimes">
+									<option value="pdf">PDF</option>
+									<option value="jpeg,png">JPEG/PNG</option>
+									<option value="pdf,jpeg,png">PDF/JPEG/PNG</option>
+								</select>
+							</div>
+							<div class="form-group flex-1">
+								<label for="c-max-size">Ukuran Maks (KB)</label>
+								<input type="number" id="c-max-size" name="max_size" value="2048" />
+							</div>
 						</div>
 					{/if}
-					<div class="form-group">
-						<label for="c-help">Teks Bantuan</label>
-						<input type="text" id="c-help" name="help_text" placeholder="Keterangan tambahan untuk pemohon" />
-					</div>
-					<div class="form-group">
-						<label for="c-meta">Meta (JSON, opsional)</label>
-						<input type="text" id="c-meta" name="meta" placeholder={'{"max_size": "2MB", "allowed_types": "pdf,jpg"}'} />
-					</div>
-					<div class="form-group-inline">
-						<label>
-							<input type="checkbox" name="is_required" />
-							<span>Wajib diisi</span>
-						</label>
-					</div>
+
+					{#if isDate(createType)}
+						<div class="form-group">
+							<label for="c-date-mode">Mode Tanggal</label>
+							<select id="c-date-mode" name="date_mode">
+								<option value="free">Bebas</option>
+								<option value="future">Hari ini & setelahnya</option>
+							</select>
+						</div>
+					{/if}
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-outline" onclick={() => { showCreateModal = false; }}>Batal</button>
@@ -294,30 +395,65 @@
 							</select>
 						</div>
 						<div class="form-group flex-1">
-							<label for="e-placeholder">Placeholder</label>
-							<input type="text" id="e-placeholder" name="placeholder" value={editingField.placeholder || ''} />
+							<label for="e-order">Urutan *</label>
+							<input type="number" id="e-order" name="order" required value={editingField.order} />
 						</div>
 					</div>
-					{#if needsOptions(editType)}
-						<div class="form-group">
-							<label for="e-options">Opsi (pisahkan dengan koma)</label>
-							<input type="text" id="e-options" name="options" value={editingField.options || ''} />
-						</div>
-					{/if}
+
 					<div class="form-group">
-						<label for="e-help">Teks Bantuan</label>
+						<label for="e-required">Wajib diisi?</label>
+						<select id="e-required" name="is_required">
+							<option value="off" selected={!editingField.is_required}>Tidak</option>
+							<option value="on" selected={editingField.is_required}>Ya</option>
+						</select>
+					</div>
+
+					<div class="form-group">
+						<label for="e-placeholder">Contoh Isi (Placeholder)</label>
+						<input type="text" id="e-placeholder" name="placeholder" value={editingField.placeholder || ''} />
+					</div>
+
+					<div class="form-group">
+						<label for="e-help">Teks Bantuan (Help Text)</label>
 						<input type="text" id="e-help" name="help_text" value={editingField.help_text || ''} />
 					</div>
-					<div class="form-group">
-						<label for="e-meta">Meta (JSON)</label>
-						<input type="text" id="e-meta" name="meta" value={editingField.meta || ''} />
-					</div>
-					<div class="form-group-inline">
-						<label>
-							<input type="checkbox" name="is_required" checked={editingField.is_required} />
-							<span>Wajib diisi</span>
-						</label>
-					</div>
+
+					<!-- Dynamic Inputs -->
+					{#if needsOptions(editType)}
+						<div class="form-group">
+							<label for="e-options">Opsi (Tiap Baris = Satu Pilihan)</label>
+							<textarea id="e-options" name="options" rows="4" value={editingField.options || ''}></textarea>
+						</div>
+					{:else}
+						<input type="hidden" name="options" value="" />
+					{/if}
+
+					{#if isFile(editType)}
+						<div class="form-row">
+							<div class="form-group flex-1">
+								<label for="e-mimes">Tipe File (Mimes)</label>
+								<select id="e-mimes" name="mimes" value={editMeta.mimes || 'pdf'}>
+									<option value="pdf">PDF</option>
+									<option value="jpeg,png">JPEG/PNG</option>
+									<option value="pdf,jpeg,png">PDF/JPEG/PNG</option>
+								</select>
+							</div>
+							<div class="form-group flex-1">
+								<label for="e-max-size">Ukuran Maks (KB)</label>
+								<input type="number" id="e-max-size" name="max_size" value={editMeta.max_size || '2048'} />
+							</div>
+						</div>
+					{/if}
+
+					{#if isDate(editType)}
+						<div class="form-group">
+							<label for="e-date-mode">Mode Tanggal</label>
+							<select id="e-date-mode" name="date_mode" value={editMeta.date_mode || 'free'}>
+								<option value="free">Bebas</option>
+								<option value="future">Hari ini & setelahnya</option>
+							</select>
+						</div>
+					{/if}
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-outline" onclick={() => { editingField = null; }}>Batal</button>
