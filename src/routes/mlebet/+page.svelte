@@ -163,6 +163,13 @@
 				<input type="hidden" name="captcha_answer" value={data.captchaAnswer} />
 			</div>
 
+			<div class="form-options">
+				<label class="remember-me">
+					<input type="checkbox" name="remember" />
+					<span>Ingat Saya</span>
+				</label>
+			</div>
+
 			<button type="submit" class="login-button">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -414,6 +421,30 @@
 	}
 
 	/* Login Button */
+	.form-options {
+		display: flex;
+		align-items: center;
+		margin-bottom: 0.5rem;
+	}
+
+	.remember-me {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.825rem;
+		font-weight: 500;
+		color: #4b5563;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.remember-me input[type='checkbox'] {
+		width: 16px;
+		height: 16px;
+		accent-color: #800020;
+		cursor: pointer;
+	}
+
 	.login-button {
 		display: flex;
 		align-items: center;

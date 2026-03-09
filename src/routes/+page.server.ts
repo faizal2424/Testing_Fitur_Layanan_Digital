@@ -2,7 +2,7 @@ import { db } from '$lib/server/db';
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
     const listLayanan = await db.services.findMany({
         orderBy: {
             order: 'asc'
@@ -10,6 +10,11 @@ export const load: PageServerLoad = async () => {
     });
 
     return { 
+        user: locals.user ? {
+            id: locals.user.id.toString(),
+            name: locals.user.name,
+            role: locals.user.role
+        } : null,
         listLayanan: JSON.parse(JSON.stringify(listLayanan, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value
         ))
