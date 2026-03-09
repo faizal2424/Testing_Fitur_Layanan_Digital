@@ -87,7 +87,8 @@ export const actions: Actions = {
 		}
 
 		// Create session
-		await createSession(user.id, cookies);
+		const remember = formData.get('remember') === 'on';
+		await createSession(user.id, cookies, remember);
 
 		// Redirect based on role
 		const role = user.user_roles[0]?.roles.name.toLowerCase() || 'pic';

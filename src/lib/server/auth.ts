@@ -5,7 +5,7 @@ import type { Cookies } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 
 const SESSION_COOKIE = 'session_id';
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days maximum session life
 
 // ============================================================
 // Password Verification (compatible with Laravel bcrypt)
@@ -21,9 +21,10 @@ export async function hashPassword(plain: string): Promise<string> {
 // ============================================================
 // Session Management
 // ============================================================
-export async function createSession(userId: bigint, cookies: Cookies): Promise<string> {
+export async function createSession(userId: bigint, cookies: Cookies, remember: boolean = false): Promise<string> {
 	const sessionId = crypto.randomBytes(40).toString('hex');
 	const now = Math.floor(Date.now() / 1000);
+	const maxAge = remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24; // 30 days or 1 day
 
 	// Store session in database (using the existing sessions table)
 	await db.sessions.create({
@@ -42,7 +43,7 @@ export async function createSession(userId: bigint, cookies: Cookies): Promise<s
 		httpOnly: true,
 		sameSite: 'lax',
 		secure: false, // set to true in production with HTTPS
-		maxAge: SESSION_MAX_AGE
+		maxAge: maxAge
 	});
 
 	return sessionId;
