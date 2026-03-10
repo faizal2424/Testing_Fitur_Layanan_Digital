@@ -167,6 +167,7 @@ model submission_notes {
   status_from         String?             @db.VarChar(32)
   status_to           String?             @db.VarChar(32)
   note                String?             @db.Text
+  file_path           String?             @db.VarChar(255)
   created_at          DateTime?           @db.Timestamp(0)
   updated_at          DateTime?           @db.Timestamp(0)
   service_submissions service_submissions @relation(fields: [submission_id], references: [id], onDelete: Cascade, map: "submission_notes_submission_id_foreign")

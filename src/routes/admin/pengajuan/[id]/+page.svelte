@@ -264,6 +264,13 @@
 										{#if note.note}
 											<p class="timeline-note">{note.note}</p>
 										{/if}
+										{#if note.file_path}
+											<div class="timeline-evidence">
+												<a href={note.file_path} target="_blank" class="evidence-link">
+													Buka Bukti Pengerjaan
+												</a>
+											</div>
+										{/if}
 										<div class="timeline-meta">
 											<span>{note.user_name}</span> • <span>{formatDate(note.created_at)}</span>
 										</div>
@@ -345,6 +352,7 @@
 				<form
 					method="POST"
 					action="?/process"
+					enctype="multipart/form-data"
 					use:enhance={({ cancel }) => {
 						if (selectedStatus === data.submission?.status) {
 							statusError = 'Status belum diubah. Silakan pilih status baru sebelum menyimpan perubahan.';
@@ -562,6 +570,22 @@
 								placeholder="Tuliskan catatan terkait pemrosesan ini..."
 							></textarea>
 						</div>
+
+						{#if selectedStatus === 'diselesaikan_pic'}
+							<div class="form-group">
+								<label for="evidence-upload">Unggah Bukti Pengerjaan (Wajib)</label>
+								<div class="file-dropzone">
+									<input 
+										type="file" 
+										id="evidence-upload" 
+										name="evidence" 
+										accept="image/*" 
+										required
+									/>
+									<p class="help-text">Klik atau tarik gambar bukti progres ke sini (.jpg, .png)</p>
+								</div>
+							</div>
+						{/if}
 					</div>
 					<div class="modal-footer">
 						<button
@@ -1315,6 +1339,12 @@
 		}
 	}
 
+	@media (max-width: 480px) {
+		.icon-grid {
+			grid-template-columns: repeat(5, 1fr);
+		}
+	}
+
 	@media (max-width: 900px) {
 		.detail-grid {
 			grid-template-columns: 1fr;
@@ -1322,5 +1352,46 @@
 		.detail-header {
 			flex-direction: column;
 		}
+	}
+
+	/* Evidence Styles */
+	.timeline-evidence {
+		margin-top: 0.75rem;
+	}
+	.evidence-link {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		text-decoration: none;
+		color: #800020;
+		font-size: 0.8rem;
+		font-weight: 600;
+	}
+	.evidence-thumb {
+		max-width: 100%;
+		border-radius: 8px;
+		border: 1px solid #e5e7eb;
+		cursor: zoom-in;
+		transition: transform 0.2s;
+	}
+	.evidence-thumb:hover {
+		transform: scale(1.02);
+	}
+
+	.file-dropzone {
+		border: 2px dashed #e2e8f0;
+		border-radius: 12px;
+		padding: 1.5rem;
+		text-align: center;
+		background: #f8fafc;
+		transition: all 0.2s;
+	}
+	.file-dropzone:hover {
+		border-color: #800020;
+		background: #fdf2f8;
+	}
+	.file-dropzone input[type="file"] {
+		width: 100%;
+		cursor: pointer;
 	}
 </style>
