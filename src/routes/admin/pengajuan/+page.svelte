@@ -115,9 +115,19 @@
 			</div>
 		</div>
 		<div class="filters-actions">
+			<div class="export-actions">
+				<a href="/admin/pengajuan/export/csv?{new URLSearchParams($page.url.searchParams).toString()}" class="export-btn csv">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 12h8"/><path d="M8 16h8"/></svg>
+					Export CSV
+				</a>
+				<a href="/admin/pengajuan/export/pdf?{new URLSearchParams($page.url.searchParams).toString()}" class="export-btn pdf">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13v-3h6v3"/><path d="M9 17v-3h6v3"/></svg>
+					Cetak PDF
+				</a>
+			</div>
 			<button class="filter-apply-btn" onclick={applyFilters}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-				Terapkan
+				Terapkan Filter
 			</button>
 		</div>
 	</div>
@@ -240,7 +250,16 @@
 	.filter-group label { font-size: 0.78rem; font-weight: 600; color: #374151; }
 	.filter-group select, .filter-group input { padding: 0.55rem 0.75rem; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 0.85rem; color: #1f2937; background: #f9fafb; font-family: inherit; transition: all 0.2s; }
 	.filter-group select:focus, .filter-group input:focus { outline: none; border-color: #800020; box-shadow: 0 0 0 3px rgba(128,0,32,0.1); background: white; }
-	.filters-actions { margin-top: 0.75rem; display: flex; justify-content: flex-end; }
+	.filters-actions { margin-top: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+	.export-actions { display: flex; gap: 0.5rem; }
+	.export-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; border: 1.5px solid transparent; }
+	
+	.export-btn.csv { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+	.export-btn.csv:hover { background: #dcfce7; transform: translateY(-1px); }
+	
+	.export-btn.pdf { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+	.export-btn.pdf:hover { background: #fee2e2; transform: translateY(-1px); }
+
 	.filter-apply-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.25rem; background: linear-gradient(135deg, #800020, #a80030); color: white; border: none; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(128,0,32,0.25); }
 	.filter-apply-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(128,0,32,0.35); }
 
