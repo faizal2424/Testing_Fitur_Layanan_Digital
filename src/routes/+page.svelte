@@ -61,7 +61,7 @@
 
     <div class="relative z-10 max-w-4xl mx-auto text-center">
       <div class="inline-flex items-center justify-center p-3 mb-8 bg-white/50 backdrop-blur-sm rounded-full shadow-sm ring-1 ring-slate-200">
-          <img src="/img/diskominfosmg.png" alt="Logo" class="h-8 mr-3" />
+          <img src="/img/kabupatensemarang.png" alt="Logo" class="h-8 mr-3" />
           <span class="text-sm font-semibold text-slate-600 tracking-wide uppercase">Layanan Digital APTIKA</span>
       </div>
       
