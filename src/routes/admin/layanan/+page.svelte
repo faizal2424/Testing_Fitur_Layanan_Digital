@@ -13,6 +13,16 @@
 	let reorderMode = $state(false);
 	let localServices = $state([...data.services]);
 
+	// Icon Picker State
+	const commonIcons = [
+		'🏛️', '⚖️', '📜', '🗳️', '📄', '📝', '📁', '📋', '🛂', '🆔',
+		'👤', '👥', '🏢', '🏠', '🏥', '🏫', '🛠️', '🏗️', '🚜', '⚙️',
+		'💻', '🖥️', '⌨️', '🖱️', '💾', '🌐', '📱', '📡', '🔌', '🔋',
+		'✉️', '📞', '📢', '🔔', '🔒', '🔑', '🛡️', '💰', '💳', '🚀'
+	];
+	let selectedCreateIcon = $state('📄');
+	let selectedEditIcon = $state('');
+
 	// Sync when data changes
 	$effect(() => {
 		localServices = [...data.services];
@@ -32,6 +42,7 @@
 
 	function openEdit(service: any) {
 		editingService = { ...service };
+		selectedEditIcon = service.icon || '📄';
 	}
 
 	function closeEdit() {
@@ -178,10 +189,10 @@
 <!-- Create Modal -->
 {#if showCreateModal}
 	<div class="modal-overlay" onclick={() => { showCreateModal = false; }} role="presentation">
-		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog">
+			<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
 			<div class="modal-header">
 				<h3>Tambah Layanan Baru</h3>
-				<button class="modal-close" onclick={() => { showCreateModal = false; }}>
+				<button class="modal-close" onclick={() => { showCreateModal = false; }} aria-label="Tutup">
 					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
@@ -196,8 +207,39 @@
 						<input type="text" id="create-name" name="name" required placeholder="Contoh: Surat Keterangan Usaha" />
 					</div>
 					<div class="form-group">
-						<label for="create-icon">Ikon (emoji)</label>
-						<input type="text" id="create-icon" name="icon" placeholder="Contoh: 📄" />
+						<div class="icon-selector-premium">
+							<div class="selection-preview">
+								<div class="preview-box">
+									<span class="preview-emoji">{selectedCreateIcon || '❓'}</span>
+								</div>
+								<div class="preview-info">
+									<label for="create-icon">Ikon Terpilih</label>
+									<input 
+										type="text" 
+										id="create-icon" 
+										name="icon" 
+										bind:value={selectedCreateIcon} 
+										placeholder="Pilih atau ketik..."
+										class="manual-input-premium"
+										maxlength="5"
+									/>
+								</div>
+							</div>
+							<div class="icon-grid-scroll">
+								<div class="icon-grid">
+									{#each commonIcons as icon}
+										<button 
+											type="button" 
+											class="icon-item-btn" 
+											class:active={selectedCreateIcon === icon}
+											onclick={() => selectedCreateIcon = icon}
+										>
+											{icon}
+										</button>
+									{/each}
+								</div>
+							</div>
+						</div>
 					</div>
 					<div class="form-group">
 						<label for="create-requirements">Persyaratan</label>
@@ -216,10 +258,10 @@
 <!-- Edit Modal -->
 {#if editingService}
 	<div class="modal-overlay" onclick={closeEdit} role="presentation">
-		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog">
+			<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
 			<div class="modal-header">
 				<h3>Edit Layanan</h3>
-				<button class="modal-close" onclick={closeEdit}>
+				<button class="modal-close" onclick={closeEdit} aria-label="Tutup">
 					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
@@ -235,8 +277,39 @@
 						<input type="text" id="edit-name" name="name" required value={editingService.name} />
 					</div>
 					<div class="form-group">
-						<label for="edit-icon">Ikon (emoji)</label>
-						<input type="text" id="edit-icon" name="icon" value={editingService.icon || ''} />
+						<div class="icon-selector-premium">
+							<div class="selection-preview">
+								<div class="preview-box">
+									<span class="preview-emoji">{selectedEditIcon || '❓'}</span>
+								</div>
+								<div class="preview-info">
+									<label for="edit-icon">Ikon Terpilih</label>
+									<input 
+										type="text" 
+										id="edit-icon" 
+										name="icon" 
+										bind:value={selectedEditIcon} 
+										placeholder="Pilih atau ketik..."
+										class="manual-input-premium"
+										maxlength="5"
+									/>
+								</div>
+							</div>
+							<div class="icon-grid-scroll">
+								<div class="icon-grid">
+									{#each commonIcons as icon}
+										<button 
+											type="button" 
+											class="icon-item-btn" 
+											class:active={selectedEditIcon === icon}
+											onclick={() => selectedEditIcon = icon}
+										>
+											{icon}
+										</button>
+									{/each}
+								</div>
+							</div>
+						</div>
 					</div>
 					<div class="form-group">
 						<label for="edit-requirements">Persyaratan</label>
@@ -255,10 +328,10 @@
 <!-- Delete Confirmation Modal -->
 {#if deletingService}
 	<div class="modal-overlay" onclick={closeDelete} role="presentation">
-		<div class="modal modal-sm" onclick={(e) => e.stopPropagation()} role="dialog">
+			<div class="modal modal-sm" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
 			<div class="modal-header">
 				<h3>Hapus Layanan</h3>
-				<button class="modal-close" onclick={closeDelete}>
+				<button class="modal-close" onclick={closeDelete} aria-label="Tutup">
 					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
@@ -389,31 +462,6 @@
 		border-color: #fca5a5;
 	}
 
-	.btn-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 36px;
-		height: 36px;
-		border-radius: 10px;
-		background: #f3f4f6;
-		border: none;
-		color: #374151;
-		cursor: pointer;
-		transition: all 0.2s;
-		text-decoration: none;
-	}
-
-	.btn-icon:hover {
-		background: #e5e7eb;
-		color: #111827;
-	}
-
-	.btn-icon.danger:hover {
-		background: #fef2f2;
-		color: #dc2626;
-	}
-
 	/* Alerts */
 	.alert {
 		padding: 0.75rem 1rem;
@@ -421,12 +469,6 @@
 		font-size: 0.85rem;
 		font-weight: 500;
 		margin-bottom: 1rem;
-	}
-
-	.alert-success {
-		background: #f0fdf4;
-		color: #16a34a;
-		border: 1px solid #bbf7d0;
 	}
 
 	.alert-error {
@@ -669,6 +711,133 @@
 		.service-actions {
 			width: 100%;
 			justify-content: flex-end;
+		}
+	}
+
+	/* Icon Picker Styles */
+	/* Icon Picker Styles */
+	.icon-selector-premium {
+		background: #f8fafc;
+		border: 1.5px solid #e2e8f0;
+		border-radius: 16px;
+		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.selection-preview {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		background: white;
+		padding: 0.75rem;
+		border-radius: 12px;
+		border: 1px solid #e2e8f0;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+	}
+
+	.preview-box {
+		width: 56px;
+		height: 56px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+		border-radius: 12px;
+		border: 1.5px solid #fbcfe8;
+		flex-shrink: 0;
+	}
+
+	.preview-emoji {
+		font-size: 1.75rem;
+	}
+
+	.preview-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.preview-info label {
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: #64748b;
+		text-transform: uppercase;
+		letter-spacing: 0.025em;
+	}
+
+	.manual-input-premium {
+		background: transparent !important;
+		border-color: #cbd5e1 !important;
+		padding: 0.4rem 0.6rem !important;
+		font-size: 1rem !important;
+		font-weight: 500 !important;
+		width: 100% !important;
+	}
+
+	.manual-input-premium:focus {
+		border-color: #800020 !important;
+		box-shadow: none !important;
+	}
+
+	.icon-grid-scroll {
+		max-height: 160px;
+		overflow-y: auto;
+		padding-right: 0.5rem;
+	}
+
+	/* Custom Scrollbar */
+	.icon-grid-scroll::-webkit-scrollbar {
+		width: 5px;
+	}
+	.icon-grid-scroll::-webkit-scrollbar-track {
+		background: #f1f5f9;
+		border-radius: 10px;
+	}
+	.icon-grid-scroll::-webkit-scrollbar-thumb {
+		background: #cbd5e1;
+		border-radius: 10px;
+	}
+
+	.icon-grid {
+		display: grid;
+		grid-template-columns: repeat(8, 1fr);
+		gap: 0.4rem;
+	}
+
+	.icon-item-btn {
+		aspect-ratio: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.15rem;
+		background: white;
+		border: 1px solid #e2e8f0;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.2s;
+		padding: 0;
+	}
+
+	.icon-item-btn:hover {
+		border-color: #800020;
+		transform: translateY(-2px);
+		box-shadow: 0 4px 8px rgba(128, 0, 32, 0.1);
+	}
+
+	.icon-item-btn.active {
+		background: #800020;
+		border-color: #800020;
+		color: white;
+		transform: scale(1.1);
+		z-index: 1;
+	}
+
+	@media (max-width: 480px) {
+		.icon-grid {
+			grid-template-columns: repeat(5, 1fr);
 		}
 	}
 </style>
