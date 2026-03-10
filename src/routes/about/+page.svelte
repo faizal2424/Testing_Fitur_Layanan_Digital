@@ -88,7 +88,7 @@
             <div class="space-y-6">
                 <h2 class="text-3xl font-bold text-slate-900">Mengenal Layanan Digital APTIKA</h2>
                 <p class="text-slate-600 text-lg leading-relaxed">
-                    Website ini adalah portal resmi yang dikelola oleh <strong>Bidang Aplikasi Informatika (APTIKA)</strong> Dinas Komunikasi dan Informatika.
+                    Website ini adalah portal resmi yang dikelola oleh <strong>Bidang Aplikasi Informatika (APTIKA)</strong> Dinas Komunikasi dan Informatika Kabupaten Semarang.
                 </p>
                 <p class="text-slate-500 leading-relaxed">
                     Kami hadir sebagai solusi satu pintu untuk menampung, memproses, dan memantau berbagai permohonan layanan teknologi informasi. Menghilangkan birokrasi manual yang lambat menjadi proses digital yang tercatat rapi.
@@ -197,7 +197,7 @@
               Temukan jawaban cepat untuk pertanyaan yang sering diajukan. Jika butuh bantuan lebih lanjut, hubungi kami.
             </p>
             
-            <a href="mailto:helpdesk@semarangkota.go.id" class="inline-flex items-center gap-2 text-sm font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-3 rounded-xl transition-colors">
+            <a href="mailto:kominfo@semarangkab.go.id" class="inline-flex items-center gap-2 text-sm font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-3 rounded-xl transition-colors">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 Hubungi Helpdesk
             </a>
