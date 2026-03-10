@@ -2,6 +2,8 @@ import { fail, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { getAllowedStatuses } from '$lib/utils/submissionFlow';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
 
 export const load: PageServerLoad = async ({ params, parent, locals }) => {
 	const parentData = await parent();
@@ -85,11 +87,12 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 			value: v.value,
 			file_path: v.file_path
 		})),
-		notes: submission.submission_notes.map((n) => ({
+		notes: submission.submission_notes.map((n: any) => ({
 			id: n.id.toString(),
 			status_from: n.status_from,
 			status_to: n.status_to,
 			note: n.note,
+			file_path: n.file_path,
 			user_name: n.users?.name || 'Sistem',
 			created_at: n.created_at?.toISOString() || null
 		})),
@@ -122,6 +125,7 @@ export const actions: Actions = {
 		const teamMemberIds = formData.getAll('team_members').map((id) => id.toString());
 		const isPriorityStr = formData.get('is_priority')?.toString(); // 'true' or 'false' or undefined
 		const note = formData.get('note')?.toString()?.trim() || null;
+		const evidence = formData.get('evidence') as File | null;
 		
 		const submissionId = BigInt(params.id);
 
@@ -133,6 +137,7 @@ export const actions: Actions = {
 				status: true, 
 				is_priority: true, 
 				assigned_to: true,
+				tracking_code: true,
 				submission_team_members: {
 					select: { user_id: true }
 				}
@@ -141,7 +146,8 @@ export const actions: Actions = {
 
 		if (!submission) return fail(404, { error: 'Pengajuan tidak ditemukan.' });
 
-		const oldStatus = submission.status;
+		try {
+			const oldStatus = submission.status;
 		const user = locals.user;
 		if (!user) return fail(401, { error: 'Unauthorized' });
 		
@@ -179,6 +185,11 @@ export const actions: Actions = {
 			return fail(400, { error: 'Status belum diubah. Silakan pilih status baru sebelum menyimpan perubahan.' });
 		}
 
+		// Validation: evidence is required if status is diselesaikan_pic
+		if (newStatus === 'diselesaikan_pic' && (!evidence || evidence.size === 0)) {
+			return fail(400, { error: 'Bukti gambar laporan wajib diunggah untuk menyelesaikan pengajuan.' });
+		}
+
 		// Validation: if status is ditugaskan, there must be a PIC
 		if (newStatus === 'ditugaskan' && !newPicId) {
 			return fail(400, { error: 'PIC wajib ditempatkan ketika status adalah ditugaskan.' });
@@ -188,44 +199,68 @@ export const actions: Actions = {
 		const isAssignmentPhase = (oldStatus === 'baru' || oldStatus === 'ditolak_pic') && newStatus === 'ditugaskan';
 		const canChangePriority = (userRole === 'admin' || userRole === 'superadmin') && isAssignmentPhase;
 
-		await db.$transaction([
-			db.service_submissions.update({
-				where: { id: submissionId },
-				data: { 
-					status: newStatus, 
-					assigned_to: newStatus === 'ditugaskan' ? newPicId : submission.assigned_to,
-					is_priority: canChangePriority ? newIsPriority : submission.is_priority,
-					updated_at: new Date() 
-				}
-			}),
-			db.submission_notes.create({
-				data: {
-					submission_id: submissionId,
-					user_id: locals.user?.id || null,
-					status_from: oldStatus,
-					status_to: newStatus !== oldStatus ? newStatus : null, // only log status transition if it actually changed
-					note,
-					created_at: new Date(),
-					updated_at: new Date()
-				}
-			}),
-			// Sync team members (many-to-many pivot)
-			// Rule: Only PIC can change team members, and only during transition from 'ditugaskan' to 'diproses_pic'
-			...(userRole === 'pic' && oldStatus === 'ditugaskan' ? [
-				db.submission_team_members.deleteMany({
-					where: { submission_id: submissionId }
-				}),
-				...(teamMemberIds.length > 0 ? [
-					db.submission_team_members.createMany({
-						data: teamMemberIds.map(id => ({
-							submission_id: submissionId,
-							user_id: BigInt(id)
-						}))
-					})
-				] : [])
-			] : [])
-		]);
+		// Handle file upload if present
+		let evidencePath: string | null = null;
+		if (evidence && evidence.size > 0) {
+			const uploadDir = join(process.cwd(), 'static', 'uploads', 'evidence', submission.tracking_code);
+			await mkdir(uploadDir, { recursive: true });
+
+			const fileName = `evidence_${Date.now()}_${evidence.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+			const fullPath = join(uploadDir, fileName);
+
+			const arrayBuffer = await evidence.arrayBuffer();
+			await writeFile(fullPath, Buffer.from(arrayBuffer));
+			evidencePath = `/uploads/evidence/${submission.tracking_code}/${fileName}`;
+		}
+
+		// Perform updates sequentially to isolate errors
+		// 1. Update matching status
+		await db.service_submissions.update({
+			where: { id: submissionId },
+			data: { 
+				status: newStatus, 
+				assigned_to: newStatus === 'ditugaskan' ? newPicId : submission.assigned_to,
+				is_priority: canChangePriority ? newIsPriority : submission.is_priority,
+				updated_at: new Date() 
+			}
+		});
+
+		// 2. Create note
+		await db.submission_notes.create({
+			data: {
+				submission_id: submissionId,
+				user_id: locals.user?.id || null,
+				status_from: oldStatus,
+				status_to: newStatus !== oldStatus ? newStatus : null,
+				note,
+				file_path: evidencePath,
+				created_at: new Date(),
+				updated_at: new Date()
+			} as any
+		});
+
+		// 3. Sync team members
+		if (userRole === 'pic' && oldStatus === 'ditugaskan') {
+			await db.submission_team_members.deleteMany({
+				where: { submission_id: submissionId }
+			});
+			
+			if (teamMemberIds.length > 0) {
+				await db.submission_team_members.createMany({
+					data: teamMemberIds.map(id => ({
+						submission_id: submissionId,
+						user_id: BigInt(id)
+					}))
+				});
+			}
+		}
 
 		return { success: true, message: 'Pengajuan berhasil diproses dan diperbarui.' };
+		} catch (err: any) {
+			console.error('Process action error details:', err);
+			// Log specific details if it's a prisma error
+			const errorMessage = err.message || 'Gagal memproses data';
+			return fail(500, { error: `Terjadi kesalahan saat menyimpan: ${errorMessage}` });
+		}
 	}
 };
