@@ -11,6 +11,7 @@
 	let filterStatus = $state(data.filters.status);
 	let filterDari = $state(data.filters.dari);
 	let filterSampai = $state(data.filters.sampai);
+	let filterSearch = $state(data.filters.q || '');
 
 	const statusLabels: Record<string, string> = {
 		baru: 'Baru',
@@ -59,6 +60,7 @@
 		if (filterStatus) params.set('status', filterStatus);
 		if (filterDari) params.set('dari', filterDari);
 		if (filterSampai) params.set('sampai', filterSampai);
+		if (filterSearch) params.set('q', filterSearch);
 		goto(`/admin?${params.toString()}`);
 	}
 
@@ -67,6 +69,7 @@
 		filterStatus = '';
 		filterDari = '';
 		filterSampai = '';
+		filterSearch = '';
 		goto('/admin');
 	}
 
@@ -305,6 +308,16 @@
 			{/if}
 		</div>
 		<div class="filters-grid">
+			<div class="filter-group">
+				<label for="filter-search">Cari Pengajuan</label>
+				<input 
+					type="text" 
+					id="filter-search" 
+					placeholder="Nama, Email, atau Kode..." 
+					bind:value={filterSearch}
+					onkeydown={(e) => e.key === 'Enter' && applyFilters()}
+				/>
+			</div>
 			<div class="filter-group">
 				<label for="filter-layanan">Jenis Layanan</label>
 				<select id="filter-layanan" bind:value={filterLayanan}>
@@ -700,8 +713,12 @@
 
 	.filters-grid {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
 		gap: 0.75rem;
+	}
+
+	.search-input-wrapper {
+		position: relative;
 	}
 
 	.filter-group {
