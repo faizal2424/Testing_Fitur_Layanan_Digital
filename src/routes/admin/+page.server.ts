@@ -33,8 +33,16 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		}
 	}
 
-	// === Statistics ===
-	const [totalServices, totalSubmissions, filteredCount, todayCount, statusCounts] = await Promise.all([
+	// === Statistics & Analytics ===
+	const [
+		totalServices, 
+		totalSubmissions, 
+		filteredCount, 
+		todayCount, 
+		statusCounts,
+		trendData,
+		popularityData
+	] = await Promise.all([
 		// Total layanan
 		db.services.count(),
 
@@ -58,7 +66,26 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		db.service_submissions.groupBy({
 			by: ['status'],
 			_count: { id: true }
-		})
+		}),
+
+		// Trend: Last 30 days
+		db.$queryRawUnsafe<any[]>(`
+			SELECT DATE(created_at) as date, COUNT(*) as count 
+			FROM service_submissions 
+			WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+			GROUP BY DATE(created_at) 
+			ORDER BY date ASC
+		`),
+
+		// Popularity: By Service
+		db.$queryRawUnsafe<any[]>(`
+			SELECT s.name, COUNT(*) as count 
+			FROM service_submissions sub 
+			JOIN services s ON sub.service_id = s.id 
+			GROUP BY s.id 
+			ORDER BY count DESC 
+			LIMIT 5
+		`)
 	]);
 
 	// === Submissions list with pagination ===
@@ -118,7 +145,15 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 			totalSubmissions,
 			filteredCount,
 			todayCount,
-			statusMap
+			statusMap,
+			trends: trendData.map(t => ({
+				date: t.date instanceof Date ? t.date.toISOString().split('T')[0] : t.date,
+				count: Number(t.count)
+			})),
+			popularity: popularityData.map(p => ({
+				name: p.name,
+				count: Number(p.count)
+			}))
 		},
 		submissions: serializedSubmissions,
 		services: serializedServices,

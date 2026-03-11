@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -74,6 +75,93 @@
 		params.set('halaman', p.toString());
 		goto(`/admin?${params.toString()}`);
 	}
+
+	// Analytics Chart variables
+	let trendChartCanvas: HTMLCanvasElement;
+	let statusChartCanvas: HTMLCanvasElement;
+	let popularityChartCanvas: HTMLCanvasElement;
+	let charts: any[] = [];
+
+	async function initCharts() {
+		const { Chart } = await import('chart.js/auto');
+		
+		// Destroy old charts if they exist (for resizing or re-renders if needed)
+		charts.forEach(c => c.destroy());
+		charts = [];
+
+		// 1. Trend Chart (Line)
+		charts.push(new Chart(trendChartCanvas, {
+			type: 'line',
+			data: {
+				labels: data.stats.trends.map(t => formatDate(t.date).split(',')[0]),
+				datasets: [{
+					label: 'Jumlah Pengajuan',
+					data: data.stats.trends.map(t => t.count),
+					borderColor: '#800020',
+					backgroundColor: 'rgba(128, 0, 32, 0.1)',
+					fill: true,
+					tension: 0.4
+				}]
+			},
+			options: {
+				responsive: true,
+				plugins: { legend: { display: false } },
+				scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+			}
+		}));
+
+		// 2. Status Chart (Doughnut)
+		const statusData = Object.entries(data.stats.statusMap);
+		const bgColors: Record<string, string> = {
+			baru: '#3b82f6',
+			ditugaskan: '#f59e0b',
+			diproses_pic: '#6366f1',
+			ditolak_pic: '#f97316',
+			diselesaikan_pic: '#14b8a6',
+			selesai: '#22c55e'
+		};
+
+		charts.push(new Chart(statusChartCanvas, {
+			type: 'doughnut',
+			data: {
+				labels: statusData.map(([s]) => getStatusLabel(s)),
+				datasets: [{
+					data: statusData.map(([, c]) => c as number),
+					backgroundColor: statusData.map(([s]) => bgColors[s] || '#cbd5e1'),
+					borderWidth: 0
+				}]
+			},
+			options: {
+				responsive: true,
+				cutout: '70%',
+				plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6, font: { size: 11 } } } }
+			}
+		}));
+
+		// 3. Popularity Chart (Bar)
+		charts.push(new Chart(popularityChartCanvas, {
+			type: 'bar',
+			data: {
+				labels: data.stats.popularity.map(p => p.name),
+				datasets: [{
+					label: 'Jumlah Pengajuan',
+					data: data.stats.popularity.map(p => p.count),
+					backgroundColor: '#800020',
+					borderRadius: 6
+				}]
+			},
+			options: {
+				indexAxis: 'y',
+				responsive: true,
+				plugins: { legend: { display: false } },
+				scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+			}
+		}));
+	}
+
+	onMount(() => {
+		initCharts();
+	});
 
 	// Check if any filter is active
 	let hasActiveFilter = $derived(
@@ -153,6 +241,28 @@
 			<div class="stat-info">
 				<span class="stat-label">Pengajuan Hari Ini</span>
 				<span class="stat-value">{data.stats.todayCount}</span>
+			</div>
+		</div>
+	</div>
+
+	<!-- Analytics Grid -->
+	<div class="analytics-grid">
+		<div class="chart-card trend-card">
+			<h3 class="section-title">Tren Pengajuan (30 Hari Terakhir)</h3>
+			<div class="chart-body">
+				<canvas bind:this={trendChartCanvas}></canvas>
+			</div>
+		</div>
+		<div class="chart-card status-card">
+			<h3 class="section-title">Distribusi Status</h3>
+			<div class="chart-body doughnut">
+				<canvas bind:this={statusChartCanvas}></canvas>
+			</div>
+		</div>
+		<div class="chart-card popularity-card">
+			<h3 class="section-title">Layanan Terpopuler</h3>
+			<div class="chart-body">
+				<canvas bind:this={popularityChartCanvas}></canvas>
 			</div>
 		</div>
 	</div>
@@ -432,6 +542,63 @@
 		font-weight: 700;
 		color: #111827;
 		margin-top: 0.1rem;
+	}
+
+	/* Analytics Grid */
+	.analytics-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1.25rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.chart-card {
+		background: white;
+		border-radius: 14px;
+		padding: 1.5rem;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+		border: 1px solid #f3f4f6;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.chart-card .section-title {
+		margin-bottom: 1.5rem;
+		font-size: 0.85rem;
+		text-transform: uppercase;
+		letter-spacing: 0.025em;
+		color: #6b7280;
+	}
+
+	.chart-body {
+		flex: 1;
+		min-height: 240px;
+		position: relative;
+	}
+
+	.trend-card {
+		grid-column: span 2;
+	}
+
+	.status-card {
+		grid-column: span 1;
+	}
+
+	.popularity-card {
+		grid-column: span 3;
+	}
+
+	.popularity-card .chart-body {
+		min-height: 200px;
+	}
+
+	@media (max-width: 1024px) {
+		.analytics-grid {
+			grid-template-columns: 1fr;
+		}
+		.trend-card, .status-card, .popularity-card {
+			grid-column: span 1;
+		}
 	}
 
 	/* Status Overview */
