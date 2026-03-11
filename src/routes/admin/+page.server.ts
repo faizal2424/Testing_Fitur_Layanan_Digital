@@ -9,6 +9,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 	const statusFilter = url.searchParams.get('status') || '';
 	const dateFrom = url.searchParams.get('dari') || '';
 	const dateTo = url.searchParams.get('sampai') || '';
+	const searchKeyword = url.searchParams.get('q') || '';
 	const page = parseInt(url.searchParams.get('halaman') || '1');
 	const perPage = 10;
 
@@ -31,6 +32,14 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		if (dateTo) {
 			where.created_at.lte = new Date(dateTo + 'T23:59:59');
 		}
+	}
+
+	if (searchKeyword) {
+		where.OR = [
+			{ applicant_name: { contains: searchKeyword } },
+			{ applicant_email: { contains: searchKeyword } },
+			{ tracking_code: { contains: searchKeyword } }
+		];
 	}
 
 	// === Statistics & Analytics ===
@@ -167,7 +176,8 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 			layanan: serviceFilter,
 			status: statusFilter,
 			dari: dateFrom,
-			sampai: dateTo
+			sampai: dateTo,
+			q: searchKeyword
 		}
 	};
 };
