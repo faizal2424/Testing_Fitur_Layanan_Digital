@@ -206,6 +206,7 @@ model users {
   submission_notes           submission_notes[]
   submission_team_members    submission_team_members[]
   user_roles                 user_roles[]
+  notifications              notifications[]
 }
 
 model permissions {
@@ -241,6 +242,21 @@ model user_roles {
 
   @@id([user_id, role_id])
   @@index([role_id], map: "fk_ur_role")
+}
+
+model notifications {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id    BigInt    @db.UnsignedBigInt
+  title      String    @db.VarChar(255)
+  message    String    @db.Text
+  type       String    @default("info") @db.VarChar(32)
+  link       String?   @db.VarChar(255)
+  is_read    Boolean   @default(false)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @default(now()) @db.Timestamp(0)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "notifications_user_id_foreign")
+
+  @@index([user_id, is_read], map: "notifications_user_id_is_read_index")
 }
 
 enum service_submission_members_role {

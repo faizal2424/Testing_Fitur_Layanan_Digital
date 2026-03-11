@@ -1,6 +1,7 @@
 import { fail, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
+import { NotificationService } from '$lib/server/notifications';
 import { getAllowedStatuses } from '$lib/utils/submissionFlow';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -168,6 +169,14 @@ export const actions: Actions = {
 			}
 		}
 
+		// Fetch PIC users for dynamic messaging
+		const picUsers = await db.users.findMany({
+			where: {
+				user_roles: { some: { roles: { name: { in: ['pic', 'admin', 'superadmin'] } } } }
+			},
+			select: { id: true, name: true }
+		});
+
 		const newPicId = picIdStr ? BigInt(picIdStr) : null;
 		const newIsPriority = isPriorityStr === 'on' || isPriorityStr === 'true'; // checkboxes often post 'on'
 
@@ -240,7 +249,7 @@ export const actions: Actions = {
 		});
 
 		// 3. Sync team members
-		if (userRole === 'pic' && oldStatus === 'ditugaskan') {
+		if (userRole === 'admin' || userRole === 'superadmin' || userRole === 'pic') {
 			await db.submission_team_members.deleteMany({
 				where: { submission_id: submissionId }
 			});
@@ -255,10 +264,38 @@ export const actions: Actions = {
 			}
 		}
 
+		// Send notification for status change or assignment
+		let notifTitle = 'Update Status Pengajuan';
+		let notifMessage = `Pengajuan ${submission.tracking_code} telah diubah statusnya menjadi "${newStatus.replace('_', ' ').toUpperCase()}".`;
+		let adminNotifMessage = `Pengajuan ${submission.tracking_code} telah diubah statusnya menjadi "${newStatus.replace('_', ' ').toUpperCase()}" oleh ${user.name}.`;
+		let targetUserId: bigint | undefined = undefined;
+
+		if (newStatus === 'ditugaskan' && newPicId) {
+			const assignedPic = picUsers.find((u) => u.id === newPicId);
+			const picName = assignedPic?.name || 'PIC';
+			
+			notifTitle = 'Penugasan Pengajuan Baru';
+			notifMessage = `Anda telah ditugaskan untuk memproses pengajuan ${submission.tracking_code}.`;
+			adminNotifMessage = `${picName} telah ditugaskan untuk memproses pengajuan ${submission.tracking_code}.`;
+			targetUserId = newPicId;
+		} else if (submission.assigned_to) {
+			if (submission.assigned_to !== BigInt(user.id)) {
+				targetUserId = submission.assigned_to;
+			}
+		}
+
+		await NotificationService.send({
+			userId: targetUserId,
+			title: notifTitle,
+			message: notifMessage,
+			adminMessage: adminNotifMessage,
+			type: 'info',
+			link: `/admin/pengajuan/${submissionId}`
+		});
+
 		return { success: true, message: 'Pengajuan berhasil diproses dan diperbarui.' };
 		} catch (err: any) {
 			console.error('Process action error details:', err);
-			// Log specific details if it's a prisma error
 			const errorMessage = err.message || 'Gagal memproses data';
 			return fail(500, { error: `Terjadi kesalahan saat menyimpan: ${errorMessage}` });
 		}
