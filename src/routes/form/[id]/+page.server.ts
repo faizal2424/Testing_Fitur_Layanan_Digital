@@ -1,4 +1,5 @@
 import { db } from '$lib/server/db';
+import { NotificationService } from '$lib/server/notifications';
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { writeFile, mkdir } from 'fs/promises';
@@ -145,6 +146,14 @@ export const actions: Actions = {
                     });
                 }
             }
+
+            // Send notification
+            await NotificationService.send({
+                title: 'Pengajuan Baru',
+                message: `Ada pengajuan baru untuk layanan "${service.name}" dari ${applicantName || 'Anonim'} (${trackingCode}).`,
+                type: 'info',
+                link: `/admin/pengajuan/${submission.id}`
+            });
 
             throw redirect(303, `/form/${params.id}/success?code=${trackingCode}`);
         } catch (err) {
