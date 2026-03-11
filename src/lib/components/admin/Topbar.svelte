@@ -219,19 +219,23 @@
 		color: #111827;
 	}
 
-	.badget {
+	.badge {
 		position: absolute;
-		top: 4px;
-		right: 4px;
+		top: -2px;
+		right: -2px;
 		background: #ef4444;
 		color: white;
-		font-size: 0.65rem;
+		font-size: 0.6rem;
 		font-weight: 700;
-		padding: 2px 5px;
+		padding: 1px 4px;
 		border-radius: 20px;
-		border: 2px solid white;
-		min-width: 18px;
+		border: 1.5px solid white;
+		min-width: 16px;
 		text-align: center;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		line-height: 1;
 	}
 
 	.notif-dropdown {
