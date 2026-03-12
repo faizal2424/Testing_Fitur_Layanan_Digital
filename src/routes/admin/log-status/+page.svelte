@@ -51,28 +51,6 @@
 		goto(`/admin/log-status?${params.toString()}`);
 	}
 
-	function exportCsv() {
-		const headers = ['Tanggal', 'Tracking Code', 'Pemohon', 'Layanan', 'Status Dari', 'Status Ke', 'Catatan', 'Pengguna'];
-		const rows = data.logs.map(l => [
-			formatDate(l.created_at),
-			l.tracking_code,
-			l.applicant_name,
-			l.service_name,
-			l.status_from ? getStatusLabel(l.status_from) : '-',
-			l.status_to ? getStatusLabel(l.status_to) : '-',
-			(l.note || '-').replace(/"/g, '""'),
-			l.user_name
-		]);
-		const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
-		const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `log-status-${new Date().toISOString().slice(0, 10)}.csv`;
-		a.click();
-		URL.revokeObjectURL(url);
-	}
-
 	let hasActiveFilter = $derived(!!data.filters.layanan || !!data.filters.status || !!data.filters.cari || !!data.filters.dari || !!data.filters.sampai);
 </script>
 
@@ -84,10 +62,6 @@
 			<h2 class="page-title">Log Status</h2>
 			<p class="page-desc">Riwayat semua perubahan status pengajuan</p>
 		</div>
-		<button class="btn btn-outline" onclick={exportCsv}>
-			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-			Export CSV
-		</button>
 	</div>
 
 	<!-- Filters -->
@@ -134,6 +108,24 @@
 			</div>
 		</div>
 		<div class="filters-actions">
+			<div class="export-actions">
+				<a
+					href="/admin/log-status/export/csv?{$page.url.searchParams.toString()}"
+					class="export-btn csv"
+					download
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+					Export CSV
+				</a>
+				<a
+					href="/admin/log-status/export/pdf?{$page.url.searchParams.toString()}"
+					class="export-btn pdf"
+					target="_blank"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+					Cetak PDF
+				</a>
+			</div>
 			<button class="filter-apply-btn" onclick={applyFilters}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 				Terapkan
@@ -229,13 +221,22 @@
 	.filter-group label { font-size: 0.78rem; font-weight: 600; color: #374151; }
 	.filter-group select, .filter-group input { padding: 0.55rem 0.75rem; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 0.85rem; color: #1f2937; background: #f9fafb; font-family: inherit; transition: all 0.2s; }
 	.filter-group select:focus, .filter-group input:focus { outline: none; border-color: #800020; box-shadow: 0 0 0 3px rgba(128,0,32,0.1); background: white; }
-	.filters-actions { margin-top: 0.75rem; display: flex; justify-content: flex-end; }
+	.filters-actions { margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
+	.export-actions { display: flex; gap: 0.6rem; }
 	.filter-apply-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.25rem; background: linear-gradient(135deg, #800020, #a80030); color: white; border: none; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(128,0,32,0.25); }
 	.filter-apply-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(128,0,32,0.35); }
 
 	.table-card { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #f3f4f6; overflow: hidden; }
-	.table-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem; border-bottom: 1px solid #f3f4f6; }
+	.table-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f3f4f6; }
+	.table-header-left { display: flex; align-items: baseline; gap: 0.75rem; }
+	.table-actions { display: flex; gap: 0.75rem; }
+	.export-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 10px; font-size: 0.8rem; font-weight: 600; text-decoration: none; transition: all 0.2s; border: 1.5px solid transparent; }
+	.export-btn.csv { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+	.export-btn.csv:hover { background: #d1fae5; transform: translateY(-1px); }
+	.export-btn.pdf { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
+	.export-btn.pdf:hover { background: #ffe4e6; transform: translateY(-1px); }
 	.table-count { font-size: 0.8rem; color: #6b7280; font-weight: 500; }
+	.page-actions { display: flex; gap: 0.75rem; align-items: center; }
 	.table-wrapper { overflow-x: auto; }
 	table { width: 100%; border-collapse: collapse; }
 	thead { background: #f9fafb; }
