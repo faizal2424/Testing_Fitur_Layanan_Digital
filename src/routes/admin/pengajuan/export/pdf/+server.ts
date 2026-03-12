@@ -9,7 +9,7 @@ const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
 export const GET: RequestHandler = async ({ url, locals }) => {
 	const serviceFilter = url.searchParams.get('layanan') || '';
 	const statusFilter = url.searchParams.get('status') || '';
-	const search = url.searchParams.get('cari') || '';
+	const q = url.searchParams.get('q') || '';
 	const dateFrom = url.searchParams.get('dari') || '';
 	const dateTo = url.searchParams.get('sampai') || '';
 
@@ -26,25 +26,25 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	if (serviceFilter) where.service_id = BigInt(serviceFilter);
 	if (statusFilter) where.status = statusFilter;
 
-	if (search) {
-		const searchObj = { contains: search };
+	if (q) {
+		const searchObj = { contains: q };
 		if (where.OR) {
-            where.AND = [
-                { OR: where.OR },
-                { OR: [
-                    { applicant_name: searchObj },
-                    { applicant_email: searchObj },
-                    { tracking_code: searchObj }
-                ]}
-            ];
-            delete where.OR;
+			where.AND = [
+				{ OR: where.OR },
+				{ OR: [
+					{ applicant_name: searchObj },
+					{ applicant_email: searchObj },
+					{ tracking_code: searchObj }
+				]}
+			];
+			delete where.OR;
 		} else {
-            where.OR = [
-                { applicant_name: searchObj },
-                { applicant_email: searchObj },
-                { tracking_code: searchObj }
-            ];
-        }
+			where.OR = [
+				{ applicant_name: searchObj },
+				{ applicant_email: searchObj },
+				{ tracking_code: searchObj }
+			];
+		}
 	}
 
 	if (dateFrom || dateTo) {

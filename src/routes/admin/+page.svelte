@@ -358,8 +358,40 @@
 	<!-- Submissions Table -->
 	<div class="table-card">
 		<div class="table-header">
-			<h3 class="section-title">Pengajuan Terbaru</h3>
-			<span class="table-count">{data.pagination.total} pengajuan</span>
+			<div class="table-header-left">
+				<h3 class="section-title">Pengajuan Terbaru</h3>
+				<span class="table-count">{data.pagination.total} pengajuan</span>
+			</div>
+			<div class="table-actions">
+				<a 
+					href="/admin/pengajuan/export/csv?{$page.url.searchParams.toString()}" 
+					class="export-btn csv"
+					download
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+						<polyline points="14 2 14 8 20 8"></polyline>
+						<line x1="8" y1="13" x2="16" y2="13"></line>
+						<line x1="8" y1="17" x2="16" y2="17"></line>
+						<line x1="10" y1="9" x2="8" y2="9"></line>
+					</svg>
+					Ekspor CSV
+				</a>
+				<a 
+					href="/admin/pengajuan/export/pdf?{$page.url.searchParams.toString()}" 
+					class="export-btn pdf"
+					target="_blank"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+						<polyline points="14 2 14 8 20 8"></polyline>
+						<path d="M16 13H8"></path>
+						<path d="M16 17H8"></path>
+						<path d="M10 9H8"></path>
+					</svg>
+					Cetak PDF
+				</a>
+			</div>
 		</div>
 
 		{#if data.submissions.length === 0}
@@ -794,8 +826,55 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 1.25rem;
+		padding: 1.25rem 1.5rem;
 		border-bottom: 1px solid #f3f4f6;
+		background: #ffffff;
+	}
+
+	.table-header-left {
+		display: flex;
+		align-items: baseline;
+		gap: 0.75rem;
+	}
+
+	.table-actions {
+		display: flex;
+		gap: 0.75rem;
+	}
+
+	.export-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.45rem 0.9rem;
+		border-radius: 10px;
+		font-size: 0.8rem;
+		font-weight: 600;
+		text-decoration: none;
+		transition: all 0.2s;
+		border: 1.5px solid transparent;
+	}
+
+	.export-btn.csv {
+		background: #ecfdf5;
+		color: #059669;
+		border-color: #a7f3d0;
+	}
+
+	.export-btn.csv:hover {
+		background: #d1fae5;
+		transform: translateY(-1px);
+	}
+
+	.export-btn.pdf {
+		background: #fff1f2;
+		color: #e11d48;
+		border-color: #fecdd3;
+	}
+
+	.export-btn.pdf:hover {
+		background: #ffe4e6;
+		transform: translateY(-1px);
 	}
 
 	.table-count {
