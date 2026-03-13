@@ -20,10 +20,10 @@
 	<title>Tambah Pengguna — Layanan Digital</title>
 </svelte:head>
 
-<div class="add-user-page">
+<div class="page">
 	<div class="breadcrumb">
 		<a href="/admin/pengguna">Manajemen Pengguna</a>
-		<span class="separator">/</span>
+		<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="separator"><polyline points="9 18 15 12 9 6"/></svg>
 		<span class="current">Tambah Pengguna</span>
 	</div>
 
@@ -44,7 +44,7 @@
 </div>
 
 <style>
-	.add-user-page {
+	.page {
 		max-width: 900px;
 		margin: 0 auto;
 	}
@@ -53,14 +53,15 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		font-size: 0.8125rem;
-		margin-bottom: 0.75rem;
+		margin-bottom: 1rem;
 	}
 
 	.breadcrumb a {
+		font-size: 0.8125rem;
 		color: #6b7280;
 		text-decoration: none;
 		transition: color 0.15s;
+		font-weight: 500;
 	}
 
 	.breadcrumb a:hover {
@@ -72,8 +73,9 @@
 	}
 
 	.breadcrumb .current {
-		color: #374151;
-		font-weight: 600;
+		font-size: 0.8125rem;
+		color: #111827;
+		font-weight: 700;
 	}
 
 	.page-title {
@@ -81,6 +83,7 @@
 		font-weight: 800;
 		color: #111827;
 		margin: 0 0 1.5rem;
+		letter-spacing: -0.025em;
 	}
 
 	.alert {
@@ -92,12 +95,6 @@
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-	}
-
-	.alert.success {
-		background: #f0fdf4;
-		color: #166534;
-		border: 1px solid #bbf7d0;
 	}
 
 	.alert.error {

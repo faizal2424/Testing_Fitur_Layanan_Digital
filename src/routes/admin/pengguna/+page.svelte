@@ -44,14 +44,14 @@
 	<title>Manajemen Pengguna — Layanan Digital</title>
 </svelte:head>
 
-<div class="user-management">
-	<div class="header-section">
+<div class="page">
+	<div class="page-header">
 		<div>
 			<h2 class="page-title">Manajemen Pengguna</h2>
-			<p class="page-subtitle">Kelola akun administrator dan PIC sistem.</p>
+			<p class="page-desc">Kelola akun administrator dan PIC sistem.</p>
 		</div>
 		<a href="/admin/pengguna/tambah" class="add-btn">
-			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
 				<line x1="12" y1="5" x2="12" y2="19" />
 				<line x1="5" y1="12" x2="19" y2="12" />
 			</svg>
@@ -61,27 +61,43 @@
 
 	{#if form?.message}
 		<div class="alert" class:error={!form.success} class:success={form.success}>
+			{#if !form.success}
+				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+			{:else}
+				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><polyline points="20 6 9 17 4 12"/></svg>
+			{/if}
 			{form.message}
 		</div>
 	{/if}
 
 	<!-- Filters -->
 	<div class="filters-card">
-		<div class="filters-grid">
-			<div class="filter-group search">
-				<label for="search-cari">Cari Pengguna</label>
-				<div class="search-input-wrapper">
-					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-						<circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+		<div class="filters-header">
+			<h3 class="section-title">
+				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+				</svg>
+				Filter & Cari
+			</h3>
+			{#if hasActiveFilter}
+				<button class="reset-btn" onclick={resetFilters}>
+					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
 					</svg>
-					<input
-						type="text"
-						id="search-cari"
-						placeholder="Nama, email, atau username..."
-						bind:value={searchCari}
-						onkeydown={(e) => e.key === 'Enter' && applyFilters()}
-					/>
-				</div>
+					Reset
+				</button>
+			{/if}
+		</div>
+		<div class="filters-grid">
+			<div class="filter-group span-2">
+				<label for="search-cari">Cari Pengguna</label>
+				<input
+					type="text"
+					id="search-cari"
+					placeholder="Nama, email, atau username..."
+					bind:value={searchCari}
+					onkeydown={(e) => e.key === 'Enter' && applyFilters()}
+				/>
 			</div>
 			<div class="filter-group">
 				<label for="filter-peran">Peran</label>
@@ -92,12 +108,14 @@
 					{/each}
 				</select>
 			</div>
-			<div class="filter-actions-inline">
-				<button class="apply-btn" onclick={applyFilters}>Filter</button>
-				{#if hasActiveFilter}
-					<button class="reset-btn" onclick={resetFilters}>Reset</button>
-				{/if}
-			</div>
+		</div>
+		<div class="filters-actions">
+			<button class="filter-apply-btn" onclick={applyFilters}>
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+				</svg>
+				Terapkan Filter
+			</button>
 		</div>
 	</div>
 
@@ -147,7 +165,7 @@
 										{/each}
 									</div>
 								</td>
-								<td>{user.phone}</td>
+								<td>{user.phone || '-'}</td>
 								<td>
 									<div class="actions">
 										<a href="/admin/pengguna/ubah/{user.id}" class="action-btn edit" title="Ubah">
@@ -229,59 +247,59 @@
 </div>
 
 <style>
-	.user-management {
+	.page {
 		max-width: 1200px;
 		margin: 0 auto;
-		font-family: 'Inter', system-ui, sans-serif;
 	}
 
-	.header-section {
+	.page-header {
 		display: flex;
-		align-items: flex-end;
+		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 2.5rem;
+		margin-bottom: 1.5rem;
+		flex-wrap: wrap;
+		gap: 1rem;
 	}
 
 	.page-title {
-		font-size: 1.75rem;
+		font-size: 1.25rem;
 		font-weight: 700;
 		color: #111827;
-		margin: 0 0 0.5rem;
-		letter-spacing: -0.02em;
+		margin: 0;
 	}
 
-	.page-subtitle {
-		font-size: 0.95rem;
+	.page-desc {
+		font-size: 0.85rem;
 		color: #6b7280;
-		margin: 0;
+		margin: 0.2rem 0 0;
 	}
 
 	.add-btn {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
-		padding: 0.75rem 1.5rem;
-		background: #111827;
+		padding: 0.6rem 1.25rem;
+		background: linear-gradient(135deg, #c0002a, #800020);
 		color: white;
 		text-decoration: none;
-		border-radius: 8px;
-		font-size: 0.875rem;
-		font-weight: 500;
+		border-radius: 12px;
+		font-size: 0.85rem;
+		font-weight: 600;
 		transition: all 0.2s ease;
+		box-shadow: 0 4px 12px rgba(128, 0, 32, 0.2);
 	}
 
 	.add-btn:hover {
-		background: #1f2937;
 		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 6px 16px rgba(128, 0, 32, 0.3);
 	}
 
 	.alert {
 		padding: 1rem 1.25rem;
-		border-radius: 8px;
-		margin-bottom: 2rem;
+		border-radius: 12px;
+		margin-bottom: 1.5rem;
 		font-size: 0.875rem;
-		font-weight: 500;
+		font-weight: 600;
 		display: flex;
 		align-items: center;
 	}
@@ -300,136 +318,140 @@
 
 	/* Filters */
 	.filters-card {
-		margin-bottom: 2rem;
+		background: white;
+		border-radius: 14px;
+		padding: 1.25rem;
+		margin-bottom: 1.5rem;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+		border: 1px solid #f3f4f6;
+	}
+
+	.filters-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 1rem;
+	}
+
+	.section-title {
+		font-size: 0.95rem;
+		font-weight: 700;
+		color: #111827;
+		margin: 0;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.reset-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		background: #fef2f2;
+		color: #dc2626;
+		border: 1px solid #fecaca;
+		padding: 0.35rem 0.75rem;
+		border-radius: 8px;
+		font-size: 0.78rem;
+		font-weight: 500;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.2s;
+	}
+	
+	.reset-btn:hover {
+		background: #fee2e2;
 	}
 
 	.filters-grid {
 		display: grid;
-		grid-template-columns: minmax(200px, 1fr) 200px auto;
-		gap: 1rem;
-		align-items: flex-end;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.75rem;
+	}
+
+	.span-2 {
+		grid-column: span 2;
 	}
 
 	.filter-group {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: 0.3rem;
 	}
 
 	.filter-group label {
-		font-size: 0.75rem;
+		font-size: 0.78rem;
 		font-weight: 600;
-		color: #4b5563;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		color: #374151;
 	}
 
-	.search-input-wrapper {
-		position: relative;
-		display: flex;
-		align-items: center;
-	}
-
-	.search-icon {
-		position: absolute;
-		left: 0.875rem;
-		color: #9ca3af;
-		pointer-events: none;
-	}
-
-	.search-input-wrapper input, .filter-group select {
+	.filter-group select, .filter-group input {
 		width: 100%;
-		padding: 0.625rem 1rem;
-		border: 1px solid #e5e7eb;
-		border-radius: 8px;
-		font-size: 0.875rem;
-		background: white;
-		color: #111827;
-		transition: all 0.2s ease;
-	}
-
-	.search-input-wrapper input {
-		padding-left: 2.5rem;
+		padding: 0.55rem 0.75rem;
+		border: 1.5px solid #e5e7eb;
+		border-radius: 10px;
+		font-size: 0.85rem;
+		color: #1f2937;
+		background: #f9fafb;
+		font-family: inherit;
+		transition: all 0.2s;
 	}
 
 	input:focus, select:focus {
 		outline: none;
-		border-color: #6b7280;
-		box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1);
-	}
-
-	.filter-actions-inline {
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	.apply-btn {
-		padding: 0.625rem 1.25rem;
+		border-color: #800020;
+		box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
 		background: white;
-		color: #374151;
-		border: 1px solid #e5e7eb;
-		border-radius: 8px;
-		font-size: 0.875rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s ease;
 	}
 
-	.apply-btn:hover {
-		background: #f9fafb;
-		border-color: #d1d5db;
+	.filters-actions {
+		margin-top: 0.75rem;
+		display: flex;
+		justify-content: flex-end;
 	}
 
-	.reset-btn {
-		padding: 0.625rem 1rem;
-		background: transparent;
-		color: #6b7280;
+	.filter-apply-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.55rem 1.25rem;
+		background: linear-gradient(135deg, #800020, #a80030);
+		color: white;
 		border: none;
-		border-radius: 8px;
-		font-size: 0.875rem;
-		font-weight: 500;
+		border-radius: 10px;
+		font-size: 0.85rem;
+		font-weight: 600;
 		cursor: pointer;
-		transition: color 0.2s;
+		font-family: inherit;
+		box-shadow: 0 2px 8px rgba(128, 0, 32, 0.25);
 	}
-	
-	.reset-btn:hover {
-		color: #ef4444;
-		background: #fef2f2;
+
+	.filter-apply-btn:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(128, 0, 32, 0.35);
 	}
 
 	/* Table Card */
 	.table-card {
 		background: white;
-		border-radius: 12px;
-		border: 1px solid #e5e7eb;
+		border-radius: 14px;
+		border: 1px solid #f3f4f6;
 		overflow: hidden;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 	}
 
 	.table-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 1.25rem 1.5rem;
-		border-bottom: 1px solid #e5e7eb;
-		background: #f9fafb;
-	}
-
-	.section-title {
-		font-size: 1rem;
-		font-weight: 600;
-		color: #111827;
-		margin: 0;
+		padding: 1.25rem;
+		border-bottom: 1px solid #f3f4f6;
 	}
 
 	.table-count {
-		font-size: 0.75rem;
+		font-size: 0.8rem;
 		color: #6b7280;
 		font-weight: 500;
-		background: white;
-		padding: 0.25rem 0.6rem;
-		border-radius: 99px;
-		border: 1px solid #e5e7eb;
 	}
 
 	.table-wrapper {
@@ -441,37 +463,36 @@
 		border-collapse: collapse;
 	}
 
+	thead {
+		background: #f9fafb;
+	}
+
 	th {
-		padding: 1rem 1.5rem;
+		padding: 0.75rem 1rem;
 		text-align: left;
 		font-size: 0.75rem;
 		font-weight: 600;
 		color: #6b7280;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		border-bottom: 1px solid #e5e7eb;
+		white-space: nowrap;
 	}
 
 	td {
-		padding: 1rem 1.5rem;
-		font-size: 0.875rem;
+		padding: 0.85rem 1rem;
+		font-size: 0.85rem;
 		color: #374151;
-		border-bottom: 1px solid #f3f4f6;
-		vertical-align: middle;
+		border-top: 1px solid #f3f4f6;
 	}
 
-	tr:last-child td {
-		border-bottom: none;
-	}
-
-	tr:hover td {
-		background: #fdfdfd;
+	tbody tr:hover {
+		background: #fafafa;
 	}
 
 	.user-info {
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
+		gap: 0.1rem;
 	}
 
 	.user-name {
@@ -480,17 +501,17 @@
 	}
 
 	.user-email {
-		font-size: 0.8rem;
-		color: #6b7280;
+		font-size: 0.75rem;
+		color: #9ca3af;
 	}
 
 	code {
 		background: #f3f4f6;
-		color: #4b5563;
+		color: #374151;
 		padding: 0.2rem 0.5rem;
-		border-radius: 4px;
-		font-size: 0.8rem;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		border-radius: 6px;
+		font-size: 0.78rem;
+		font-weight: 600;
 	}
 
 	.role-badges {
@@ -501,16 +522,16 @@
 
 	.role-badge {
 		padding: 0.2rem 0.6rem;
-		border-radius: 99px;
+		border-radius: 20px;
 		font-size: 0.7rem;
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.03em;
 	}
 
-	.role-badge.superadmin { background: #fee2e2; color: #991b1b; }
-	.role-badge.admin { background: #fef3c7; color: #92400e; }
-	.role-badge.pic { background: #dcfce7; color: #166534; }
+	.role-badge.superadmin { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+	.role-badge.admin { background: #fff1f2; color: #be123c; border: 1px solid #fda4af; }
+	.role-badge.pic { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 
 
 	.actions {
@@ -525,125 +546,134 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 6px;
-		background: transparent;
-		color: #9ca3af;
+		border-radius: 8px;
+		background: white;
+		color: #6b7280;
 		cursor: pointer;
 		transition: all 0.2s;
 		text-decoration: none;
-		border: none;
+		border: 1.5px solid #e5e7eb;
 	}
 
 	.action-btn.edit:hover {
-		background: #f3f4f6;
+		background: #f9fafb;
 		color: #111827;
+		border-color: #d1d5db;
 	}
 
 	.action-btn.delete:hover {
 		background: #fef2f2;
 		color: #ef4444;
+		border-color: #fecaca;
 	}
 
 	/* Pagination */
 	.pagination {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding: 1rem 1.5rem;
-		border-top: 1px solid #e5e7eb;
-		background: #f9fafb;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 1rem 1.25rem;
+		border-top: 1px solid #f3f4f6;
 	}
 
 	.page-btn {
-		padding: 0.5rem 0.75rem;
+		padding: 0.45rem 1rem;
 		background: white;
-		border: 1px solid #d1d5db;
-		border-radius: 6px;
-		font-size: 0.8125rem;
+		border: 1.5px solid #e5e7eb;
+		border-radius: 8px;
+		font-size: 0.8rem;
 		font-weight: 500;
 		color: #374151;
 		cursor: pointer;
+		font-family: inherit;
 		transition: all 0.2s;
 	}
 	
 	.page-btn:hover:not(:disabled) {
-		background: #f3f4f6;
+		background: #f9fafb;
+		border-color: #d1d5db;
 	}
 
 	.page-btn:disabled {
-		opacity: 0.5;
+		opacity: 0.4;
 		cursor: not-allowed;
 	}
 
 	.page-numbers {
 		display: flex;
+		align-items: center;
 		gap: 0.25rem;
 	}
 
 	.page-num {
-		min-width: 32px;
-		height: 32px;
-		padding: 0 0.5rem;
+		width: 36px;
+		height: 36px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border-radius: 6px;
-		border: none;
-		background: transparent;
-		font-size: 0.875rem;
+		background: white;
+		border: 1.5px solid #e5e7eb;
+		border-radius: 8px;
+		font-size: 0.8rem;
 		font-weight: 500;
-		color: #6b7280;
+		color: #374151;
 		cursor: pointer;
+		font-family: inherit;
 		transition: all 0.2s;
 	}
 
 	.page-num:hover:not(.active) {
-		background: #f3f4f6;
-		color: #111827;
+		background: #f9fafb;
+		border-color: #d1d5db;
 	}
 
 	.page-num.active {
-		background: #111827;
+		background: #800020;
 		color: white;
-		font-weight: 600;
+		border-color: #800020;
 	}
 
 	.page-dots {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		color: #6b7280;
+		color: #9ca3af;
+		font-size: 0.8rem;
+		padding: 0 0.25rem;
 	}
 
 	.empty-state {
 		padding: 4rem 2rem;
 		text-align: center;
-		color: #6b7280;
+		color: #9ca3af;
 	}
 
 	.empty-state p {
 		margin-top: 1rem;
-		font-size: 0.9375rem;
+		font-size: 0.9rem;
 	}
 
-	@media (max-width: 768px) {
+	@media (max-width: 1024px) {
+		.filters-grid {
+			grid-template-columns: repeat(2, 1fr);
+		}
+		.span-2 {
+			grid-column: span 2;
+		}
+	}
+
+	@media (max-width: 640px) {
 		.filters-grid {
 			grid-template-columns: 1fr;
 		}
-		.header-section {
+		.span-2 {
+			grid-column: span 1;
+		}
+		.page-header {
 			flex-direction: column;
 			align-items: flex-start;
-			gap: 1.5rem;
 		}
 		.add-btn {
 			width: 100%;
 			justify-content: center;
-		}
-		.table-header {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 0.5rem;
 		}
 	}
 </style>

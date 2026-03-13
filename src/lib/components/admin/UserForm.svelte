@@ -97,7 +97,14 @@
     <div class="form-actions">
         <button type="button" class="back-btn" onclick={() => history.back()}>Batal</button>
         <button type="submit" class="submit-btn" disabled={loading}>
-            {loading ? 'Menyimpan...' : (isEdit ? 'Simpan Perubahan' : 'Tambah Pengguna')}
+            {#if loading}
+                <svg class="spinner" viewBox="0 0 50 50" style="width: 18px; height: 18px; margin-right: 0.5rem; display: inline-block; vertical-align: middle;">
+                    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5" style="stroke: white; stroke-linecap: round; animation: rotate 2s linear infinite, dash 1.5s ease-in-out infinite;"></circle>
+                </svg>
+                Memproses...
+            {:else}
+                {isEdit ? 'Simpan Perubahan' : 'Tambah Pengguna'}
+            {/if}
         </button>
     </div>
 </form>
@@ -108,26 +115,26 @@
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
-        max-width: 800px; /* Lebar maksimal agar tidak terlalu melar di layar besar */
+        max-width: 800px;
         margin: 0 auto;
     }
 
     /* Cards */
     .card, .form-actions {
         background: #ffffff;
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 2rem;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-        border: 1px solid #f1f5f9;
+        box-shadow: 0 4px 24px rgba(128, 0, 32, 0.04);
+        border: 1px solid #f3f4f6;
     }
 
     .card-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #0f172a;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #800020;
         margin: 0 0 1.5rem;
         padding-bottom: 1rem;
-        border-bottom: 1px solid #f1f5f9;
+        border-bottom: 1px solid #f3f4f6;
     }
 
     .card-help {
@@ -157,34 +164,34 @@
 
     label {
         font-size: 0.875rem;
-        font-weight: 500;
-        color: #475569;
+        font-weight: 600;
+        color: #374151;
     }
 
     .required {
-        color: #ef4444;
+        color: #c0002a;
     }
 
     /* Inputs & Selects */
     input, select {
         padding: 0.75rem 1rem;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
         font-size: 0.95rem;
         font-family: inherit;
-        color: #1e293b;
-        background-color: #f8fafc;
+        color: #111827;
+        background-color: #f9fafb;
         transition: all 0.2s ease;
     }
 
     input::placeholder {
-        color: #94a3b8;
+        color: #9ca3af;
     }
 
     /* Custom Select Arrow */
     select {
         appearance: none;
-        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
         background-repeat: no-repeat;
         background-position: right 1rem top 50%;
         background-size: 0.65rem auto;
@@ -210,36 +217,36 @@
     .back-btn {
         padding: 0.65rem 1.5rem;
         background: transparent;
-        border: 1px solid transparent;
-        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
         font-size: 0.9rem;
         font-weight: 500;
-        color: #64748b;
+        color: #4b5563;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .back-btn:hover {
-        color: #0f172a;
-        background: #f1f5f9;
+        color: #111827;
+        background: #f3f4f6;
     }
 
     .submit-btn {
         padding: 0.75rem 2rem;
-        background: #800020; /* Warna solid tanpa gradient untuk kesan minimalis */
+        background: linear-gradient(135deg, #c0002a, #800020);
         color: white;
         border: none;
-        border-radius: 8px;
+        border-radius: 12px;
         font-size: 0.9rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(128, 0, 32, 0.2);
     }
 
     .submit-btn:hover:not(:disabled) {
-        background: #6a001a;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(128, 0, 32, 0.2);
+        box-shadow: 0 6px 16px rgba(128, 0, 32, 0.3);
     }
 
     .submit-btn:disabled {
@@ -247,7 +254,6 @@
         cursor: not-allowed;
     }
 
-    /* Responsive adjustments */
     @media (max-width: 768px) {
         .form-grid-inner {
             grid-template-columns: 1fr;
@@ -256,5 +262,14 @@
         .card, .form-actions {
             padding: 1.5rem;
         }
+    }
+
+    @keyframes rotate {
+        100% { transform: rotate(360deg); }
+    }
+    @keyframes dash {
+        0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
+        50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
+        100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
     }
 </style>
