@@ -69,7 +69,7 @@
 		<div class="filters-header">
 			<h3 class="section-title">
 				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-				Filter
+				Filter & Cari
 			</h3>
 			{#if hasActiveFilter}
 				<button class="reset-btn" onclick={resetFilters}>
@@ -128,7 +128,7 @@
 			</div>
 			<button class="filter-apply-btn" onclick={applyFilters}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-				Terapkan
+				Terapkan Filter
 			</button>
 		</div>
 	</div>
@@ -189,11 +189,40 @@
 				</table>
 			</div>
 
+			<!-- Pagination -->
 			{#if data.pagination.totalPages > 1}
 				<div class="pagination">
-					<button class="page-btn" disabled={data.pagination.page <= 1} onclick={() => goToPage(data.pagination.page - 1)}>←</button>
-					<span class="page-info">Hal. {data.pagination.page} / {data.pagination.totalPages}</span>
-					<button class="page-btn" disabled={data.pagination.page >= data.pagination.totalPages} onclick={() => goToPage(data.pagination.page + 1)}>→</button>
+					<button
+						class="page-btn"
+						disabled={data.pagination.page <= 1}
+						onclick={() => goToPage(data.pagination.page - 1)}
+					>
+						← Sebelumnya
+					</button>
+
+					<div class="page-numbers">
+						{#each Array.from({ length: data.pagination.totalPages }, (_, i) => i + 1) as p}
+							{#if p === 1 || p === data.pagination.totalPages || (p >= data.pagination.page - 2 && p <= data.pagination.page + 2)}
+								<button
+									class="page-num"
+									class:active={p === data.pagination.page}
+									onclick={() => goToPage(p)}
+								>
+									{p}
+								</button>
+							{:else if p === data.pagination.page - 3 || p === data.pagination.page + 3}
+								<span class="page-dots">...</span>
+							{/if}
+						{/each}
+					</div>
+
+					<button
+						class="page-btn"
+						disabled={data.pagination.page >= data.pagination.totalPages}
+						onclick={() => goToPage(data.pagination.page + 1)}
+					>
+						Selanjutnya →
+					</button>
 				</div>
 			{/if}
 		{/if}
@@ -201,83 +230,5 @@
 </div>
 
 <style>
-	.page { max-width: 1200px; margin: 0 auto; }
-	.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-	.page-title { font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0; }
-	.page-desc { font-size: 0.85rem; color: #6b7280; margin: 0.2rem 0 0; }
-	.section-title { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0; display: flex; align-items: center; gap: 0.5rem; }
-
-	.btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1rem; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; border: none; }
-	.btn-outline { background: white; color: #374151; border: 1.5px solid #e5e7eb; }
-	.btn-outline:hover { background: #f9fafb; border-color: #d1d5db; }
-
-	.filters-card { background: white; border-radius: 14px; padding: 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #f3f4f6; }
-	.filters-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-	.reset-btn { display: inline-flex; align-items: center; gap: 0.3rem; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; font-family: inherit; }
-	.reset-btn:hover { background: #fee2e2; }
-	.filters-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.75rem; }
-	.span-2 { grid-column: span 2; }
-	.filter-group { display: flex; flex-direction: column; gap: 0.3rem; }
-	.filter-group label { font-size: 0.78rem; font-weight: 600; color: #374151; }
-	.filter-group select, .filter-group input { padding: 0.55rem 0.75rem; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 0.85rem; color: #1f2937; background: #f9fafb; font-family: inherit; transition: all 0.2s; }
-	.filter-group select:focus, .filter-group input:focus { outline: none; border-color: #800020; box-shadow: 0 0 0 3px rgba(128,0,32,0.1); background: white; }
-	.filters-actions { margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
-	.export-actions { display: flex; gap: 0.6rem; }
-	.filter-apply-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.25rem; background: linear-gradient(135deg, #800020, #a80030); color: white; border: none; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(128,0,32,0.25); }
-	.filter-apply-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(128,0,32,0.35); }
-
-	.table-card { background: white; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #f3f4f6; overflow: hidden; }
-	.table-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f3f4f6; }
-	.table-header-left { display: flex; align-items: baseline; gap: 0.75rem; }
-	.table-actions { display: flex; gap: 0.75rem; }
-	.export-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.9rem; border-radius: 10px; font-size: 0.8rem; font-weight: 600; text-decoration: none; transition: all 0.2s; border: 1.5px solid transparent; }
-	.export-btn.csv { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
-	.export-btn.csv:hover { background: #d1fae5; transform: translateY(-1px); }
-	.export-btn.pdf { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
-	.export-btn.pdf:hover { background: #ffe4e6; transform: translateY(-1px); }
-	.table-count { font-size: 0.8rem; color: #6b7280; font-weight: 500; }
-	.page-actions { display: flex; gap: 0.75rem; align-items: center; }
-	.table-wrapper { overflow-x: auto; }
-	table { width: 100%; border-collapse: collapse; }
-	thead { background: #f9fafb; }
-	th { padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
-	td { padding: 0.75rem 1rem; font-size: 0.85rem; color: #374151; border-top: 1px solid #f3f4f6; }
-	tbody tr { transition: background 0.15s; }
-	tbody tr:hover { background: #fafafa; }
-
-	.date-cell { white-space: nowrap; font-size: 0.78rem; color: #6b7280; }
-	.tracking-link { color: #800020; font-weight: 600; font-size: 0.82rem; text-decoration: none; }
-	.tracking-link:hover { text-decoration: underline; }
-	.name-cell { font-weight: 500; }
-
-	.status-transition { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
-	.arrow { font-size: 0.75rem; color: #9ca3af; }
-	.note-only { font-size: 0.72rem; font-weight: 600; color: #6b7280; background: #f3f4f6; padding: 0.15rem 0.4rem; border-radius: 4px; }
-
-	.status-badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
-	.status-badge.sm { padding: 0.15rem 0.4rem; font-size: 0.68rem; }
-	.status-badge.blue { background: #eff6ff; color: #2563eb; }
-	.status-badge.amber { background: #fffbeb; color: #d97706; }
-	.status-badge.indigo { background: #eef2ff; color: #4f46e5; }
-	.status-badge.orange { background: #fff7ed; color: #ea580c; }
-	.status-badge.teal { background: #f0fdfa; color: #0d9488; }
-	.status-badge.cyan { background: #ecfeff; color: #0891b2; }
-	.status-badge.green { background: #f0fdf4; color: #16a34a; }
-	.status-badge.red { background: #fef2f2; color: #dc2626; }
-	.status-badge.gray { background: #f9fafb; color: #6b7280; }
-
-	.note-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.82rem; color: #6b7280; }
-	.user-cell { white-space: nowrap; font-size: 0.82rem; }
-
-	.empty-state { padding: 3rem 2rem; text-align: center; color: #9ca3af; }
-	.empty-state p { margin-top: 0.75rem; font-size: 0.9rem; }
-
-	.pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1rem; border-top: 1px solid #f3f4f6; }
-	.page-btn { padding: 0.45rem 0.75rem; background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
-	.page-btn:hover:not(:disabled) { background: #f9fafb; }
-	.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-	.page-info { font-size: 0.82rem; color: #6b7280; }
-
-	@media (max-width: 1024px) { .filters-grid { grid-template-columns: repeat(3, 1fr); } .span-2 { grid-column: span 3; } }
-	@media (max-width: 640px) { .filters-grid { grid-template-columns: 1fr; } .span-2 { grid-column: span 1; } }
+	/* All styles moved to admin.css */
 </style>

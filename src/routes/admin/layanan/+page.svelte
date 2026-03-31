@@ -361,64 +361,6 @@
 {/if}
 
 <style>
-	.page {
-		max-width: 1200px;
-		margin: 0 auto;
-	}
-
-	.page-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 1.5rem;
-		flex-wrap: wrap;
-		gap: 1rem;
-	}
-
-	.page-title {
-		font-size: 1.25rem;
-		font-weight: 700;
-		color: #111827;
-		margin: 0;
-	}
-
-	.page-desc {
-		font-size: 0.85rem;
-		color: #6b7280;
-		margin: 0.2rem 0 0;
-	}
-
-	.header-actions {
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	/* Buttons */
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.55rem 1rem;
-		border-radius: 10px;
-		font-size: 0.85rem;
-		font-weight: 600;
-		cursor: pointer;
-		font-family: inherit;
-		transition: all 0.2s;
-		border: none;
-	}
-
-	.btn-primary {
-		background: linear-gradient(135deg, #800020, #a80030);
-		color: white;
-		box-shadow: 0 2px 8px rgba(128, 0, 32, 0.25);
-	}
-
-	.btn-primary:hover {
-		transform: translateY(-1px);
-		box-shadow: 0 4px 12px rgba(128, 0, 32, 0.35);
-	}
-
 	.btn-outline {
 		background: white;
 		color: #374151;

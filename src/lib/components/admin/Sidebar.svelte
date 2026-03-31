@@ -83,7 +83,7 @@
 	<!-- Header / Brand -->
 	<div class="sidebar-header">
 		<div class="brand">
-			<div class="brand-icon">
+			<div class="logo-box">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="28"
@@ -91,7 +91,7 @@
 					viewBox="0 0 24 24"
 					fill="none"
 					stroke="currentColor"
-					stroke-width="1.5"
+					stroke-width="2"
 					stroke-linecap="round"
 					stroke-linejoin="round"
 				>
@@ -106,7 +106,7 @@
 			</div>
 			<div class="brand-text">
 				<h1>Layanan Digital</h1>
-				<p>Kab. Semarang</p>
+				<p>KABUPATEN SEMARANG</p>
 			</div>
 		</div>
 
@@ -181,38 +181,41 @@
 		</ul>
 	</nav>
 
-	<!-- Footer / User Info -->
+	<!-- Footer / User Card -->
 	<div class="sidebar-footer">
-		<div class="user-info">
-			<div class="user-avatar">
-				{user.name.charAt(0).toUpperCase()}
+		<div class="footer-card">
+			<div class="user-info">
+				<div class="user-avatar">
+					{user.name.charAt(0).toUpperCase()}
+				</div>
+				<div class="user-details">
+					<span class="user-name">{user.name}</span>
+					<span class="user-email">{user.email}</span>
+				</div>
 			</div>
-			<div class="user-details">
-				<span class="user-name">{user.name}</span>
-				<span class="user-email">{user.email}</span>
+			<div class="footer-actions">
+				<div class="user-role-badge">
+					{getRoleBadge(user.role)}
+				</div>
+				<button class="logout-link" onclick={handleLogout} title="Keluar">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+						<polyline points="16 17 21 12 16 7" />
+						<line x1="21" y1="12" x2="9" y2="12" />
+					</svg>
+				</button>
 			</div>
 		</div>
-		<div class="user-role-badge">
-			{getRoleBadge(user.role)}
-		</div>
-		<button class="logout-btn" onclick={handleLogout}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="18"
-				height="18"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-				<polyline points="16 17 21 12 16 7" />
-				<line x1="21" y1="12" x2="9" y2="12" />
-			</svg>
-			<span>Keluar</span>
-		</button>
 	</div>
 </div>
 
@@ -221,9 +224,22 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background: linear-gradient(180deg, #5c0a15 0%, #800020 40%, #6b0f2e 100%);
+		/* Balanced Maroon Gradient - Lighter and more vibrant than Velvet */
+		background: linear-gradient(180deg, #5c0a15 0%, #800020 100%);
 		color: white;
 		overflow-y: auto;
+		overflow-x: hidden;
+		scrollbar-width: thin;
+		scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+	}
+
+	.sidebar-inner::-webkit-scrollbar {
+		width: 4px;
+	}
+
+	.sidebar-inner::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.2);
+		border-radius: 10px;
 	}
 
 	/* Header */
@@ -231,40 +247,45 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 1.25rem 1.25rem 1rem;
+		padding: 1.5rem 1.25rem 1.25rem;
 		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
 	.brand {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		gap: 0.85rem;
 	}
 
-	.brand-icon {
+	.logo-box {
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		width: 44px;
 		height: 44px;
-		background: rgba(255, 255, 255, 0.15);
+		background: white;
 		border-radius: 12px;
 		flex-shrink: 0;
+		color: #5c0a15;
+		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 	}
 
 	.brand-text h1 {
-		font-size: 1rem;
-		font-weight: 700;
+		font-size: 1.1rem;
+		font-weight: 800;
 		margin: 0;
 		letter-spacing: -0.01em;
-		line-height: 1.3;
+		line-height: 1.2;
+		color: white;
 	}
 
 	.brand-text p {
-		font-size: 0.7rem;
-		margin: 0;
+		font-size: 0.65rem;
+		margin: 2px 0 0;
 		opacity: 0.7;
-		font-weight: 400;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
 	}
 
 	.close-btn {
@@ -288,8 +309,7 @@
 	/* Navigation */
 	.sidebar-nav {
 		flex: 1;
-		padding: 0.75rem 0;
-		overflow-y: auto;
+		padding: 1.25rem 0;
 	}
 
 	.sidebar-nav ul {
@@ -304,53 +324,76 @@
 	.nav-link {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0.7rem 1.25rem;
-		color: rgba(255, 255, 255, 0.75);
+		gap: 1rem;
+		padding: 0.8rem 1.5rem;
+		color: rgba(255, 255, 255, 0.7);
 		text-decoration: none;
-		font-size: 0.875rem;
+		font-size: 0.9rem;
 		font-weight: 500;
-		transition: all 0.2s ease;
-		border-left: 3px solid transparent;
-		margin: 0 0.5rem;
-		border-radius: 8px;
+		transition: all 0.25s ease;
+		margin: 0 0.75rem;
+		border-radius: 12px;
+		position: relative;
 	}
 
 	.nav-link:hover {
 		color: white;
-		background: rgba(255, 255, 255, 0.1);
+		background: rgba(255, 255, 255, 0.08);
+		transform: translateX(4px);
 	}
 
 	.nav-link.active {
 		color: white;
 		background: rgba(255, 255, 255, 0.15);
-		font-weight: 600;
-		border-left-color: #fbbf24;
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		font-weight: 700;
+		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+	}
+
+	.nav-link.active::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 25%;
+		bottom: 25%;
+		width: 4px;
+		background: #fbbf24;
+		border-radius: 0 4px 4px 0;
+		box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
 	}
 
 	.nav-icon {
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		flex-shrink: 0;
-		opacity: 0.85;
+		opacity: 0.8;
 	}
 
 	.nav-link.active .nav-icon {
 		opacity: 1;
+		color: #fbbf24;
 	}
 
 	/* Footer */
 	.sidebar-footer {
-		padding: 1rem 1.25rem;
-		border-top: 1px solid rgba(255, 255, 255, 0.1);
+		padding: 1.25rem 0.75rem;
+		margin-top: auto;
+	}
+
+	.footer-card {
 		background: rgba(0, 0, 0, 0.15);
+		border-radius: 16px;
+		padding: 1rem;
+		border: 1px solid rgba(255, 255, 255, 0.05);
 	}
 
 	.user-info {
 		display: flex;
 		align-items: center;
-		gap: 0.7rem;
-		margin-bottom: 0.6rem;
+		gap: 0.8rem;
+		margin-bottom: 1rem;
 	}
 
 	.user-avatar {
@@ -373,8 +416,8 @@
 	}
 
 	.user-name {
-		font-size: 0.825rem;
-		font-weight: 600;
+		font-size: 0.85rem;
+		font-weight: 700;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -388,40 +431,42 @@
 		text-overflow: ellipsis;
 	}
 
-	.user-role-badge {
-		display: inline-block;
-		padding: 0.2rem 0.6rem;
-		background: rgba(251, 191, 36, 0.2);
-		color: #fbbf24;
-		border-radius: 6px;
-		font-size: 0.7rem;
-		font-weight: 600;
-		margin-bottom: 0.75rem;
-		letter-spacing: 0.02em;
-		text-transform: uppercase;
-	}
-
-	.logout-btn {
+	.footer-actions {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		width: 100%;
-		padding: 0.6rem 0.75rem;
-		background: rgba(255, 255, 255, 0.08);
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		color: rgba(255, 255, 255, 0.85);
-		border-radius: 8px;
-		font-size: 0.825rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		font-family: inherit;
+		justify-content: space-between;
+		padding-top: 0.75rem;
+		border-top: 1px solid rgba(255, 255, 255, 0.05);
 	}
 
-	.logout-btn:hover {
-		background: rgba(239, 68, 68, 0.3);
-		border-color: rgba(239, 68, 68, 0.4);
+	.user-role-badge {
+		padding: 0.2rem 0.6rem;
+		background: rgba(255, 255, 255, 0.15);
 		color: white;
+		border-radius: 6px;
+		font-size: 0.65rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.02em;
+	}
+
+	.logout-link {
+		background: none;
+		border: none;
+		color: rgba(255, 255, 255, 0.6);
+		padding: 0.4rem;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.logout-link:hover {
+		background: rgba(255, 255, 255, 0.1);
+		color: white;
+		transform: scale(1.1);
 	}
 
 	/* Mobile */
