@@ -48,10 +48,10 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 
 	const isAssistantOnly = user?.role === 'pic' && !isPrimaryPic && isTeamMember;
 
-	// Get PIC users for assignment (Primary PIC: Pic, Admin, Superadmin)
+	// PIC Utama users (Only role 'pic')
 	const picUsers = await db.users.findMany({
 		where: {
-			user_roles: { some: { roles: { name: { in: ['pic', 'admin', 'superadmin'] } } } }
+			user_roles: { some: { roles: { name: 'pic' } } }
 		},
 		select: { id: true, name: true, email: true }
 	});
@@ -172,7 +172,7 @@ export const actions: Actions = {
 		// Fetch PIC users for dynamic messaging
 		const picUsers = await db.users.findMany({
 			where: {
-				user_roles: { some: { roles: { name: { in: ['pic', 'admin', 'superadmin'] } } } }
+				user_roles: { some: { roles: { name: 'pic' } } }
 			},
 			select: { id: true, name: true }
 		});
