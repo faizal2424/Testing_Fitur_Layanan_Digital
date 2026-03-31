@@ -953,6 +953,200 @@
 		color: #6b7280;
 	}
 
+	/* Shared styles moved to admin.css */
+	
+	.page { max-width: 1000px; }
+	
+	.badge-urgent { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+	/* Section titles with status */
+	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 1.5rem;
+		padding-bottom: 0.75rem;
+		border-bottom: 1px solid #f3f4f6;
+	}
+
+	.section-title {
+		font-size: 1rem;
+		font-weight: 700;
+		color: #111827;
+		margin: 0;
+	}
+
+	/* Detail Grid Layouts */
+	.detail-section {
+		margin-bottom: 2rem;
+	}
+
+	.info-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 1.5rem;
+	}
+
+	.info-item {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.info-label {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #6b7280;
+		text-transform: uppercase;
+		letter-spacing: 0.025em;
+	}
+
+	.info-value {
+		font-size: 0.95rem;
+		color: #111827;
+		font-weight: 500;
+	}
+
+	.info-value.empty {
+		color: #9ca3af;
+		font-style: italic;
+	}
+
+	.full-width {
+		grid-column: 1 / -1;
+	}
+
+	/* Timeline specific to this page */
+	.timeline {
+		position: relative;
+		padding-left: 2rem;
+	}
+
+	.timeline::before {
+		content: '';
+		position: absolute;
+		left: 0.45rem;
+		top: 0;
+		bottom: 0;
+		width: 2px;
+		background: #f3f4f6;
+	}
+
+	.timeline-item {
+		position: relative;
+		padding-bottom: 2rem;
+	}
+
+	.timeline-item:last-child {
+		padding-bottom: 0;
+	}
+
+	.timeline-marker {
+		position: absolute;
+		left: -1.55rem;
+		width: 1rem;
+		height: 1rem;
+		border-radius: 50%;
+		background: #e5e7eb;
+		border: 2px solid white;
+		z-index: 1;
+	}
+
+	.timeline-marker.active { background: #800020; box-shadow: 0 0 0 4px rgba(128, 0, 32, 0.1); }
+	.timeline-marker.success { background: #16a34a; }
+	.timeline-marker.error { background: #dc2626; }
+
+	.timeline-content {
+		background: #f9fafb;
+		padding: 1rem;
+		border-radius: 12px;
+		border: 1px solid #f3f4f6;
+	}
+
+	.timeline-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.5rem;
+	}
+
+	.timeline-status {
+		font-weight: 700;
+		font-size: 0.85rem;
+		color: #111827;
+	}
+
+	.timeline-date {
+		font-size: 0.75rem;
+		color: #6b7280;
+	}
+
+	.timeline-note {
+		font-size: 0.875rem;
+		color: #4b5563;
+		line-height: 1.5;
+	}
+
+	/* File handling specific styles */
+	.files-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+		gap: 1rem;
+	}
+
+	.file-card {
+		background: white;
+		border: 1px solid #e5e7eb;
+		border-radius: 10px;
+		padding: 0.75rem;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		transition: all 0.2s;
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.file-card:hover {
+		border-color: #800020;
+		background: #fef2f2;
+	}
+
+	.file-icon {
+		width: 32px;
+		height: 32px;
+		border-radius: 8px;
+		background: #f3f4f6;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #6b7280;
+	}
+
+	.file-info {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.file-name {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: #111827;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.file-size {
+		font-size: 0.7rem;
+		color: #9ca3af;
+	}
+
+	@media (max-width: 768px) {
+		.info-grid { grid-template-columns: 1fr; }
+	}
+
 	/* Modal */
 	.modal-overlay {
 		position: fixed;
@@ -1394,4 +1588,4 @@
 		width: 100%;
 		cursor: pointer;
 	}
-</style>
+	</style>

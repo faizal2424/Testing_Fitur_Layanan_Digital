@@ -110,166 +110,27 @@
 </form>
 
 <style>
-    /* Global Form Variables & Layout */
-    .user-form {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        max-width: 800px;
-        margin: 0 auto;
-    }
+	.user-form {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		max-width: 800px;
+		margin: 0 auto;
+	}
 
-    /* Cards */
-    .card, .form-actions {
-        background: #ffffff;
-        border-radius: 14px;
-        padding: 2rem;
-        box-shadow: 0 4px 24px rgba(128, 0, 32, 0.04);
-        border: 1px solid #f3f4f6;
-    }
+	.form-grid-inner {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 1.25rem 1.5rem;
+	}
 
-    .card-title {
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: #800020;
-        margin: 0 0 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #f3f4f6;
-    }
+	.full-width {
+		grid-column: 1 / -1;
+	}
 
-    .card-help {
-        font-size: 0.85rem;
-        color: #64748b;
-        margin: 1rem 0 0;
-        font-style: italic;
-    }
-
-    /* Grid Layout for Inputs */
-    .form-grid-inner {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.25rem 1.5rem;
-    }
-
-    .full-width {
-        grid-column: 1 / -1;
-    }
-
-    /* Form Groups & Labels */
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    label {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #374151;
-    }
-
-    .required {
-        color: #c0002a;
-    }
-
-    /* Inputs & Selects */
-    input, select {
-        padding: 0.75rem 1rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        font-size: 0.95rem;
-        font-family: inherit;
-        color: #111827;
-        background-color: #f9fafb;
-        transition: all 0.2s ease;
-    }
-
-    input::placeholder {
-        color: #9ca3af;
-    }
-
-    /* Custom Select Arrow */
-    select {
-        appearance: none;
-        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%0-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-        background-repeat: no-repeat;
-        background-position: right 1rem top 50%;
-        background-size: 0.65rem auto;
-        cursor: pointer;
-    }
-
-    input:focus, select:focus {
-        outline: none;
-        border-color: #800020;
-        background-color: #ffffff;
-        box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
-    }
-
-    /* Actions / Buttons */
-    .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 1rem;
-        padding: 1.25rem 2rem;
-    }
-
-    .back-btn {
-        padding: 0.65rem 1.5rem;
-        background: transparent;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: #4b5563;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .back-btn:hover {
-        color: #111827;
-        background: #f3f4f6;
-    }
-
-    .submit-btn {
-        padding: 0.75rem 2rem;
-        background: linear-gradient(135deg, #c0002a, #800020);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        box-shadow: 0 4px 12px rgba(128, 0, 32, 0.2);
-    }
-
-    .submit-btn:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(128, 0, 32, 0.3);
-    }
-
-    .submit-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    @media (max-width: 768px) {
-        .form-grid-inner {
-            grid-template-columns: 1fr;
-        }
-        
-        .card, .form-actions {
-            padding: 1.5rem;
-        }
-    }
-
-    @keyframes rotate {
-        100% { transform: rotate(360deg); }
-    }
-    @keyframes dash {
-        0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
-        50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
-        100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
-    }
+	@media (max-width: 768px) {
+		.form-grid-inner {
+			grid-template-columns: 1fr;
+		}
+	}
 </style>
