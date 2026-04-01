@@ -204,7 +204,7 @@
 				<div class="modal-body">
 					<div class="form-group">
 						<label for="create-name">Nama Layanan *</label>
-						<input type="text" id="create-name" name="name" required placeholder="Contoh: Surat Keterangan Usaha" />
+						<input type="text" id="create-name" name="name" required placeholder="Contoh: Fasilitasi Zoom" />
 					</div>
 					<div class="form-group">
 						<div class="icon-selector-premium">
@@ -503,21 +503,6 @@
 		display: flex;
 		gap: 0.4rem;
 		flex-shrink: 0;
-	}
-
-	/* Empty State */
-	.empty-state {
-		text-align: center;
-		padding: 3rem 2rem;
-		background: white;
-		border-radius: 16px;
-		border: 2px dashed #e5e7eb;
-		color: #9ca3af;
-	}
-
-	.empty-state p {
-		margin-top: 0.75rem;
-		font-size: 0.9rem;
 	}
 
 	/* Modal */
