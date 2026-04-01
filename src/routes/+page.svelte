@@ -27,6 +27,7 @@
   ];
 
   function getStepIndex(status: string) {
+    if (status === 'ditolak_pengajuan') return -1;
     const map: Record<string, number> = { 
       'baru': 0, 'revisi': 1, 'ditugaskan': 2, 'diproses_pic': 3, 'diselesaikan_pic': 4, 'selesai': 5 
     };
@@ -179,56 +180,94 @@
                         </div>
                     </div>
                 </div>
+            {:else if form.result.status === 'ditolak_pengajuan'}
+                <div class="mb-10 text-center" transition:fade>
+                    <div class="relative inline-block mb-6">
+                        <div class="absolute inset-0 bg-red-400 blur-2xl opacity-20 animate-pulse"></div>
+                        <div class="relative w-24 h-24 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl flex items-center justify-center shadow-xl shadow-red-500/30 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                            <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <h2 class="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Pengajuan Ditolak</h2>
+                    <p class="text-slate-400 font-medium mb-8">Maaf, permohonan Anda tidak dapat dilanjutkan.</p>
+
+                    <div class="max-w-xl mx-auto bg-white border border-red-100 rounded-3xl p-8 shadow-2xl shadow-red-500/5 relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
+                            <svg class="w-32 h-32 text-red-900" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                        </div>
+                        
+                        <div class="relative z-10 text-left">
+                            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 mb-3 block">Alasan Penolakan</span>
+                            <blockquote class="text-lg font-medium text-slate-700 leading-relaxed italic border-l-4 border-red-500 pl-4 py-1">
+                                "{form.result.submission_notes?.[0]?.note || 'Informasi alasan penolakan belum tersedia.'}"
+                            </blockquote>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t border-slate-50 flex flex-col sm:flex-row gap-3 justify-center">
+                            <a href="/" class="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all shadow-lg hover:shadow-red-500/20 text-center">
+                                Buat Pengajuan Baru
+                            </a>
+                            <a href="https://wa.me/6281123456789" target="_blank" class="px-6 py-3 bg-white text-slate-600 border border-slate-200 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all text-center">
+                                Hubungi Kami
+                            </a>
+                        </div>
+                    </div>
+                </div>
             {/if}
 
-            <div class="grid md:grid-cols-3 gap-12">
-                <!-- Info Columns -->
-                <div class="md:col-span-1 space-y-6">
-                    <div class="group">
-                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Layanan</span>
-                        <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
-                            {form.result.service_name || 'Layanan Digital'}
-                        </span>
+            <div class="grid md:grid-cols-3 gap-12" class:opacity-50={form.result.status === 'ditolak_pengajuan'} class:pointer-events-none={form.result.status === 'ditolak_pengajuan'}>
+                {#if form.result.status !== 'ditolak_pengajuan'}
+                    <div class="md:col-span-1 space-y-6">
+                        <div class="group">
+                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Layanan</span>
+                            <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
+                                {form.result.service_name || 'Layanan Digital'}
+                            </span>
+                        </div>
+                        <div class="group">
+                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">PIC / Kontak</span>
+                            <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
+                                {form.result.pic_phone || 'Menunggu Penugasan'}
+                            </span>
+                        </div>
                     </div>
-                    <div class="group">
-                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">PIC / Kontak</span>
-                        <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
-                            {form.result.pic_phone || 'Menunggu Penugasan'}
-                        </span>
-                    </div>
-                </div>
 
-                <!-- Timeline -->
-                <div class="md:col-span-2 relative pl-4 md:pl-0">
-                    <div class="space-y-0">
-                        {#each STATUS_FLOW as step, i}
-                            <div class="flex items-start gap-4 relative pb-8 last:pb-0 group">
-                                <!-- Line Connector -->
-                                {#if i < STATUS_FLOW.length - 1}
-                                    <div class={`absolute left-[11px] top-7 bottom-0 w-[2px] ${i < getStepIndex(form.result.status) ? 'bg-red-600' : 'bg-slate-100'}`}></div>
-                                {/if}
-                                
-                                <!-- Status Circle -->
-                                <div class={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-500
-                                    ${i <= getStepIndex(form.result.status) ? 'bg-red-600 border-red-600 scale-110 shadow-lg shadow-red-200' : 'bg-white border-slate-200'}`}>
-                                    {#if i <= getStepIndex(form.result.status)}
-                                        <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                    <!-- Timeline -->
+                    <div class="md:col-span-2 relative pl-4 md:pl-0">
+                        <div class="space-y-0">
+                            {#each STATUS_FLOW as step, i}
+                                <div class="flex items-start gap-4 relative pb-8 last:pb-0 group">
+                                    <!-- Line Connector -->
+                                    {#if i < STATUS_FLOW.length - 1}
+                                        <div class={`absolute left-[11px] top-7 bottom-0 w-[2px] ${i < getStepIndex(form.result.status) ? 'bg-red-600' : 'bg-slate-100'}`}></div>
                                     {/if}
-                                </div>
+                                    
+                                    <!-- Status Circle -->
+                                    <div class={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-500
+                                        ${i <= getStepIndex(form.result.status) ? 'bg-red-600 border-red-600 scale-110 shadow-lg shadow-red-200' : 'bg-white border-slate-200'}`}>
+                                        {#if i <= getStepIndex(form.result.status)}
+                                            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                                        {/if}
+                                    </div>
 
-                                <!-- Status Text -->
-                                <div class="pt-[2px]">
-                                    <p class={`text-sm font-bold transition-colors ${i <= getStepIndex(form.result.status) ? 'text-slate-900' : 'text-slate-300'}`}>
-                                        {step.label}
-                                    </p>
-                                    {#if i === getStepIndex(form.result.status)}
-                                        <p class="text-xs text-red-600 mt-1 font-medium animate-pulse">Sedang Berlangsung</p>
-                                    {/if}
+                                    <!-- Status Text -->
+                                    <div class="pt-[2px]">
+                                        <p class={`text-sm font-bold transition-colors 
+                                            ${i <= getStepIndex(form.result.status) ? 'text-slate-900' : 'text-slate-300'}`}>
+                                            {step.label}
+                                        </p>
+                                        {#if i === getStepIndex(form.result.status) && form.result.status !== 'selesai'}
+                                            <p class="text-xs text-red-600 mt-1 font-medium animate-pulse">Sedang Berlangsung</p>
+                                        {/if}
+                                    </div>
                                 </div>
-                            </div>
-                        {/each}
+                            {/each}
+                        </div>
                     </div>
-                </div>
+                {/if}
             </div>
       </section>
       </div>
