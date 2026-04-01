@@ -425,7 +425,7 @@
                       name="field_{field.id}"
                       type="email"
                       required={field.is_required}
-                      placeholder={field.placeholder || 'contoh@email.com'}
+                      placeholder={field.placeholder || 'nama@email.com'}
                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 
                         focus:ring-2 focus:ring-red-500/20 focus:border-red-300 focus:bg-white transition-all text-sm"
                       class:border-red-300={getFieldError(`field_${field.id}`)}
@@ -453,7 +453,7 @@
                       name="field_{field.id}"
                       type="tel"
                       required={field.is_required}
-                      placeholder={field.placeholder || 'Contoh: 081234567890'}
+                      placeholder={field.placeholder || '08xxxxxxxxxx'}
                       on:keydown={handleTelpKeyDown}
                       on:paste={handleTelpPaste}
                       maxlength="15"

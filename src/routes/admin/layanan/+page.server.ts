@@ -65,7 +65,7 @@ export const actions: Actions = {
 		const maxOrder = await db.services.aggregate({ _max: { order: true } });
 		const newOrder = (maxOrder._max.order || 0) + 1;
 
-		await db.services.create({
+		const newService = await db.services.create({
 			data: {
 				name,
 				icon,
@@ -75,6 +75,64 @@ export const actions: Actions = {
 				updated_at: new Date()
 			}
 		});
+
+		// Add default form fields
+		const defaultFields = [
+			{ 
+				label: 'Nama', 
+				name: 'nama_pemohon', 
+				type: 'text', 
+				is_required: true, 
+				order: 1,
+				placeholder: 'Masukkan nama pemohon'
+			},
+			{ 
+				label: 'Organisasi Perangkat Daerah', 
+				name: 'opd', 
+				type: 'text', 
+				is_required: true, 
+				order: 2,
+				placeholder: 'Masukkan nama OPD'
+			},
+			{ 
+				label: 'No WhatsApp', 
+				name: 'no_whatsapp', 
+				type: 'numbertelp', 
+				is_required: true, 
+				order: 3,
+				placeholder: 'Masukkan nomor WhatsApp'
+			},
+			{ 
+				label: 'Email', 
+				name: 'email', 
+				type: 'email', 
+				is_required: true, 
+				order: 4,
+				placeholder: 'Masukkan alamat email'
+			},
+			{ 
+				label: 'Surat Permohonan', 
+				name: 'surat_permohonan', 
+				type: 'file', 
+				is_required: false, 
+				order: 5,
+				meta: JSON.stringify({ mimes: 'pdf,jpeg,png', max_size: '2048' })
+			}
+		];
+
+		// Create the default fields
+		await Promise.all(
+			defaultFields.map((field) =>
+				db.service_form_fields.create({
+					data: {
+						...field,
+						service_id: newService.id,
+						created_at: new Date(),
+						updated_at: new Date()
+					}
+				})
+			)
+		);
 
 		return { success: true, message: 'Layanan berhasil ditambahkan.' };
 	},
