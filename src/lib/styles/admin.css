@@ -692,9 +692,16 @@ tbody tr:hover {
    13. Empty state
    ---------------------------------------------------------- */
 .empty-state {
-  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
   text-align: center;
   color: var(--admin-text-dim);
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius-xl);
+  border: 2px dashed var(--admin-border-muted);
 }
 
 .empty-state p {
