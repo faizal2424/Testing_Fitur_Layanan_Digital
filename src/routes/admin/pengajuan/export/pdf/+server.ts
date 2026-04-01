@@ -2,6 +2,7 @@ import { db } from '$lib/server/db';
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import PDFDocumentModule from 'pdfkit';
+import { statusLabels, getStatusLabel } from '$lib/utils/submissionFlow';
 
 // Handle ESM/CJS interop for pdfkit
 const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
@@ -179,12 +180,6 @@ async function generateListPDF(submissions: any[], filters: any): Promise<Buffer
         let currentY = tableTop + 30;
         const rowHeight = 70; // Increased to fit thumbnails
 
-        const statusLabels: Record<string, string> = {
-            baru: 'BARU', ditugaskan: 'DITUGASKAN', diproses_pic: 'DIPROSES PIC',
-            ditolak_pic: 'DITOLAK PIC', diselesaikan_pic: 'DISELESAIKAN PIC',
-            disetujui_pic: 'DISETUJUI PIC', ditolak_pengajuan: 'DITOLAK PENGAJUAN', selesai: 'SELESAI'
-        };
-
         submissions.forEach((s, index) => {
             if (currentY + rowHeight > doc.page.height - 60) {
                 doc.addPage({ size: 'A4', layout: 'landscape', margins: { top: 30, bottom: 40, left: 40, right: 40 } });
@@ -194,20 +189,20 @@ async function generateListPDF(submissions: any[], filters: any): Promise<Buffer
             }
 
             let currentX = 40;
-            const data = [
+            const rowData = [
                 (index + 1).toString(),
                 s.services.name,
                 s.tracking_code,
                 s.applicant_name,
                 s.applicant_email,
-                statusLabels[s.status] || s.status.toUpperCase(),
+                getStatusLabel(s.status).toUpperCase(),
                 s.users?.name || '—',
                 s.created_at ? new Date(s.created_at).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '\n') : '—',
                 '' // Evidence placeholder
             ];
 
             doc.font('Helvetica').fontSize(8);
-            data.forEach((text, i) => {
+            rowData.forEach((text, i) => {
                 doc.rect(currentX, currentY, colWidths[i], rowHeight).stroke('#000');
                 
                 if (i === 8) { // Bukti Pengerjaan

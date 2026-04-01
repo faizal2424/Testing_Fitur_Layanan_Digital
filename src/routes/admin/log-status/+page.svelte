@@ -3,6 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
+	import { statusLabels, getStatusLabel, getStatusColor } from '$lib/utils/submissionFlow';
+	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
+
 	let { data }: { data: PageData } = $props();
 
 	let filterLayanan = $state(data.filters.layanan);
@@ -10,20 +13,6 @@
 	let filterCari = $state(data.filters.cari);
 	let filterDari = $state(data.filters.dari);
 	let filterSampai = $state(data.filters.sampai);
-
-	const statusLabels: Record<string, string> = {
-		baru: 'Baru', ditugaskan: 'Ditugaskan', diproses_pic: 'Diproses PIC',
-		ditolak_pic: 'Ditolak PIC', diselesaikan_pic: 'Diselesaikan PIC',
-		disetujui_pic: 'Disetujui PIC', ditolak_pengajuan: 'Ditolak', selesai: 'Selesai'
-	};
-	const statusColors: Record<string, string> = {
-		baru: 'blue', ditugaskan: 'amber', diproses_pic: 'indigo',
-		ditolak_pic: 'orange', diselesaikan_pic: 'teal',
-		disetujui_pic: 'cyan', ditolak_pengajuan: 'red', selesai: 'green'
-	};
-
-	function getStatusLabel(s: string) { return statusLabels[s] || s; }
-	function getStatusColor(s: string) { return statusColors[s] || 'gray'; }
 
 	function formatDate(d: string | null) {
 		if (!d) return '-';
@@ -171,11 +160,11 @@
 								<td>
 									<div class="status-transition">
 										{#if log.status_from}
-											<span class="status-badge sm {getStatusColor(log.status_from)}">{getStatusLabel(log.status_from)}</span>
+											<StatusBadge status={log.status_from} size="sm" />
 											<span class="arrow">→</span>
 										{/if}
 										{#if log.status_to}
-											<span class="status-badge sm {getStatusColor(log.status_to)}">{getStatusLabel(log.status_to)}</span>
+											<StatusBadge status={log.status_to} size="sm" />
 										{:else}
 											<span class="note-only">Catatan</span>
 										{/if}

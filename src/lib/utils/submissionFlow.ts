@@ -20,6 +20,14 @@ export const statusColors: Record<string, string> = {
 	selesai: 'green'
 };
 
+export function getStatusLabel(status: string): string {
+	return statusLabels[status] || status;
+}
+
+export function getStatusColor(status: string): string {
+	return statusColors[status] || 'gray';
+}
+
 export function getAllowedStatuses(currentStatus: string, role: string): string[] {
 	if (role === 'superadmin') {
 		return Object.keys(statusLabels).filter((s) => s !== currentStatus);

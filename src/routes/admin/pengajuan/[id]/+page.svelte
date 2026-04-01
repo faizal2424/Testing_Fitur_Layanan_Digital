@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
+	import { statusLabels, getStatusLabel, getStatusColor } from '$lib/utils/submissionFlow';
+	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -75,34 +77,6 @@
 		return () => window.removeEventListener('click', handleClick);
 	});
 
-	const statusLabels: Record<string, string> = {
-		baru: 'Baru',
-		ditugaskan: 'Ditugaskan',
-		diproses_pic: 'Diproses PIC',
-		ditolak_pic: 'Ditolak PIC',
-		diselesaikan_pic: 'Diselesaikan PIC',
-		disetujui_pic: 'Disetujui PIC',
-		ditolak_pengajuan: 'Ditolak',
-		selesai: 'Selesai'
-	};
-	const statusColors: Record<string, string> = {
-		baru: 'blue',
-		ditugaskan: 'amber',
-		diproses_pic: 'indigo',
-		ditolak_pic: 'orange',
-		diselesaikan_pic: 'teal',
-		disetujui_pic: 'cyan',
-		ditolak_pengajuan: 'red',
-		selesai: 'green'
-	};
-
-	function getStatusLabel(s: string) {
-		return statusLabels[s] || s;
-	}
-	function getStatusColor(s: string) {
-		return statusColors[s] || 'gray';
-	}
-
 	let canEditPriority = $derived(
 		(data.userRole === 'admin' || data.userRole === 'superadmin') &&
 			(data.submission?.status === 'baru' || data.submission?.status === 'ditolak_pic') &&
@@ -139,9 +113,7 @@
 					{#if data.submission.is_priority}
 						<span class="priority-badge">Prioritas</span>
 					{/if}
-					<span class="status-badge {getStatusColor(data.submission.status)}"
-						>{getStatusLabel(data.submission.status)}</span
-					>
+					<StatusBadge status={data.submission.status} />
 				</div>
 				<h2 class="detail-title">
 					{#if data.submission.service_icon}{data.submission.service_icon}{/if}
@@ -251,14 +223,10 @@
 										{#if note.status_to}
 											<div class="timeline-status">
 												{#if note.status_from}
-													<span class="status-badge sm {getStatusColor(note.status_from)}"
-														>{getStatusLabel(note.status_from)}</span
-													>
+													<StatusBadge status={note.status_from} size="sm" />
 													<span class="arrow">→</span>
 												{/if}
-												<span class="status-badge sm {getStatusColor(note.status_to)}"
-													>{getStatusLabel(note.status_to)}</span
-												>
+												<StatusBadge status={note.status_to} size="sm" />
 											</div>
 										{/if}
 										{#if note.note}
@@ -378,11 +346,11 @@
 							<label for="new-status">Status Pengajuan</label>
 							<select id="new-status" name="status" bind:value={selectedStatus} required>
 								<option value={data.submission.status}
-									>{statusLabels[data.submission.status]}</option
+									>{getStatusLabel(data.submission.status)}</option
 								>
 								{#each data.allowedStatuses as v}
 									{#if statusLabels[v] && v !== data.submission.status}
-										<option value={v}>{statusLabels[v]}</option>
+										<option value={v}>{getStatusLabel(v)}</option>
 									{/if}
 								{/each}
 							</select>
@@ -902,55 +870,6 @@
 	.timeline-meta {
 		font-size: 0.72rem;
 		color: #9ca3af;
-	}
-
-	.status-badge {
-		display: inline-block;
-		padding: 0.25rem 0.6rem;
-		border-radius: 20px;
-		font-size: 0.75rem;
-		font-weight: 600;
-		white-space: nowrap;
-	}
-	.status-badge.sm {
-		padding: 0.15rem 0.45rem;
-		font-size: 0.68rem;
-	}
-	.status-badge.blue {
-		background: #eff6ff;
-		color: #2563eb;
-	}
-	.status-badge.amber {
-		background: #fffbeb;
-		color: #d97706;
-	}
-	.status-badge.indigo {
-		background: #eef2ff;
-		color: #4f46e5;
-	}
-	.status-badge.orange {
-		background: #fff7ed;
-		color: #ea580c;
-	}
-	.status-badge.teal {
-		background: #f0fdfa;
-		color: #0d9488;
-	}
-	.status-badge.cyan {
-		background: #ecfeff;
-		color: #0891b2;
-	}
-	.status-badge.green {
-		background: #f0fdf4;
-		color: #16a34a;
-	}
-	.status-badge.red {
-		background: #fef2f2;
-		color: #dc2626;
-	}
-	.status-badge.gray {
-		background: #f9fafb;
-		color: #6b7280;
 	}
 
 	/* Shared styles moved to admin.css */
