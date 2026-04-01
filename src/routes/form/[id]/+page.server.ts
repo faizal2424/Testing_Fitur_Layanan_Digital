@@ -72,20 +72,30 @@ export const actions: Actions = {
             }
         }
 
-        // Validate required fields
+        // Validate fields
         const errors: Record<string, string> = {};
         for (const field of service.service_form_fields) {
+            const value = formData.get(`field_${field.id}`);
+            const stringValue = typeof value === 'string' ? value.trim() : '';
+
+            // Required check
             if (field.is_required) {
-                const value = formData.get(`field_${field.id}`);
                 if (!value || (typeof value === 'string' && !value.trim())) {
                     errors[`field_${field.id}`] = `${field.label} wajib diisi`;
                 }
                 // Check file uploads
                 if (field.type === 'file') {
-                    const file = formData.get(`field_${field.id}`) as File | null;
+                    const file = value as File | null;
                     if (!file || file.size === 0) {
                         errors[`field_${field.id}`] = `${field.label} wajib diunggah`;
                     }
+                }
+            }
+
+            // Phone number specific validation
+            if (field.type === 'numbertelp' && stringValue) {
+                if (!/^0[0-9]{9,14}$/.test(stringValue)) {
+                    errors[`field_${field.id}`] = `${field.label} harus diawali angka 0, hanya berisi angka, dan panjang 10-15 digit`;
                 }
             }
         }

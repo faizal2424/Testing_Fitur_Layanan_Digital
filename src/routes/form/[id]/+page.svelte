@@ -104,7 +104,8 @@
       return;
     }
 
-    // First character must be 0
+    // First character MUST be 0
+    // If typing at the beginning (index 0)
     if (input.selectionStart === 0 && event.key !== '0') {
       event.preventDefault();
       return;
@@ -117,25 +118,36 @@
   }
 
   function handleTelpPaste(event: ClipboardEvent) {
-    const pastedData = event.clipboardData?.getData('text') || '';
+    event.preventDefault();
     const input = event.target as HTMLInputElement;
+    const pastedData = event.clipboardData?.getData('text') || '';
     
-    // Check if numeric and starts with 0
-    if (!/^\d+$/.test(pastedData)) {
-      event.preventDefault();
+    // Extract only digits
+    let digits = pastedData.replace(/\D/g, '');
+    
+    // Get current value and selection
+    const start = input.selectionStart ?? 0;
+    const end = input.selectionEnd ?? 0;
+    const currentValue = input.value;
+    
+    // Build new value
+    let newValue = currentValue.substring(0, start) + digits + currentValue.substring(end);
+    
+    // Validation: Only allow if it starts with 0 (or empty)
+    if (newValue.length > 0 && newValue[0] !== '0') {
+      // Don't paste if doesn't start with 0
       return;
     }
-
-    if (input.selectionStart === 0 && pastedData[0] !== '0' && input.value.length === 0) {
-      event.preventDefault();
-      return;
+    
+    // Validation: Max 15 chars
+    if (newValue.length > 15) {
+      newValue = newValue.substring(0, 15);
     }
-
-    // Check total length after paste
-    const newValue = input.value.substring(0, input.selectionStart!) + pastedData + input.value.substring(input.selectionEnd!);
-    if (newValue.length > 15 || !newValue.startsWith('0')) {
-      event.preventDefault();
-    }
+    
+    // Update input
+    input.value = newValue;
+    // Trigger input event for Svelte's use:enhance etc to work if they rely on it
+    input.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
   // Searchable Select State
