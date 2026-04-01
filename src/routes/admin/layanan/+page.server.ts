@@ -16,16 +16,30 @@ export const load: PageServerLoad = async () => {
 	});
 
 	return {
-		services: services.map((s) => ({
-			id: s.id.toString(),
-			name: s.name,
-			icon: s.icon,
-			order: s.order,
-			requirements: s.requirements,
-			fieldCount: s._count.service_form_fields,
-			submissionCount: s._count.service_submissions,
-			created_at: s.created_at?.toISOString() || null
-		}))
+		services: services.map((s) => {
+			let formattedRequirements = s.requirements || '';
+			try {
+				if (s.requirements) {
+					const parsed = JSON.parse(s.requirements);
+					if (Array.isArray(parsed)) {
+						formattedRequirements = parsed.join('\n');
+					}
+				}
+			} catch {
+				// Keep as is
+			}
+
+			return {
+				id: s.id.toString(),
+				name: s.name,
+				icon: s.icon,
+				order: s.order,
+				requirements: formattedRequirements,
+				fieldCount: s._count.service_form_fields,
+				submissionCount: s._count.service_submissions,
+				created_at: s.created_at?.toISOString() || null
+			};
+		})
 	};
 };
 
@@ -35,7 +49,13 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const name = formData.get('name')?.toString()?.trim();
 		const icon = formData.get('icon')?.toString()?.trim() || null;
-		const requirements = formData.get('requirements')?.toString()?.trim() || null;
+		const requirementsRaw = formData.get('requirements')?.toString()?.trim() || null;
+
+		let requirements = null;
+		if (requirementsRaw) {
+			const array = requirementsRaw.split('\n').map((l) => l.trim()).filter((l) => l !== '');
+			requirements = JSON.stringify(array);
+		}
 
 		if (!name) {
 			return fail(400, { error: 'Nama layanan wajib diisi.', action: 'create' });
@@ -65,7 +85,13 @@ export const actions: Actions = {
 		const id = formData.get('id')?.toString();
 		const name = formData.get('name')?.toString()?.trim();
 		const icon = formData.get('icon')?.toString()?.trim() || null;
-		const requirements = formData.get('requirements')?.toString()?.trim() || null;
+		const requirementsRaw = formData.get('requirements')?.toString()?.trim() || null;
+
+		let requirements = null;
+		if (requirementsRaw) {
+			const array = requirementsRaw.split('\n').map((l) => l.trim()).filter((l) => l !== '');
+			requirements = JSON.stringify(array);
+		}
 
 		if (!id || !name) {
 			return fail(400, { error: 'Data tidak lengkap.', action: 'update' });
