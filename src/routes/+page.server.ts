@@ -31,7 +31,11 @@ export const actions: Actions = {
                 where: { tracking_code: code },
                 include: {
                     services: true,
-                    users: true // fetches the assigned user (PIC)
+                    users: true, // fetches the assigned user (PIC)
+                    submission_notes: {
+                        orderBy: { created_at: 'desc' },
+                        take: 1
+                    }
                 }
             });
 

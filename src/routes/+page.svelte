@@ -19,6 +19,7 @@
 
   const STATUS_FLOW = [
     { key: 'baru', label: 'Diterima' },
+    { key: 'revisi', label: 'Perlu Revisi' },
     { key: 'ditugaskan', label: 'Verifikasi' },
     { key: 'diproses_pic', label: 'Proses' },
     { key: 'diselesaikan_pic', label: 'Validasi' },
@@ -27,7 +28,7 @@
 
   function getStepIndex(status: string) {
     const map: Record<string, number> = { 
-      'baru': 0, 'ditugaskan': 1, 'diproses_pic': 2, 'diselesaikan_pic': 3, 'selesai': 4 
+      'baru': 0, 'revisi': 1, 'ditugaskan': 2, 'diproses_pic': 3, 'diselesaikan_pic': 4, 'selesai': 5 
     };
     return map[status] ?? 0;
   }
@@ -151,11 +152,34 @@
             </div>
             <div class="mt-4 md:mt-0 flex items-center gap-3">
                 <span class="text-sm text-slate-500">Status Saat Ini:</span>
-                <span class="bg-red-50 text-red-700 px-5 py-2 rounded-full text-sm font-bold border border-red-100">
+                <span class={`px-5 py-2 rounded-full text-sm font-bold border ${form.result.status === 'revisi' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
                     {form.result.status_txt}
                 </span>
             </div>
             </div>
+
+            {#if form.result.status === 'revisi'}
+                <div class="mb-8 p-6 bg-amber-50 border border-amber-100 rounded-3xl" transition:fade>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 flex-shrink-0">
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-amber-800 font-bold mb-1">Catatan Revisi dari Admin</h3>
+                            <p class="text-amber-700 text-sm leading-relaxed mb-4">
+                                {form.result.submission_notes?.[0]?.note || 'Mohon periksa kembali data Anda sesuai instruksi admin.'}
+                            </p>
+                            <a 
+                                href="/tracking/{form.result.code}/edit"
+                                class="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-amber-200"
+                            >
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                Perbaiki Data Sekarang
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {/if}
 
             <div class="grid md:grid-cols-3 gap-12">
                 <!-- Info Columns -->

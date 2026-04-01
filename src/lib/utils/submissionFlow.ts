@@ -1,5 +1,6 @@
 export const statusLabels: Record<string, string> = {
 	baru: 'Baru',
+	revisi: 'Perlu Revisi',
 	ditugaskan: 'Ditugaskan',
 	diproses_pic: 'Diproses PIC',
 	ditolak_pic: 'Ditolak PIC',
@@ -11,8 +12,9 @@ export const statusLabels: Record<string, string> = {
 
 export const statusColors: Record<string, string> = {
 	baru: 'blue',
-	ditugaskan: 'amber',
-	diproses_pic: 'indigo',
+	revisi: 'amber',
+	ditugaskan: 'indigo',
+	diproses_pic: 'violet',
 	ditolak_pic: 'orange',
 	diselesaikan_pic: 'teal',
 	disetujui_pic: 'cyan',
@@ -37,6 +39,8 @@ export function getAllowedStatuses(currentStatus: string, role: string): string[
 		switch (currentStatus) {
 			case 'baru':
 			case 'ditolak_pic':
+				return ['revisi', 'ditugaskan', 'ditolak_pengajuan'];
+			case 'revisi':
 				return ['ditugaskan', 'ditolak_pengajuan'];
 			case 'diselesaikan_pic':
 				return ['selesai'];
