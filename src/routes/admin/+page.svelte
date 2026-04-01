@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import { statusLabels, getStatusLabel, getStatusColor } from '$lib/utils/submissionFlow';
+	import StatusBadge from '$lib/components/admin/StatusBadge.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -12,36 +14,6 @@
 	let filterDari = $state(data.filters.dari);
 	let filterSampai = $state(data.filters.sampai);
 	let filterSearch = $state(data.filters.q || '');
-
-	const statusLabels: Record<string, string> = {
-		baru: 'Baru',
-		ditugaskan: 'Ditugaskan',
-		diproses_pic: 'Diproses PIC',
-		ditolak_pic: 'Ditolak PIC',
-		diselesaikan_pic: 'Diselesaikan PIC',
-		disetujui_pic: 'Disetujui PIC',
-		ditolak_pengajuan: 'Ditolak',
-		selesai: 'Selesai'
-	};
-
-	const statusColors: Record<string, string> = {
-		baru: 'blue',
-		ditugaskan: 'amber',
-		diproses_pic: 'indigo',
-		ditolak_pic: 'orange',
-		diselesaikan_pic: 'teal',
-		disetujui_pic: 'cyan',
-		ditolak_pengajuan: 'red',
-		selesai: 'green'
-	};
-
-	function getStatusLabel(status: string): string {
-		return statusLabels[status] || status;
-	}
-
-	function getStatusColor(status: string): string {
-		return statusColors[status] || 'gray';
-	}
 
 	function formatDate(dateStr: string | null): string {
 		if (!dateStr) return '-';
@@ -429,9 +401,7 @@
 								</td>
 								<td>{sub.service_name}</td>
 								<td>
-									<span class="status-badge {getStatusColor(sub.status)}">
-										{getStatusLabel(sub.status)}
-									</span>
+									<StatusBadge status={sub.status} />
 								</td>
 								<td>{sub.assigned_to_name || '-'}</td>
 								<td class="date-cell">{formatDate(sub.created_at)}</td>
