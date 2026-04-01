@@ -49,7 +49,7 @@
 		{ value: 'text', label: 'Teks' },
 		{ value: 'email', label: 'Email' },
 		{ value: 'number', label: 'Angka' },
-		{ value: 'telp', label: 'No. Telepon' },
+		{ value: 'numbertelp', label: 'No. Telepon' },
 		{ value: 'date', label: 'Tanggal' },
 		{ value: 'textarea', label: 'Teks Panjang' },
 		{ value: 'select', label: 'Dropdown/Pilihan' },
@@ -59,7 +59,7 @@
 	];
 
 	function getTypeLabel(type: string): string {
-		if (type === 'telp') return 'No. Telepon';
+		if (type === 'numbertelp') return 'No. Telepon';
 		return fieldTypes.find((t) => t.value === type)?.label || type;
 	}
 
