@@ -167,9 +167,9 @@ model submission_notes {
   status_from         String?             @db.VarChar(32)
   status_to           String?             @db.VarChar(32)
   note                String?             @db.Text
-  file_path           String?             @db.VarChar(255)
   created_at          DateTime?           @db.Timestamp(0)
   updated_at          DateTime?           @db.Timestamp(0)
+  file_path           String?             @db.VarChar(255)
   service_submissions service_submissions @relation(fields: [submission_id], references: [id], onDelete: Cascade, map: "submission_notes_submission_id_foreign")
   users               users?              @relation(fields: [user_id], references: [id], map: "submission_notes_user_id_foreign")
 
@@ -201,12 +201,12 @@ model users {
   remember_token             String?                      @db.VarChar(100)
   created_at                 DateTime?                    @db.Timestamp(0)
   updated_at                 DateTime?                    @db.Timestamp(0)
+  notifications              notifications[]
   service_submission_members service_submission_members[]
   service_submissions        service_submissions[]
   submission_notes           submission_notes[]
   submission_team_members    submission_team_members[]
   user_roles                 user_roles[]
-  notifications              notifications[]
 }
 
 model permissions {
