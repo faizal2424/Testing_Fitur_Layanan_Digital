@@ -68,7 +68,26 @@
 
             <div class="form-group">
                 <label for="phone">No. Telepon / WhatsApp</label>
-                <input type="text" id="phone" name="phone" bind:value={formData.phone} placeholder="0812..." />
+                <div class="input-with-helper">
+                    <input 
+                        type="text" 
+                        id="phone" 
+                        name="phone" 
+                        bind:value={formData.phone} 
+                        placeholder="0812..." 
+                        inputmode="numeric"
+                        maxlength="15"
+                        pattern="0[0-9]*"
+                        oninput={(e) => {
+                            let val = e.currentTarget.value.replace(/[^0-9]/g, '');
+                            if (val.length > 0 && val[0] !== '0') {
+                                val = '';
+                            }
+                            formData.phone = val;
+                        }}
+                    />
+                    <span class="form-helper">Hanya angka, diawali 0, maks. 15 digit</span>
+                </div>
             </div>
 
             <div class="form-group full-width">
@@ -83,12 +102,12 @@
             
             <div class="form-group">
                 <label for="password">Kata Sandi {isEdit ? '' : '*'}</label>
-                <input type="password" id="password" name="password" bind:value={formData.password} required={!isEdit} minlength="8" placeholder="••••••••" />
+                <input type="password" id="password" name="password" bind:value={formData.password} required={!isEdit} minlength="8" />
             </div>
 
             <div class="form-group">
                 <label for="password_confirmation">Konfirmasi Kata Sandi {isEdit ? '' : '*'}</label>
-                <input type="password" id="password_confirmation" name="password_confirmation" bind:value={formData.password_confirmation} required={!isEdit} placeholder="••••••••" />
+                <input type="password" id="password_confirmation" name="password_confirmation" bind:value={formData.password_confirmation} required={!isEdit} />
             </div>
         </div>
         
@@ -151,7 +170,7 @@
 		border-top: 1px solid var(--admin-border);
 	}
 
-    .form-help-box {
+	.form-help-box {
         display: flex;
         align-items: center;
         gap: 0.6rem;
@@ -161,6 +180,18 @@
         font-size: 0.85rem;
         color: var(--admin-text-subtle);
         border: 1px solid #f1f5f9;
+    }
+
+    .input-with-helper {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .form-helper {
+        font-size: 0.75rem;
+        color: var(--admin-text-dim);
+        padding-left: 0.25rem;
     }
 
     .mb-6 { margin-bottom: 1.5rem; }

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
+	import { slide } from 'svelte/transition';
 	import UserForm from '$lib/components/admin/UserForm.svelte';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -38,13 +39,17 @@
 	</div>
 
 	{#if form?.message && !form.success}
-		<div class="alert error mb-6">
-			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<circle cx="12" cy="12" r="10" />
-				<line x1="12" y1="8" x2="12" y2="12" />
-				<line x1="12" y1="16" x2="12.01" y2="16" />
-			</svg>
-			{form.message}
+		<div class="alert error mb-6" transition:slide={{ duration: 300, axis: 'y' }}>
+			<div class="alert-icon">
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+					<circle cx="12" cy="12" r="10" />
+					<line x1="12" y1="8" x2="12" y2="12" />
+					<line x1="12" y1="16" x2="12.01" y2="16" />
+				</svg>
+			</div>
+			<div class="alert-content">
+				{form.message}
+			</div>
 		</div>
 	{/if}
 
