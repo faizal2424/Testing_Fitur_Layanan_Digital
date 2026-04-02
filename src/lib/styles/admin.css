@@ -954,3 +954,36 @@ tbody tr:hover {
     gap: 0.5rem;
   }
 }
+
+/* ----------------------------------------------------------
+   16. Breadcrumbs
+   ---------------------------------------------------------- */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.82rem;
+  color: var(--admin-text-subtle);
+}
+
+.breadcrumb a {
+  color: var(--admin-text-subtle);
+  text-decoration: none;
+  transition: var(--admin-transition);
+}
+
+.breadcrumb a:hover {
+  color: var(--admin-primary);
+}
+
+.breadcrumb .separator {
+  color: var(--admin-text-dim);
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb .current {
+  color: var(--admin-text);
+  font-weight: 600;
+}
