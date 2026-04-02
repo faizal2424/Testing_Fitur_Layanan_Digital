@@ -101,7 +101,7 @@
     </div>
 
     <div class="form-actions-bar">
-        <button type="button" class="btn btn-outline px-8" onclick={() => history.back()}>Batal</button>
+        <button type="button" class="btn btn-secondary px-8" onclick={() => history.back()}>Batal</button>
         <button type="submit" class="btn btn-primary px-10" disabled={loading}>
             {#if loading}
                 <svg class="spinner" viewBox="0 0 50 50" style="width: 18px; height: 18px; margin-right: 0.5rem; display: inline-block; vertical-align: middle;">

@@ -450,94 +450,109 @@
 }
 
 /* ----------------------------------------------------------
-   11. Buttons
+   11. Modern Button System
    ---------------------------------------------------------- */
 
-/* Primary (red-maroon gradient) */
-.btn-primary,
-.filter-apply-btn {
+/* Base Button */
+.btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1.25rem;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--admin-radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Primary (Maroon Gradient) */
+.btn-primary {
   background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-light));
   color: white;
   border: none;
-  border-radius: var(--admin-radius-md);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: var(--admin-transition);
   box-shadow: var(--admin-shadow-primary);
-  text-decoration: none;
 }
 
-.btn-primary:hover,
-.filter-apply-btn:hover {
+.btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: var(--admin-shadow-primary-md);
+  filter: brightness(1.1);
 }
 
-/* Outline */
-.btn,
-.btn-outline {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  border-radius: var(--admin-radius-md);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: var(--admin-transition);
-  border: 1.5px solid var(--admin-border-muted);
-  background: var(--admin-surface);
+/* Secondary / Outline (Standard neutral) */
+.btn-secondary {
+  background: white;
   color: var(--admin-text-muted);
-  text-decoration: none;
+  border-color: var(--admin-border-muted);
 }
 
-.btn-outline:hover {
+.btn-secondary:hover {
   background: #f9fafb;
   border-color: #d1d5db;
+  color: var(--admin-text);
 }
 
-/* Danger / reset */
-.reset-btn,
+/* Danger (Red destructive) */
 .btn-danger {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
   background: #fef2f2;
   color: #dc2626;
-  border: 1px solid #fecaca;
-  padding: 0.35rem 0.75rem;
-  border-radius: var(--admin-radius-sm);
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  font-family: inherit;
-  transition: var(--admin-transition);
+  border-color: #fecaca;
 }
 
-.reset-btn:hover,
 .btn-danger:hover {
-  background: #fee2e2;
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
 }
 
-/* Export buttons */
+/* Success (Green positive) */
+.btn-success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.btn-success:hover {
+  background: #16a34a;
+  color: white;
+  border-color: #16a34a;
+}
+
+/* Ghost / Tertiary (Subtle) */
+.btn-ghost {
+  background: transparent;
+  color: var(--admin-text-subtle);
+  border: none;
+}
+
+.btn-ghost:hover {
+  background: #f3f4f6;
+  color: var(--admin-text);
+}
+
+/* Specific Export variants for backward compat or grouping */
 .export-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
   padding: 0.45rem 0.9rem;
-  border-radius: var(--admin-radius-md);
   font-size: 0.8rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: var(--admin-transition);
-  border: 1.5px solid transparent;
 }
 
 .export-btn.csv {
@@ -560,6 +575,36 @@
 .export-btn.pdf:hover {
   background: #ffe4e6;
   transform: translateY(-1px);
+}
+
+/* Sizes */
+.btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: var(--admin-radius-sm);
+  gap: 0.35rem;
+}
+
+.btn-lg {
+  padding: 0.8rem 1.75rem;
+  font-size: 1rem;
+  border-radius: var(--admin-radius-lg);
+  gap: 0.6rem;
+}
+
+/* Icon only button */
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+}
+
+.btn-icon-sm {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
 }
 
 /* ----------------------------------------------------------
@@ -867,33 +912,8 @@ tbody tr:hover {
   color: #d97706;
 }
 
-/* ----------------------------------------------------------
-   17. Action icon buttons (edit / delete)
-   ---------------------------------------------------------- */
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--admin-radius-sm);
-  border: 1.5px solid transparent;
-  cursor: pointer;
-  font-size: 0.78rem;
-  font-family: inherit;
-  font-weight: 500;
-  transition: var(--admin-transition);
-  background: none;
-  text-decoration: none;
-}
+/* (Removed unused action-btn classes) */
 
-.action-btn.edit  { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
-.action-btn.edit:hover  { background: #dbeafe; transform: translateY(-1px); }
-.action-btn.delete { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
-.action-btn.delete:hover { background: #fee2e2; transform: translateY(-1px); }
-.action-btn.view  { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
-.action-btn.view:hover  { background: #dcfce7; transform: translateY(-1px); }
 
 /* ----------------------------------------------------------
    18. Responsive breakpoints

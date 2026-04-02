@@ -271,7 +271,7 @@
 				Filter Pengajuan
 			</h3>
 			{#if hasActiveFilter}
-				<button class="reset-btn" onclick={resetFilters}>
+				<button class="btn btn-sm btn-danger" onclick={resetFilters}>
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
 					</svg>
@@ -318,7 +318,7 @@
 			</div>
 		</div>
 		<div class="filters-actions">
-			<button class="filter-apply-btn" onclick={applyFilters}>
+			<button class="btn btn-primary" onclick={applyFilters}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
 				</svg>
@@ -337,7 +337,7 @@
 			<div class="table-actions">
 				<a 
 					href="/admin/pengajuan/export/csv?{$page.url.searchParams.toString()}" 
-					class="export-btn csv"
+					class="btn export-btn csv"
 					download
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -351,7 +351,7 @@
 				</a>
 				<a 
 					href="/admin/pengajuan/export/pdf?{$page.url.searchParams.toString()}" 
-					class="export-btn pdf"
+					class="btn export-btn pdf"
 					target="_blank"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

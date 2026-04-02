@@ -61,9 +61,9 @@
 				Filter & Cari
 			</h3>
 			{#if hasActiveFilter}
-				<button class="reset-btn" onclick={resetFilters}>
+				<button class="btn btn-sm btn-danger" onclick={resetFilters}>
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-					Reset
+					Reset Filter
 				</button>
 			{/if}
 		</div>
@@ -100,7 +100,7 @@
 			<div class="export-actions">
 				<a
 					href="/admin/log-status/export/csv?{$page.url.searchParams.toString()}"
-					class="export-btn csv"
+					class="btn export-btn csv"
 					download
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
@@ -108,14 +108,14 @@
 				</a>
 				<a
 					href="/admin/log-status/export/pdf?{$page.url.searchParams.toString()}"
-					class="export-btn pdf"
+					class="btn export-btn pdf"
 					target="_blank"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
 					Cetak PDF
 				</a>
 			</div>
-			<button class="filter-apply-btn" onclick={applyFilters}>
+			<button class="btn btn-primary" onclick={applyFilters}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 				Terapkan Filter
 			</button>
