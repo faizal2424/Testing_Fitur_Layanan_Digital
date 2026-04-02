@@ -22,16 +22,23 @@
 </svelte:head>
 
 <div class="page">
-	<div class="breadcrumb">
+	<nav class="breadcrumb">
 		<a href="/admin/pengguna">Manajemen Pengguna</a>
-		<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="separator"><polyline points="9 18 15 12 9 6"/></svg>
+		<span class="separator">
+			<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+		</span>
 		<span class="current">Ubah Pengguna</span>
+	</nav>
+
+	<div class="page-header mb-6">
+		<div>
+			<h2 class="page-title">Ubah Data Pengguna</h2>
+			<p class="page-desc">Perbarui informasi akun administrator atau PIC di bawah ini.</p>
+		</div>
 	</div>
 
-	<h2 class="page-title">Ubah Data Pengguna</h2>
-
 	{#if form?.message && !form.success}
-		<div class="alert error">
+		<div class="alert error mb-6">
 			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<circle cx="12" cy="12" r="10" />
 				<line x1="12" y1="8" x2="12" y2="12" />
@@ -41,17 +48,18 @@
 		</div>
 	{/if}
 
-	<UserForm 
-		user={data.editUser} 
-		roles={data.roles} 
-		isEdit={true} 
-		bind:loading 
-	/>
+	<div class="max-w-3xl mx-auto">
+		<UserForm 
+			user={data.editUser} 
+			roles={data.roles} 
+			isEdit={true} 
+			bind:loading 
+		/>
+	</div>
 </div>
 
 <style>
-	.page {
-		max-width: 900px;
-		margin: 0 auto;
-	}
+    .max-w-3xl { max-width: 800px; }
+	.mx-auto { margin-left: auto; margin-right: auto; }
+	.mb-6 { margin-bottom: 1.5rem; }
 </style>

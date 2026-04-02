@@ -520,11 +520,12 @@
 
 	.modal {
 		background: white;
-		border-radius: 16px;
+		border-radius: 24px;
 		width: 100%;
 		max-width: 520px;
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 		animation: modalIn 0.2s ease-out;
+		overflow: hidden; /* Ensure content follows radius */
 	}
 
 	.modal-sm {
@@ -542,6 +543,7 @@
 		justify-content: space-between;
 		padding: 1.25rem 1.5rem;
 		border-bottom: 1px solid #f3f4f6;
+		background: #fafafa;
 	}
 
 	.modal-header h3 {
@@ -557,7 +559,7 @@
 		justify-content: center;
 		width: 32px;
 		height: 32px;
-		border-radius: 8px;
+		border-radius: 10px;
 		border: none;
 		background: #f3f4f6;
 		color: #6b7280;
@@ -574,13 +576,13 @@
 		padding: 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 1.25rem;
 	}
 
 	.form-group {
 		display: flex;
 		flex-direction: column;
-		gap: 0.35rem;
+		gap: 0.45rem;
 	}
 
 	.form-group label {
@@ -591,9 +593,9 @@
 
 	.form-group input,
 	.form-group textarea {
-		padding: 0.6rem 0.85rem;
+		padding: 0.75rem 1rem;
 		border: 1.5px solid #e5e7eb;
-		border-radius: 10px;
+		border-radius: 12px;
 		font-size: 0.88rem;
 		color: #1f2937;
 		background: #f9fafb;
@@ -613,9 +615,10 @@
 	.modal-footer {
 		display: flex;
 		justify-content: flex-end;
-		gap: 0.5rem;
-		padding: 1rem 1.5rem;
+		gap: 0.75rem;
+		padding: 1.25rem 1.5rem;
 		border-top: 1px solid #f3f4f6;
+		background: #fafafa;
 	}
 
 	.confirm-text {
@@ -642,11 +645,10 @@
 	}
 
 	/* Icon Picker Styles */
-	/* Icon Picker Styles */
 	.icon-selector-premium {
 		background: #f8fafc;
 		border: 1.5px solid #e2e8f0;
-		border-radius: 16px;
+		border-radius: 20px;
 		padding: 1rem;
 		display: flex;
 		flex-direction: column;

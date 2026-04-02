@@ -50,13 +50,15 @@
 			<h2 class="page-title">Manajemen Pengguna</h2>
 			<p class="page-desc">Kelola akun administrator dan PIC sistem.</p>
 		</div>
-		<a href="/admin/pengguna/tambah" class="add-btn">
-			<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-				<line x1="12" y1="5" x2="12" y2="19" />
-				<line x1="5" y1="12" x2="19" y2="12" />
-			</svg>
-			Tambah Pengguna
-		</a>
+		<div class="header-actions">
+			<a href="/admin/pengguna/tambah" class="btn btn-primary">
+				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+					<line x1="12" y1="5" x2="12" y2="19" />
+					<line x1="5" y1="12" x2="19" y2="12" />
+				</svg>
+				Tambah Pengguna
+			</a>
+		</div>
 	</div>
 
 	{#if form?.message}
@@ -99,7 +101,7 @@
 					onkeydown={(e) => e.key === 'Enter' && applyFilters()}
 				/>
 			</div>
-			<div class="filter-group">
+			<div class="filter-group span-2">
 				<label for="filter-peran">Peran</label>
 				<select id="filter-peran" bind:value={filterPeran}>
 					<option value="">Semua Peran</option>
@@ -108,14 +110,14 @@
 					{/each}
 				</select>
 			</div>
-		</div>
-		<div class="filters-actions">
-			<button class="filter-apply-btn" onclick={applyFilters}>
-				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-				</svg>
-				Terapkan Filter
-			</button>
+			<div class="filter-group span-1" style="justify-content: flex-end;">
+				<button class="filter-apply-btn" onclick={applyFilters}>
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+					</svg>
+					Terapkan Filter
+				</button>
+			</div>
 		</div>
 	</div>
 
@@ -123,53 +125,63 @@
 	<div class="table-card">
 		<div class="table-header">
 			<h3 class="section-title">Daftar Pengguna</h3>
-			<span class="table-count">{data.pagination.total} total</span>
+			<span class="table-count">{data.pagination.total} total akun</span>
 		</div>
 
 		{#if data.users.length === 0}
 			<div class="empty-state">
-				<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+				<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
 					<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
 					<circle cx="9" cy="7" r="4" />
+					<line x1="17" y1="8" x2="22" y2="13" /><line x1="22" y1="8" x2="17" y2="13" />
 				</svg>
-				<p>Tidak ada pengguna ditemukan.</p>
+				<p>Tidak ada pengguna ditemukan untuk filter ini.</p>
 			</div>
 		{:else}
 			<div class="table-wrapper">
 				<table>
 					<thead>
 						<tr>
-							<th>Nama & Email</th>
+							<th>Nama Lengkap & Email</th>
 							<th>Username</th>
-							<th>Peran</th>
-							<th>Telepon</th>
-							<th class="actions-head">Aksi</th>
+							<th>Peran Sistem</th>
+							<th>Kontak Telepon</th>
+							<th style="text-align: right;">Opsi</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each data.users as user}
-							<tr>
+							<tr class="user-row">
 								<td>
-									<div class="user-info">
-										<span class="user-name">{user.name}</span>
-										<span class="user-email">{user.email}</span>
+									<div class="user-main-info">
+										<span class="user-fullname">{user.name}</span>
+										<span class="user-subemail">{user.email}</span>
 									</div>
 								</td>
-								<td><code>{user.username}</code></td>
+								<td><code class="user-code">{user.username}</code></td>
 								<td>
-									<div class="role-badges">
+									<div class="role-badges-list">
 										{#each user.roles as role}
 											<span class="role-badge" class:superadmin={role === 'superadmin'} class:admin={role === 'admin'} class:pic={role === 'pic'}>
-												{role}
+												{role.toUpperCase()}
 											</span>
 										{/each}
 									</div>
 								</td>
-								<td>{user.phone || '-'}</td>
 								<td>
-									<div class="actions">
-										<a href="/admin/pengguna/ubah/{user.id}" class="action-btn edit" title="Ubah">
-											<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									{#if user.phone}
+										<div class="phone-link">
+											<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.21-2.21a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+											{user.phone}
+										</div>
+									{:else}
+										<span class="text-dim">-</span>
+									{/if}
+								</td>
+								<td>
+									<div class="actions-group">
+										<a href="/admin/pengguna/ubah/{user.id}" class="icon-btn-edit" title="Ubah Pengguna">
+											<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 												<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
 												<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
 											</svg>
@@ -185,11 +197,11 @@
 												<input type="hidden" name="id" value={user.id} />
 												<button
 													type="submit"
-													class="action-btn delete"
+													class="icon-btn-delete"
 													title="Hapus"
 													onclick={(e) => !confirmDelete(user.id, user.name) && e.preventDefault()}
 												>
-													<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+													<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 														<polyline points="3 6 5 6 21 6" />
 														<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
 														<line x1="10" y1="11" x2="10" y2="17" />
@@ -247,9 +259,74 @@
 </div>
 
 <style>
-	.page { max-width: 1200px; margin: 0 auto; }
-	.user-info { display: flex; flex-direction: column; gap: 0.1rem; }
-	.user-name { font-weight: 600; color: #111827; }
-	.user-email { font-size: 0.75rem; color: #9ca3af; }
-	.actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+	.span-2 { grid-column: span 2; }
+	.span-1 { grid-column: span 1; }
+
+	.user-main-info { display: flex; flex-direction: column; gap: 0.15rem; }
+	.user-fullname { font-weight: 700; color: var(--admin-text); font-size: 0.95rem; }
+	.user-subemail { font-size: 0.75rem; color: var(--admin-text-subtle); }
+
+	.user-code { 
+		background: #f8fafc; 
+		padding: 0.25rem 0.5rem; 
+		border-radius: 6px; 
+		font-size: 0.8rem; 
+		font-family: inherit; 
+		color: var(--admin-text-subtle);
+		border: 1px solid #f1f5f9;
+	}
+
+	.role-badges-list { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+	.role-badge {
+		font-size: 0.7rem;
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		padding: 0.25rem 0.6rem;
+		border-radius: 8px;
+		text-transform: uppercase;
+	}
+
+	.role-badge.superadmin { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; }
+	.role-badge.admin      { background: #fdf2f8; color: #800020; border: 1px solid #fbcfe8; }
+	.role-badge.pic        { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+	.phone-link {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.85rem;
+		color: var(--admin-text-muted);
+	}
+
+	.text-dim { color: var(--admin-text-dim); }
+
+	.actions-group { display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center; }
+
+	.icon-btn-edit, .icon-btn-delete {
+		width: 36px;
+		height: 36px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 10px;
+		transition: all 0.2s;
+		cursor: pointer;
+		border: none;
+	}
+
+	.icon-btn-edit { background: #f8fafc; color: #64748b; }
+	.icon-btn-edit:hover { background: #f1f5f9; color: #800020; }
+
+	.icon-btn-delete { background: #fef2f2; color: #ef4444; }
+	.icon-btn-delete:hover { background: #fee2e2; color: #dc2626; }
+
+	@media (max-width: 1024px) {
+		.filters-grid { grid-template-columns: 1fr 1fr; }
+		.span-2 { grid-column: span 2; }
+	}
+
+	@media (max-width: 768px) {
+		.filters-grid { grid-template-columns: 1fr; }
+		.span-2, .span-1 { grid-column: span 1; }
+	}
 </style>
