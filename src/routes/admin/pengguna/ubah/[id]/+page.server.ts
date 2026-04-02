@@ -90,6 +90,11 @@ export const actions: Actions = {
 			return fail(400, { message: 'Kata sandi minimal 8 karakter', success: false });
 		}
 
+		// Phone validation
+		if (phone && !/^0[0-9]{1,14}$/.test(phone)) {
+			return fail(400, { message: 'Nomor telepon harus diawali angka 0 dan maksimal 15 angka', success: false });
+		}
+
 		try {
 			// Check uniqueness
 			const existingUser = await db.users.findFirst({
