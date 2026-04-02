@@ -46,10 +46,12 @@ export const actions: Actions = {
             // Map status code to readable text if needed, or just use the status string
             const statusLabels: Record<string, string> = {
                 'baru': 'Diterima',
+                'revisi': 'Perlu Revisi',
                 'ditugaskan': 'Verifikasi',
                 'diproses_pic': 'Proses',
                 'diselesaikan_pic': 'Validasi',
-                'selesai': 'Selesai'
+                'selesai': 'Selesai',
+                'ditolak_pengajuan': 'Pengajuan Ditangguhkan'
             };
 
             const result = {
