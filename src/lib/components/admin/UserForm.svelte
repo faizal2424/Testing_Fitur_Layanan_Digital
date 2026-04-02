@@ -162,12 +162,8 @@
 		grid-column: 1 / -1;
 	}
 
-	.form-actions-bar {
-		display: flex;
-		justify-content: flex-end;
-		gap: 1.25rem;
-		padding: 1.5rem 0;
-		border-top: 1px solid var(--admin-border);
+	.full-width {
+		grid-column: 1 / -1;
 	}
 
 	.form-help-box {

@@ -182,7 +182,7 @@
 								<div class="value-item">
 									<span class="value-label">{val.label}</span>
 									{#if isFileField(val.type) && val.file_path}
-										<a href="/storage/{val.file_path}" target="_blank" class="file-link">
+										<a href="{val.file_path}" target="_blank" class="file-link">
 											<svg
 												xmlns="http://www.w3.org/2000/svg"
 												width="14"
@@ -251,8 +251,8 @@
 			</div>
 		</div>
 
-		<div class="bottom-actions">
-			<a href="/admin/pengajuan" class="btn btn-secondary btn-lg">
+		<div class="form-actions-bar mt-8">
+			<a href="/admin/pengajuan" class="btn btn-secondary px-8">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="20"
@@ -268,15 +268,15 @@
 			</a>
 			{#if data.allowedStatuses.length > 0 && !data.isAssistantOnly}
 				<button
-					class="btn btn-primary btn-lg"
+					class="btn btn-primary px-10"
 					onclick={() => {
 						showProcessModal = true;
 					}}
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						width="20"
-						height="20"
+						width="18"
+						height="18"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -1131,17 +1131,8 @@
 		margin: 0;
 	}
 
-	.bottom-actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 1rem;
+	.mt-8 {
 		margin-top: 2rem;
-		padding-top: 1.5rem;
-		border-top: 1px dashed #e5e7eb;
-	}
-	.btn-lg {
-		padding: 0.8rem 1.5rem;
-		font-size: 1.05rem;
 	}
 
 	.checkbox-group {
