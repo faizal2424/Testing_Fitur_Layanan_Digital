@@ -252,7 +252,7 @@
 		</div>
 
 		<div class="bottom-actions">
-			<a href="/admin/pengajuan" class="btn btn-outline btn-lg">
+			<a href="/admin/pengajuan" class="btn btn-secondary btn-lg">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="20"
@@ -477,7 +477,7 @@
 												<div class="dropdown-footer">
 													<button 
 														type="button" 
-														class="btn-done"
+														class="btn btn-sm btn-primary"
 														onclick={() => showTeamDropdown = false}
 													>
 														Selesai
@@ -558,7 +558,7 @@
 					<div class="modal-footer">
 						<button
 							type="button"
-							class="btn btn-outline"
+							class="btn btn-secondary"
 							onclick={() => {
 								showProcessModal = false;
 							}}>Batal</button
@@ -648,46 +648,6 @@
 		display: flex;
 		gap: 0.5rem;
 		flex-wrap: wrap;
-	}
-
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.6rem 1.25rem;
-		border-radius: 10px;
-		font-weight: 600;
-		cursor: pointer;
-		font-family: inherit;
-		transition: all 0.2s;
-		border: none;
-		text-decoration: none;
-		white-space: nowrap;
-	}
-	.btn-sm {
-		padding: 0.45rem 0.85rem;
-		font-size: 0.82rem;
-	}
-	.btn-primary {
-		background: linear-gradient(135deg, #800020, #a80030);
-		color: white;
-		box-shadow: 0 2px 8px rgba(128, 0, 32, 0.25);
-	}
-	.btn-primary:hover {
-		transform: translateY(-1px);
-	}
-	.btn-primary:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-		transform: none;
-	}
-	.btn-outline {
-		background: white;
-		color: #374151;
-		border: 1.5px solid #e5e7eb;
-	}
-	.btn-outline:hover {
-		background: #f9fafb;
 	}
 
 	.alert {

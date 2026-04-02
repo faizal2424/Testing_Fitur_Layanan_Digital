@@ -82,7 +82,7 @@
 				Filter & Cari
 			</h3>
 			{#if hasActiveFilter}
-				<button class="reset-btn" onclick={resetFilters}>
+				<button class="btn btn-sm btn-danger" onclick={resetFilters}>
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
 					</svg>
@@ -111,7 +111,7 @@
 				</select>
 			</div>
 			<div class="filter-group span-1" style="justify-content: flex-end;">
-				<button class="filter-apply-btn" onclick={applyFilters}>
+				<button class="btn btn-primary" onclick={applyFilters}>
 					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
 					</svg>
@@ -180,7 +180,7 @@
 								</td>
 								<td>
 									<div class="actions-group">
-										<a href="/admin/pengguna/ubah/{user.id}" class="icon-btn-edit" title="Ubah Pengguna">
+										<a href="/admin/pengguna/ubah/{user.id}" class="btn btn-ghost btn-icon" title="Ubah Pengguna">
 											<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 												<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
 												<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -197,7 +197,7 @@
 												<input type="hidden" name="id" value={user.id} />
 												<button
 													type="submit"
-													class="icon-btn-delete"
+													class="btn btn-danger btn-icon"
 													title="Hapus"
 													onclick={(e) => !confirmDelete(user.id, user.name) && e.preventDefault()}
 												>
@@ -300,25 +300,7 @@
 
 	.text-dim { color: var(--admin-text-dim); }
 
-	.actions-group { display: flex; gap: 0.75rem; justify-content: flex-end; align-items: center; }
-
-	.icon-btn-edit, .icon-btn-delete {
-		width: 36px;
-		height: 36px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 10px;
-		transition: all 0.2s;
-		cursor: pointer;
-		border: none;
-	}
-
-	.icon-btn-edit { background: #f8fafc; color: #64748b; }
-	.icon-btn-edit:hover { background: #f1f5f9; color: #800020; }
-
-	.icon-btn-delete { background: #fef2f2; color: #ef4444; }
-	.icon-btn-delete:hover { background: #fee2e2; color: #dc2626; }
+	.actions-group { display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; }
 
 	@media (max-width: 1024px) {
 		.filters-grid { grid-template-columns: 1fr 1fr; }

@@ -69,9 +69,9 @@
 				Filter & Cari
 			</h3>
 			{#if hasActiveFilter}
-				<button class="reset-btn" onclick={resetFilters}>
+				<button class="btn btn-sm btn-danger" onclick={resetFilters}>
 					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-					Reset
+					Reset Filter
 				</button>
 			{/if}
 		</div>
@@ -105,16 +105,16 @@
 		</div>
 		<div class="filters-actions">
 			<div class="export-actions">
-				<a href="/admin/pengajuan/export/csv?{new URLSearchParams($page.url.searchParams).toString()}" class="export-btn csv">
+				<a href="/admin/pengajuan/export/csv?{new URLSearchParams($page.url.searchParams).toString()}" class="btn export-btn csv">
 					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 12h8"/><path d="M8 16h8"/></svg>
 					Export CSV
 				</a>
-				<a href="/admin/pengajuan/export/pdf?{new URLSearchParams($page.url.searchParams).toString()}" class="export-btn pdf">
+				<a href="/admin/pengajuan/export/pdf?{new URLSearchParams($page.url.searchParams).toString()}" class="btn export-btn pdf">
 					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13v-3h6v3"/><path d="M9 17v-3h6v3"/></svg>
 					Cetak PDF
 				</a>
 			</div>
-			<button class="filter-apply-btn" onclick={applyFilters}>
+			<button class="btn btn-primary" onclick={applyFilters}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 				Terapkan Filter
 			</button>
@@ -174,7 +174,7 @@
 								<td>{sub.assigned_to_name || '-'}</td>
 								<td class="date-cell">{formatDate(sub.created_at)}</td>
 								<td>
-									<a href="/admin/pengajuan/{sub.id}" class="detail-link">Detail →</a>
+									<a href="/admin/pengajuan/{sub.id}" class="btn btn-sm btn-ghost" style="color: var(--admin-primary);">Detail →</a>
 								</td>
 							</tr>
 						{/each}
@@ -226,6 +226,4 @@
 	/* Most styles moved to admin.css */
 	.code-with-icon { display: flex; align-items: center; gap: 0.4rem; }
 	.name-with-badge { display: flex; align-items: center; gap: 0.5rem; }
-	.detail-link { color: var(--admin-primary); font-weight: 600; font-size: 0.82rem; text-decoration: none; white-space: nowrap; }
-	.detail-link:hover { text-decoration: underline; }
 </style>

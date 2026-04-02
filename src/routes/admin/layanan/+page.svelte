@@ -103,9 +103,9 @@
 						Simpan Urutan
 					</button>
 				</form>
-				<button class="btn btn-outline" onclick={() => { reorderMode = false; localServices = [...data.services]; }}>Batal</button>
+				<button class="btn btn-secondary" onclick={() => { reorderMode = false; localServices = [...data.services]; }}>Batal</button>
 			{:else}
-				<button class="btn btn-outline" onclick={() => { reorderMode = true; }}>
+				<button class="btn btn-secondary" onclick={() => { reorderMode = true; }}>
 					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
 					Atur Urutan
 				</button>
@@ -175,9 +175,9 @@
 
 					{#if !reorderMode}
 						<div class="service-actions">
-							<a href="/admin/layanan/{service.id}/fields" class="btn btn-sm btn-outline">Atur Field</a>
-							<button class="btn btn-sm btn-outline" onclick={() => openEdit(service)}>Edit</button>
-							<button class="btn btn-sm btn-outline-danger" onclick={() => openDelete(service)}>Hapus</button>
+							<a href="/admin/layanan/{service.id}/fields" class="btn btn-sm btn-secondary">Atur Field</a>
+							<button class="btn btn-sm btn-secondary" onclick={() => openEdit(service)}>Edit</button>
+							<button class="btn btn-sm btn-danger" onclick={() => openDelete(service)}>Hapus</button>
 						</div>
 					{/if}
 				</div>
@@ -247,7 +247,7 @@
 					</div>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-outline" onclick={() => { showCreateModal = false; }}>Batal</button>
+					<button type="button" class="btn btn-secondary" onclick={() => { showCreateModal = false; }}>Batal</button>
 					<button type="submit" class="btn btn-primary">Simpan</button>
 				</div>
 			</form>
@@ -317,7 +317,7 @@
 					</div>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-outline" onclick={closeEdit}>Batal</button>
+					<button type="button" class="btn btn-secondary" onclick={closeEdit}>Batal</button>
 					<button type="submit" class="btn btn-primary">Simpan Perubahan</button>
 				</div>
 			</form>
@@ -352,7 +352,7 @@
 					{/if}
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-outline" onclick={closeDelete}>Batal</button>
+					<button type="button" class="btn btn-secondary" onclick={closeDelete}>Batal</button>
 					<button type="submit" class="btn btn-danger" disabled={deletingService.submissionCount > 0}>Hapus</button>
 				</div>
 			</form>
@@ -361,49 +361,6 @@
 {/if}
 
 <style>
-	.btn-outline {
-		background: white;
-		color: #374151;
-		border: 1.5px solid #e5e7eb;
-	}
-
-	.btn-outline:hover {
-		background: #f9fafb;
-		border-color: #d1d5db;
-	}
-
-	.btn-danger {
-		background: #dc2626;
-		color: white;
-	}
-
-	.btn-danger:hover {
-		background: #b91c1c;
-	}
-
-	.btn-danger:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
-	.btn-sm {
-		padding: 0.4rem 0.75rem;
-		font-size: 0.75rem;
-		border-radius: 8px;
-	}
-
-	.btn-outline-danger {
-		background: white;
-		color: #dc2626;
-		border: 1.5px solid #fecaca;
-		text-decoration: none;
-	}
-
-	.btn-outline-danger:hover {
-		background: #fef2f2;
-		border-color: #fca5a5;
-	}
-
 	/* Alerts */
 	.alert {
 		padding: 0.75rem 1rem;

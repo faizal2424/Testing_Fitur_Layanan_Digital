@@ -170,10 +170,10 @@
 						Simpan Urutan
 					</button>
 				</form>
-				<button class="btn btn-outline" onclick={() => { reorderMode = false; localFields = [...data.fields]; }}>Batal</button>
+				<button class="btn btn-secondary" onclick={() => { reorderMode = false; localFields = [...data.fields]; }}>Batal</button>
 			{:else}
 				{#if localFields.length > 1}
-					<button class="btn btn-outline" onclick={() => { reorderMode = true; }}>
+					<button class="btn btn-secondary" onclick={() => { reorderMode = true; }}>
 						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
 						Atur Urutan
 					</button>
@@ -243,10 +243,10 @@
 
 					{#if !reorderMode}
 						<div class="field-actions">
-							<button class="btn-icon" onclick={() => openEdit(field)} title="Edit">
+							<button class="btn btn-ghost btn-icon" onclick={() => openEdit(field)} title="Edit">
 								<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
 							</button>
-							<button class="btn-icon danger" onclick={() => { deletingField = field; }} title="Hapus">
+							<button class="btn btn-danger btn-icon" onclick={() => { deletingField = field; }} title="Hapus">
 								<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
 							</button>
 						</div>
@@ -362,7 +362,7 @@
 					{/if}
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-outline" onclick={() => { showCreateModal = false; }}>Batal</button>
+					<button type="button" class="btn btn-secondary" onclick={() => { showCreateModal = false; }}>Batal</button>
 					<button type="submit" class="btn btn-primary">Simpan</button>
 				</div>
 			</form>
@@ -466,7 +466,7 @@
 					{/if}
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-outline" onclick={() => { editingField = null; }}>Batal</button>
+					<button type="button" class="btn btn-secondary" onclick={() => { editingField = null; }}>Batal</button>
 					<button type="submit" class="btn btn-primary">Simpan Perubahan</button>
 				</div>
 			</form>
@@ -492,7 +492,7 @@
 					<p class="confirm-text">Apakah Anda yakin ingin menghapus field <strong>"{deletingField.label}"</strong>?</p>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-outline" onclick={() => { deletingField = null; }}>Batal</button>
+					<button type="button" class="btn btn-secondary" onclick={() => { deletingField = null; }}>Batal</button>
 					<button type="submit" class="btn btn-danger">Hapus</button>
 				</div>
 			</form>
@@ -518,18 +518,6 @@
 	.title-icon { font-size: 1.5rem; }
 	.page-desc { font-size: 0.85rem; color: #6b7280; margin: 0.2rem 0 0; }
 	.header-actions { display: flex; gap: 0.5rem; }
-
-	/* Buttons */
-	.btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1rem; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; border: none; }
-	.btn-primary { background: linear-gradient(135deg, #800020, #a80030); color: white; box-shadow: 0 2px 8px rgba(128, 0, 32, 0.25); }
-	.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(128, 0, 32, 0.35); }
-	.btn-outline { background: white; color: #374151; border: 1.5px solid #e5e7eb; }
-	.btn-outline:hover { background: #f9fafb; border-color: #d1d5db; }
-	.btn-danger { background: #dc2626; color: white; }
-	.btn-danger:hover { background: #b91c1c; }
-	.btn-icon { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: #f3f4f6; border: none; color: #374151; cursor: pointer; transition: all 0.2s; }
-	.btn-icon:hover { background: #e5e7eb; color: #111827; }
-	.btn-icon.danger:hover { background: #fef2f2; color: #dc2626; }
 
 	/* Alerts */
 	.alert { padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.85rem; font-weight: 500; margin-bottom: 1rem; }
