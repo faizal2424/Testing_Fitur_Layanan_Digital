@@ -6,14 +6,33 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
+	// ── State ──────────────────────────────────────────────────────────────────
+
+	// Accordion open/closed state per agency id
+	let openSections = $state<Record<string, boolean>>({});
+
+	// Local services per agency (for drag reorder)
+	let localAgencies = $state(
+		data.agenciesWithServices.map((a) => ({ ...a, services: [...a.services] }))
+	);
+
+	// Reorder mode per agency
+	let reorderModes = $state<Record<string, boolean>>({});
+	let draggedIndex = $state<{ agencyId: string; index: number } | null>(null);
+
+	// Create modal
 	let showCreateModal = $state(false);
+	let createAgencyId = $state(''); // which agency section triggered Tambah Layanan
+
+	// "Tambah Instansi" modal
+	let showAddAgencyModal = $state(false);
+	let selectedNewAgencyId = $state('');
+
+	// Edit / delete modal
 	let editingService = $state<any>(null);
 	let deletingService = $state<any>(null);
-	let draggedIndex = $state<number | null>(null);
-	let reorderMode = $state(false);
-	let localServices = $state([...data.services]);
 
-	// Icon Picker State
+	// Icon picker
 	const commonIcons = [
 		'🏛️', '⚖️', '📜', '🗳️', '📄', '📝', '📁', '📋', '🛂', '🆔',
 		'👤', '👥', '🏢', '🏠', '🏥', '🏫', '🛠️', '🏗️', '🚜', '⚙️',
@@ -23,18 +42,26 @@
 	let selectedCreateIcon = $state('📄');
 	let selectedEditIcon = $state('');
 
-	// Sync when data changes
+	// ── Reactivity ────────────────────────────────────────────────────────────
+
 	$effect(() => {
-		localServices = [...data.services];
+		localAgencies = data.agenciesWithServices.map((a) => ({ ...a, services: [...a.services] }));
+		// Default all sections open
+		for (const a of data.agenciesWithServices) {
+			if (openSections[a.agency.id] === undefined) {
+				openSections[a.agency.id] = true;
+			}
+		}
 	});
 
-	// Handle form results
 	$effect(() => {
 		if (form?.success) {
 			toast.success(form.message || 'Operasi berhasil');
 			showCreateModal = false;
 			editingService = null;
 			deletingService = null;
+			showAddAgencyModal = false;
+			selectedNewAgencyId = '';
 
 			if (form?.action === 'create' && form?.newId) {
 				goto(`/admin/layanan/${form.newId}/fields`);
@@ -44,41 +71,80 @@
 		}
 	});
 
+	// ── Helpers ───────────────────────────────────────────────────────────────
+
+	function toggleSection(agencyId: string) {
+		openSections[agencyId] = !openSections[agencyId];
+	}
+
+	function openCreateFor(agencyId: string) {
+		createAgencyId = agencyId;
+		selectedCreateIcon = '📄';
+		showCreateModal = true;
+	}
+
 	function openEdit(service: any) {
 		editingService = { ...service };
 		selectedEditIcon = service.icon || '📄';
-	}
-
-	function closeEdit() {
-		editingService = null;
 	}
 
 	function openDelete(service: any) {
 		deletingService = service;
 	}
 
-	function closeDelete() {
-		deletingService = null;
+	// "Tambah Instansi" — add agency that isn't yet visible (state only, no DB call)
+	function confirmAddAgency() {
+		if (!selectedNewAgencyId) return;
+		const found = data.allAgencies.find((a) => a.id === selectedNewAgencyId);
+		if (!found) return;
+		// Push an empty section
+		localAgencies = [
+			...localAgencies,
+			{ agency: { id: found.id, name: found.name }, services: [] }
+		];
+		openSections[found.id] = true;
+		showAddAgencyModal = false;
+		selectedNewAgencyId = '';
+		// Immediately open create modal for that agency
+		openCreateFor(found.id);
 	}
 
-	// Drag and drop handlers
-	function handleDragStart(index: number) {
-		draggedIndex = index;
+	// Agencies not yet in localAgencies
+	function hiddenAgencies() {
+		const visible = new Set(localAgencies.map((a) => a.agency.id));
+		return (data.allAgencies || []).filter((a) => !visible.has(a.id));
 	}
 
-	function handleDragOver(e: DragEvent, index: number) {
+	// ── Drag & Drop (per section) ─────────────────────────────────────────────
+
+	function handleDragStart(agencyId: string, index: number) {
+		draggedIndex = { agencyId, index };
+	}
+
+	function handleDragOver(e: DragEvent, agencyId: string, index: number) {
 		e.preventDefault();
-		if (draggedIndex === null || draggedIndex === index) return;
-
-		const items = [...localServices];
-		const [draggedItem] = items.splice(draggedIndex, 1);
-		items.splice(index, 0, draggedItem);
-		localServices = items;
-		draggedIndex = index;
+		if (!draggedIndex || draggedIndex.agencyId !== agencyId || draggedIndex.index === index) return;
+		const agency = localAgencies.find((a) => a.agency.id === agencyId);
+		if (!agency) return;
+		const items = [...agency.services];
+		const [dragged] = items.splice(draggedIndex.index, 1);
+		items.splice(index, 0, dragged);
+		localAgencies = localAgencies.map((a) =>
+			a.agency.id === agencyId ? { ...a, services: items } : a
+		);
+		draggedIndex = { agencyId, index };
 	}
 
 	function handleDragEnd() {
 		draggedIndex = null;
+	}
+
+	function getServicesForAgency(agencyId: string) {
+		return localAgencies.find((a) => a.agency.id === agencyId)?.services ?? [];
+	}
+
+	function totalServices() {
+		return localAgencies.reduce((n, a) => n + a.services.length, 0);
 	}
 </script>
 
@@ -87,113 +153,195 @@
 </svelte:head>
 
 <div class="page">
-	<!-- Header -->
+	<!-- ── Page Header ───────────────────────────────────────────────────────── -->
 	<div class="page-header">
 		<div>
 			<h2 class="page-title">Kelola Layanan</h2>
-			<p class="page-desc">Tambah, edit, dan atur urutan layanan digital</p>
+			<p class="page-desc">
+				{totalServices()} layanan tersebar di {localAgencies.length} instansi
+			</p>
 		</div>
-		<div class="header-actions">
-			{#if reorderMode}
-				<form method="POST" action="?/reorder" use:enhance={() => {
-					return async ({ update }) => {
-						reorderMode = false;
-						await update();
-					};
-				}}>
-					<input type="hidden" name="order" value={JSON.stringify(localServices.map((s, i) => ({ id: s.id, order: i })))} />
-					<button type="submit" class="btn btn-primary">
-						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-						Simpan Urutan
-					</button>
-				</form>
-				<button class="btn btn-secondary" onclick={() => { reorderMode = false; localServices = [...data.services]; }}>Batal</button>
-			{:else}
-				<button class="btn btn-secondary" onclick={() => { reorderMode = true; }}>
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-					Atur Urutan
-				</button>
-				<button class="btn btn-primary" onclick={() => { showCreateModal = true; }}>
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-					Tambah Layanan
-				</button>
-			{/if}
-		</div>
+		{#if data.isSuper}
+			<button class="btn btn-primary" onclick={() => (showAddAgencyModal = true)}>
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+				Tambah Instansi
+			</button>
+		{/if}
 	</div>
 
+	<!-- ── Empty state (no agencies at all) ──────────────────────────────────── -->
+	{#if localAgencies.length === 0}
+		<div class="empty-global">
+			<div class="empty-icon">🏛️</div>
+			<h3>Belum ada instansi</h3>
+			{#if data.isSuper}
+				<p>Klik <strong>"Tambah Instansi"</strong> di atas untuk mulai menambahkan layanan.</p>
+			{:else}
+				<p>Hubungi superadmin untuk mengonfigurasi instansi Anda.</p>
+			{/if}
+		</div>
+	{/if}
 
+	<!-- ── Accordion sections per agency ─────────────────────────────────────── -->
+	<div class="accordion-list">
+		{#each localAgencies as agencyGroup (agencyGroup.agency.id)}
+			{@const agencyId = agencyGroup.agency.id}
+			{@const isOpen = openSections[agencyId] !== false}
+			{@const isReordering = reorderModes[agencyId] ?? false}
+			{@const svcList = getServicesForAgency(agencyId)}
 
-	<!-- Services List -->
-	<div class="services-grid">
-		{#if localServices.length === 0}
-			<div class="empty-state">
-				<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-				</svg>
-				<p>Belum ada layanan. Tambahkan layanan pertama!</p>
-			</div>
-		{:else}
-			{#each localServices as service, index}
-				<div
-					class="service-card"
-					class:dragging={reorderMode && draggedIndex === index}
-					draggable={reorderMode}
-					ondragstart={() => handleDragStart(index)}
-					ondragover={(e) => handleDragOver(e, index)}
-					ondragend={handleDragEnd}
-					role={reorderMode ? 'listitem' : undefined}
-				>
-					{#if reorderMode}
-						<div class="drag-handle">
-							<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/>
-								<circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/>
-								<circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/>
-							</svg>
+			<div class="agency-section" class:open={isOpen}>
+				<!-- Section Header -->
+				<div class="section-header" role="button" tabindex="0"
+					onclick={() => toggleSection(agencyId)}
+					onkeydown={(e) => e.key === 'Enter' && toggleSection(agencyId)}>
+
+					<div class="section-header-left">
+						<span class="agency-icon">🏛️</span>
+						<div class="agency-title-group">
+							<span class="agency-name">{agencyGroup.agency.name}</span>
+							<span class="service-badge">{svcList.length} layanan</span>
 						</div>
-					{/if}
+					</div>
 
-					<div class="service-icon-wrap">
-						{#if service.icon}
-							<span class="service-emoji">{service.icon}</span>
+					<div class="section-header-right" role="presentation" onclick={(e) => e.stopPropagation()}>
+						{#if isReordering}
+							<form method="POST" action="?/reorder" use:enhance={() => {
+								return async ({ update }) => {
+									reorderModes[agencyId] = false;
+									await update();
+								};
+							}}>
+								<input type="hidden" name="order" value={JSON.stringify(svcList.map((s, i) => ({ id: s.id, order: i })))} />
+								<button type="submit" class="btn btn-sm btn-primary">
+									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+									Simpan Urutan
+								</button>
+							</form>
+							<button class="btn btn-sm btn-secondary" onclick={() => { reorderModes[agencyId] = false; localAgencies = data.agenciesWithServices.map(a => ({ ...a, services: [...a.services] })); }}>Batal</button>
 						{:else}
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-								<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-							</svg>
+							{#if svcList.length > 1}
+								<button class="btn btn-sm btn-ghost" onclick={() => { reorderModes[agencyId] = true; }}>
+									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+									Atur Urutan
+								</button>
+							{/if}
+							<button class="btn btn-sm btn-primary" onclick={() => openCreateFor(agencyId)}>
+								<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+								Tambah Layanan
+							</button>
+						{/if}
+						<button class="chevron-btn" class:rotated={!isOpen} aria-label="Toggle section">
+							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+						</button>
+					</div>
+				</div>
+
+				<!-- Section Body -->
+				{#if isOpen}
+					<div class="section-body">
+						{#if svcList.length === 0}
+							<div class="section-empty">
+								<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
+								<p>Belum ada layanan. Klik <strong>"Tambah Layanan"</strong> di atas.</p>
+							</div>
+						{:else}
+							<div class="services-list">
+								{#each svcList as service, index (service.id)}
+									<div
+										class="service-card"
+										class:dragging={isReordering && draggedIndex?.agencyId === agencyId && draggedIndex?.index === index}
+										draggable={isReordering}
+										ondragstart={() => handleDragStart(agencyId, index)}
+										ondragover={(e) => handleDragOver(e, agencyId, index)}
+										ondragend={handleDragEnd}
+										role={isReordering ? 'listitem' : undefined}
+									>
+										{#if isReordering}
+											<div class="drag-handle">
+												<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+											</div>
+										{/if}
+
+										<div class="service-icon-wrap">
+											{#if service.icon}
+												<span class="service-emoji">{service.icon}</span>
+											{:else}
+												<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
+											{/if}
+										</div>
+
+										<div class="service-info">
+											<h3 class="service-name">{service.name}</h3>
+											<div class="service-meta">
+												<span class="meta-item">
+													<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21"/></svg>
+													{service.fieldCount} field
+												</span>
+												<span class="meta-item">
+													<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+													{service.submissionCount} pengajuan
+												</span>
+											</div>
+										</div>
+
+										{#if !isReordering}
+											<div class="service-actions">
+												<a href="/admin/layanan/{service.id}/fields" class="btn btn-sm btn-secondary">Atur Field</a>
+												<button class="btn btn-sm btn-secondary" onclick={() => openEdit(service)}>Edit</button>
+												<button class="btn btn-sm btn-danger" onclick={() => openDelete(service)}>Hapus</button>
+											</div>
+										{/if}
+									</div>
+								{/each}
+							</div>
 						{/if}
 					</div>
-
-					<div class="service-info">
-						<h3 class="service-name">{service.name}</h3>
-						<div class="service-meta">
-							<span class="meta-item">
-								<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21"/></svg>
-								{service.fieldCount} field
-							</span>
-							<span class="meta-item">
-								<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-								{service.submissionCount} pengajuan
-							</span>
-						</div>
-					</div>
-
-					{#if !reorderMode}
-						<div class="service-actions">
-							<a href="/admin/layanan/{service.id}/fields" class="btn btn-sm btn-secondary">Atur Field</a>
-							<button class="btn btn-sm btn-secondary" onclick={() => openEdit(service)}>Edit</button>
-							<button class="btn btn-sm btn-danger" onclick={() => openDelete(service)}>Hapus</button>
-						</div>
-					{/if}
-				</div>
-			{/each}
-		{/if}
+				{/if}
+			</div>
+		{/each}
 	</div>
 </div>
 
-<!-- Create Modal -->
+<!-- ── Modal: Tambah Instansi ─────────────────────────────────────────────── -->
+{#if showAddAgencyModal}
+	<div class="modal-overlay" onclick={() => { showAddAgencyModal = false; }} role="presentation">
+		<div class="modal modal-sm" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+			<div class="modal-header">
+				<h3>Tambah Instansi</h3>
+				<button class="modal-close" onclick={() => { showAddAgencyModal = false; }} aria-label="Tutup">
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+				</button>
+			</div>
+			<div class="modal-body">
+				<p class="modal-hint">Pilih instansi yang ingin ditambahkan ke halaman ini. Setelah itu Anda bisa menambahkan layanan di dalamnya.</p>
+				<div class="form-group">
+					<label for="new-agency-select">Instansi / OPD</label>
+					<select id="new-agency-select" class="form-control" bind:value={selectedNewAgencyId}>
+						<option value="">— Pilih instansi —</option>
+						{#each hiddenAgencies() as agency}
+							<option value={agency.id}>{agency.name}</option>
+						{/each}
+					</select>
+					{#if hiddenAgencies().length === 0}
+						<p class="hint-text">Semua instansi sudah ditampilkan.</p>
+					{/if}
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-secondary" onclick={() => { showAddAgencyModal = false; }}>Batal</button>
+				<button class="btn btn-primary" onclick={confirmAddAgency} disabled={!selectedNewAgencyId}>
+					Lanjut Tambah Layanan
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- ── Modal: Tambah Layanan ──────────────────────────────────────────────── -->
 {#if showCreateModal}
 	<div class="modal-overlay" onclick={() => { showCreateModal = false; }} role="presentation">
-			<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
 			<div class="modal-header">
 				<h3>Tambah Layanan Baru</h3>
 				<button class="modal-close" onclick={() => { showCreateModal = false; }} aria-label="Tutup">
@@ -201,26 +349,25 @@
 				</button>
 			</div>
 			<form method="POST" action="?/create" use:enhance={() => {
-				return async ({ update }) => {
-					await update({ reset: false });
-				};
+				return async ({ update }) => { await update({ reset: false }); };
 			}}>
+				<!-- Hidden: agency_id from the section that triggered this modal -->
+				<input type="hidden" name="agency_id" value={createAgencyId} />
+
 				<div class="modal-body">
+					<!-- Agency info chip -->
+					{#if createAgencyId}
+						{@const agencyName = localAgencies.find(a => a.agency.id === createAgencyId)?.agency.name ?? ''}
+						<div class="agency-chip">
+							<span>🏛️</span>
+							<span>{agencyName}</span>
+						</div>
+					{/if}
+
 					<div class="form-group">
 						<label for="create-name">Nama Layanan *</label>
 						<input type="text" id="create-name" name="name" required placeholder="Contoh: Fasilitasi Zoom" />
 					</div>
-					{#if data.isSuper}
-					<div class="form-group">
-						<label for="create-agency">Instansi / OPD *</label>
-						<select id="create-agency" name="agency_id" required class="form-control">
-							<option value="">Pilih Instansi...</option>
-							{#each data.agencies as agency}
-								<option value={agency.id}>{agency.name}</option>
-							{/each}
-						</select>
-					</div>
-					{/if}
 					<div class="form-group">
 						<div class="icon-selector-premium">
 							<div class="selection-preview">
@@ -229,28 +376,13 @@
 								</div>
 								<div class="preview-info">
 									<label for="create-icon">Ikon Terpilih</label>
-									<input 
-										type="text" 
-										id="create-icon" 
-										name="icon" 
-										bind:value={selectedCreateIcon} 
-										placeholder="Pilih atau ketik..."
-										class="manual-input-premium"
-										maxlength="5"
-									/>
+									<input type="text" id="create-icon" name="icon" bind:value={selectedCreateIcon} placeholder="Pilih atau ketik..." class="manual-input-premium" maxlength="5" />
 								</div>
 							</div>
 							<div class="icon-grid-scroll">
 								<div class="icon-grid">
 									{#each commonIcons as icon}
-										<button 
-											type="button" 
-											class="icon-item-btn" 
-											class:active={selectedCreateIcon === icon}
-											onclick={() => selectedCreateIcon = icon}
-										>
-											{icon}
-										</button>
+										<button type="button" class="icon-item-btn" class:active={selectedCreateIcon === icon} onclick={() => selectedCreateIcon = icon}>{icon}</button>
 									{/each}
 								</div>
 							</div>
@@ -270,38 +402,37 @@
 	</div>
 {/if}
 
-<!-- Edit Modal -->
+<!-- ── Modal: Edit Layanan ────────────────────────────────────────────────── -->
 {#if editingService}
-	<div class="modal-overlay" onclick={closeEdit} role="presentation">
-			<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+	<div class="modal-overlay" onclick={() => { editingService = null; }} role="presentation">
+		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
 			<div class="modal-header">
 				<h3>Edit Layanan</h3>
-				<button class="modal-close" onclick={closeEdit} aria-label="Tutup">
+				<button class="modal-close" onclick={() => { editingService = null; }} aria-label="Tutup">
 					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
 			<form method="POST" action="?/update" use:enhance={() => {
-				return async ({ update }) => {
-					await update({ reset: false });
-				};
+				return async ({ update }) => { await update({ reset: false }); };
 			}}>
 				<input type="hidden" name="id" value={editingService.id} />
 				<div class="modal-body">
+					{#if data.isSuper}
+						<div class="form-group">
+							<label for="edit-agency">Instansi / OPD</label>
+							<select id="edit-agency" name="agency_id" class="form-control"
+								value={data.allAgencies.find(a => a.id === editingService.agency_id)?.id || ''}>
+								<option value="">Pilih Instansi...</option>
+								{#each data.allAgencies as agency}
+									<option value={agency.id}>{agency.name}</option>
+								{/each}
+							</select>
+						</div>
+					{/if}
 					<div class="form-group">
 						<label for="edit-name">Nama Layanan *</label>
 						<input type="text" id="edit-name" name="name" required value={editingService.name} />
 					</div>
-					{#if data.isSuper}
-					<div class="form-group">
-						<label for="edit-agency">Instansi / OPD</label>
-						<select id="edit-agency" name="agency_id" class="form-control" value={editingService.agency_name === 'Semua Instansi' ? '' : data.agencies.find(a => a.name === editingService.agency_name)?.id || ''}>
-							<option value="">Pilih Instansi...</option>
-							{#each data.agencies as agency}
-								<option value={agency.id}>{agency.name}</option>
-							{/each}
-						</select>
-					</div>
-					{/if}
 					<div class="form-group">
 						<div class="icon-selector-premium">
 							<div class="selection-preview">
@@ -310,28 +441,13 @@
 								</div>
 								<div class="preview-info">
 									<label for="edit-icon">Ikon Terpilih</label>
-									<input 
-										type="text" 
-										id="edit-icon" 
-										name="icon" 
-										bind:value={selectedEditIcon} 
-										placeholder="Pilih atau ketik..."
-										class="manual-input-premium"
-										maxlength="5"
-									/>
+									<input type="text" id="edit-icon" name="icon" bind:value={selectedEditIcon} placeholder="Pilih atau ketik..." class="manual-input-premium" maxlength="5" />
 								</div>
 							</div>
 							<div class="icon-grid-scroll">
 								<div class="icon-grid">
 									{#each commonIcons as icon}
-										<button 
-											type="button" 
-											class="icon-item-btn" 
-											class:active={selectedEditIcon === icon}
-											onclick={() => selectedEditIcon = icon}
-										>
-											{icon}
-										</button>
+										<button type="button" class="icon-item-btn" class:active={selectedEditIcon === icon} onclick={() => selectedEditIcon = icon}>{icon}</button>
 									{/each}
 								</div>
 							</div>
@@ -343,7 +459,7 @@
 					</div>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={closeEdit}>Batal</button>
+					<button type="button" class="btn btn-secondary" onclick={() => { editingService = null; }}>Batal</button>
 					<button type="submit" class="btn btn-primary">Simpan Perubahan</button>
 				</div>
 			</form>
@@ -351,20 +467,18 @@
 	</div>
 {/if}
 
-<!-- Delete Confirmation Modal -->
+<!-- ── Modal: Hapus Layanan ───────────────────────────────────────────────── -->
 {#if deletingService}
-	<div class="modal-overlay" onclick={closeDelete} role="presentation">
-			<div class="modal modal-sm" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+	<div class="modal-overlay" onclick={() => { deletingService = null; }} role="presentation">
+		<div class="modal modal-sm" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
 			<div class="modal-header">
 				<h3>Hapus Layanan</h3>
-				<button class="modal-close" onclick={closeDelete} aria-label="Tutup">
+				<button class="modal-close" onclick={() => { deletingService = null; }} aria-label="Tutup">
 					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
 			<form method="POST" action="?/delete" use:enhance={() => {
-				return async ({ update }) => {
-					await update();
-				};
+				return async ({ update }) => { await update(); };
 			}}>
 				<input type="hidden" name="id" value={deletingService.id} />
 				<div class="modal-body">
@@ -378,7 +492,7 @@
 					{/if}
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={closeDelete}>Batal</button>
+					<button type="button" class="btn btn-secondary" onclick={() => { deletingService = null; }}>Batal</button>
 					<button type="submit" class="btn btn-danger" disabled={deletingService.submissionCount > 0}>Hapus</button>
 				</div>
 			</form>
@@ -387,7 +501,247 @@
 {/if}
 
 <style>
-	/* Alerts */
+	/* ── Accordion ──────────────────────────────────────────────────────────── */
+	.accordion-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.agency-section {
+		background: white;
+		border-radius: 18px;
+		border: 1px solid #f0f0f2;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+		overflow: hidden;
+		transition: box-shadow 0.2s;
+	}
+
+	.agency-section:hover {
+		box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+	}
+
+	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1.1rem 1.5rem;
+		cursor: pointer;
+		user-select: none;
+		background: #fafafa;
+		border-bottom: 1px solid transparent;
+		transition: background 0.15s;
+		gap: 1rem;
+	}
+
+	.agency-section.open .section-header {
+		border-bottom-color: #f3f4f6;
+	}
+
+	.section-header:hover {
+		background: #f5f5f7;
+	}
+
+	.section-header-left {
+		display: flex;
+		align-items: center;
+		gap: 0.85rem;
+		min-width: 0;
+	}
+
+	.agency-icon {
+		font-size: 1.4rem;
+		flex-shrink: 0;
+	}
+
+	.agency-title-group {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		min-width: 0;
+		flex-wrap: wrap;
+	}
+
+	.agency-name {
+		font-size: 0.95rem;
+		font-weight: 700;
+		color: #111827;
+	}
+
+	.service-badge {
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 0.15rem 0.55rem;
+		background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+		color: #9d174d;
+		border-radius: 20px;
+		border: 1px solid #fbcfe8;
+		white-space: nowrap;
+	}
+
+	.section-header-right {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-shrink: 0;
+	}
+
+	.chevron-btn {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: #9ca3af;
+		display: flex;
+		align-items: center;
+		padding: 0.25rem;
+		border-radius: 6px;
+		transition: all 0.25s;
+		transform-origin: center;
+	}
+
+	.chevron-btn.rotated {
+		transform: rotate(180deg);
+	}
+
+	/* Section body */
+	.section-body {
+		padding: 1rem 1.5rem 1.25rem;
+		animation: slideDown 0.2s ease-out;
+	}
+
+	@keyframes slideDown {
+		from { opacity: 0; transform: translateY(-6px); }
+		to   { opacity: 1; transform: translateY(0); }
+	}
+
+	.section-empty {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 1.5rem;
+		color: #9ca3af;
+		text-align: center;
+	}
+
+	.section-empty p {
+		font-size: 0.85rem;
+		margin: 0;
+	}
+
+	/* ── Service cards ───────────────────────────────────────────────────────── */
+	.services-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+	}
+
+	.service-card {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		background: #fafafa;
+		border-radius: 12px;
+		padding: 1rem 1.1rem;
+		border: 1px solid #f3f4f6;
+		transition: all 0.2s;
+	}
+
+	.service-card:hover {
+		background: white;
+		box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+		border-color: #e5e7eb;
+	}
+
+	.service-card.dragging {
+		opacity: 0.45;
+		border-color: #800020;
+	}
+
+	.drag-handle {
+		cursor: grab;
+		color: #9ca3af;
+		flex-shrink: 0;
+		padding: 0.2rem;
+	}
+
+	.drag-handle:active { cursor: grabbing; }
+
+	.service-icon-wrap {
+		width: 44px;
+		height: 44px;
+		border-radius: 11px;
+		background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		color: #be185d;
+	}
+
+	.service-emoji { font-size: 1.4rem; }
+
+	.service-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.service-name {
+		font-size: 0.92rem;
+		font-weight: 600;
+		color: #111827;
+		margin: 0 0 0.2rem;
+	}
+
+	.service-meta {
+		display: flex;
+		gap: 0.8rem;
+	}
+
+	.meta-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.75rem;
+		color: #6b7280;
+	}
+
+	.service-actions {
+		display: flex;
+		gap: 0.4rem;
+		flex-shrink: 0;
+	}
+
+	/* ── Empty global ────────────────────────────────────────────────────────── */
+	.empty-global {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 4rem 2rem;
+		text-align: center;
+		color: #6b7280;
+	}
+
+	.empty-icon { font-size: 3rem; }
+	.empty-global h3 { font-size: 1.1rem; font-weight: 700; color: #374151; margin: 0; }
+	.empty-global p { font-size: 0.88rem; margin: 0; }
+
+	/* ── Agency chip (in create modal) ──────────────────────────────────────── */
+	.agency-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.4rem 0.85rem;
+		background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+		border: 1px solid #fbcfe8;
+		border-radius: 20px;
+		font-size: 0.82rem;
+		font-weight: 600;
+		color: #9d174d;
+	}
+
+	/* ── Alerts ──────────────────────────────────────────────────────────────── */
 	.alert {
 		padding: 0.75rem 1rem;
 		border-radius: 10px;
@@ -402,93 +756,7 @@
 		border: 1px solid #fecaca;
 	}
 
-	/* Services Grid */
-	.services-grid {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.service-card {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		background: white;
-		border-radius: 14px;
-		padding: 1.25rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-		border: 1px solid #f3f4f6;
-		transition: all 0.2s;
-	}
-
-	.service-card:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-	}
-
-	.service-card.dragging {
-		opacity: 0.5;
-		border-color: #800020;
-	}
-
-	.drag-handle {
-		cursor: grab;
-		color: #9ca3af;
-		flex-shrink: 0;
-		padding: 0.25rem;
-	}
-
-	.drag-handle:active {
-		cursor: grabbing;
-	}
-
-	.service-icon-wrap {
-		width: 48px;
-		height: 48px;
-		border-radius: 12px;
-		background: linear-gradient(135deg, #fdf2f8, #fce7f3);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		color: #be185d;
-	}
-
-	.service-emoji {
-		font-size: 1.5rem;
-	}
-
-	.service-info {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.service-name {
-		font-size: 1rem;
-		font-weight: 600;
-		color: #111827;
-		margin: 0 0 0.25rem;
-	}
-
-	.service-meta {
-		display: flex;
-		gap: 1rem;
-	}
-
-	.meta-item {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.3rem;
-		font-size: 0.78rem;
-		color: #6b7280;
-	}
-
-	.service-actions {
-		display: flex;
-		gap: 0.4rem;
-		flex-shrink: 0;
-	}
-
-	/* Modal */
+	/* ── Modal ───────────────────────────────────────────────────────────────── */
 	.modal-overlay {
 		position: fixed;
 		inset: 0;
@@ -506,18 +774,16 @@
 		border-radius: 24px;
 		width: 100%;
 		max-width: 520px;
-		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+		box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
 		animation: modalIn 0.2s ease-out;
-		overflow: hidden; /* Ensure content follows radius */
+		overflow: hidden;
 	}
 
-	.modal-sm {
-		max-width: 420px;
-	}
+	.modal-sm { max-width: 420px; }
 
 	@keyframes modalIn {
 		from { opacity: 0; transform: scale(0.95) translateY(10px); }
-		to { opacity: 1; transform: scale(1) translateY(0); }
+		to   { opacity: 1; transform: scale(1) translateY(0); }
 	}
 
 	.modal-header {
@@ -550,10 +816,7 @@
 		transition: all 0.2s;
 	}
 
-	.modal-close:hover {
-		background: #e5e7eb;
-		color: #111827;
-	}
+	.modal-close:hover { background: #e5e7eb; color: #111827; }
 
 	.modal-body {
 		padding: 1.5rem;
@@ -562,6 +825,23 @@
 		gap: 1.25rem;
 	}
 
+	.modal-hint {
+		font-size: 0.85rem;
+		color: #6b7280;
+		margin: 0;
+		line-height: 1.5;
+	}
+
+	.modal-footer {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.75rem;
+		padding: 1.25rem 1.5rem;
+		border-top: 1px solid #f3f4f6;
+		background: #fafafa;
+	}
+
+	/* ── Form ────────────────────────────────────────────────────────────────── */
 	.form-group {
 		display: flex;
 		flex-direction: column;
@@ -575,7 +855,9 @@
 	}
 
 	.form-group input,
-	.form-group textarea {
+	.form-group textarea,
+	.form-group select,
+	.form-control {
 		padding: 0.75rem 1rem;
 		border: 1.5px solid #e5e7eb;
 		border-radius: 12px;
@@ -588,20 +870,18 @@
 	}
 
 	.form-group input:focus,
-	.form-group textarea:focus {
+	.form-group textarea:focus,
+	.form-group select:focus {
 		outline: none;
 		border-color: #800020;
 		box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
 		background: white;
 	}
 
-	.modal-footer {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.75rem;
-		padding: 1.25rem 1.5rem;
-		border-top: 1px solid #f3f4f6;
-		background: #fafafa;
+	.hint-text {
+		font-size: 0.78rem;
+		color: #9ca3af;
+		margin: 0;
 	}
 
 	.confirm-text {
@@ -611,23 +891,7 @@
 		line-height: 1.5;
 	}
 
-	@media (max-width: 640px) {
-		.page-header {
-			flex-direction: column;
-			align-items: flex-start;
-		}
-
-		.service-card {
-			flex-wrap: wrap;
-		}
-
-		.service-actions {
-			width: 100%;
-			justify-content: flex-end;
-		}
-	}
-
-	/* Icon Picker Styles */
+	/* ── Icon Picker ─────────────────────────────────────────────────────────── */
 	.icon-selector-premium {
 		background: #f8fafc;
 		border: 1.5px solid #e2e8f0;
@@ -646,7 +910,6 @@
 		padding: 0.75rem;
 		border-radius: 12px;
 		border: 1px solid #e2e8f0;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 	}
 
 	.preview-box {
@@ -661,9 +924,7 @@
 		flex-shrink: 0;
 	}
 
-	.preview-emoji {
-		font-size: 1.75rem;
-	}
+	.preview-emoji { font-size: 1.75rem; }
 
 	.preview-info {
 		flex: 1;
@@ -700,18 +961,9 @@
 		padding-right: 0.5rem;
 	}
 
-	/* Custom Scrollbar */
-	.icon-grid-scroll::-webkit-scrollbar {
-		width: 5px;
-	}
-	.icon-grid-scroll::-webkit-scrollbar-track {
-		background: #f1f5f9;
-		border-radius: 10px;
-	}
-	.icon-grid-scroll::-webkit-scrollbar-thumb {
-		background: #cbd5e1;
-		border-radius: 10px;
-	}
+	.icon-grid-scroll::-webkit-scrollbar { width: 5px; }
+	.icon-grid-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+	.icon-grid-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
 	.icon-grid {
 		display: grid;
@@ -747,9 +999,16 @@
 		z-index: 1;
 	}
 
+	/* ── Responsive ──────────────────────────────────────────────────────────── */
+	@media (max-width: 640px) {
+		.section-header { flex-wrap: wrap; gap: 0.75rem; }
+		.section-header-right { width: 100%; justify-content: flex-end; }
+		.service-card { flex-wrap: wrap; }
+		.service-actions { width: 100%; justify-content: flex-end; }
+		.icon-grid { grid-template-columns: repeat(6, 1fr); }
+	}
+
 	@media (max-width: 480px) {
-		.icon-grid {
-			grid-template-columns: repeat(5, 1fr);
-		}
+		.icon-grid { grid-template-columns: repeat(5, 1fr); }
 	}
 </style>

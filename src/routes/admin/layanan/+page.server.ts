@@ -3,17 +3,11 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const user = locals.user;
-	const isSuperAdmin = user?.role === 'superadmin' || user?.role === 'admin'; // wait, what is superadmin role named?
-	// The prompt said Superadmin (role admin utama). The system usually has 'admin' or 'superadmin'.
-	// Let's check user roles. Wait, in auth.ts roleName is user_roles[0].roles.name.toLowerCase()
-	// Let's just use user?.role === 'superadmin' and we can adjust.
-	const authUser = user as any;
+	const authUser = (locals as any).user;
 	const isSuper = authUser?.role === 'superadmin';
-	
-	const whereClause = !isSuper && authUser?.agency_id 
-		? { agency_id: BigInt(authUser.agency_id) } 
-		: {};
+
+	const whereClause =
+		!isSuper && authUser?.agency_id ? { agency_id: BigInt(authUser.agency_id) } : {};
 
 	const services = await db.services.findMany({
 		where: whereClause,
@@ -29,36 +23,73 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	});
 
-	const agenciesList = isSuper ? await db.agencies.findMany({ orderBy: { name: 'asc' } }) : [];
+	// Get all agencies for the "Tambah Instansi" dropdown (superadmin only)
+	const allAgenciesRaw = isSuper ? await db.agencies.findMany({ orderBy: { name: 'asc' } }) : [];
+
+	// Helper to format a service record
+	function formatService(s: typeof services[0]) {
+		let formattedRequirements = s.requirements || '';
+		try {
+			if (s.requirements) {
+				const parsed = JSON.parse(s.requirements);
+				if (Array.isArray(parsed)) {
+					formattedRequirements = parsed.join('\n');
+				}
+			}
+		} catch {
+			// Keep as is
+		}
+		return {
+			id: s.id.toString(),
+			name: s.name,
+			icon: s.icon,
+			order: s.order,
+			requirements: formattedRequirements,
+			fieldCount: s._count.service_form_fields,
+			submissionCount: s._count.service_submissions,
+			created_at: s.created_at?.toISOString() || null,
+			agency_id: s.agency_id?.toString() || null,
+			agency_name: s.agencies?.name || 'Semua Instansi'
+		};
+	}
+
+	// Group services by agency — only agencies with ≥1 service are included
+	const agencyMap = new Map<string, { agency: { id: string; name: string }; services: ReturnType<typeof formatService>[] }>();
+
+	for (const s of services) {
+		const agencyId = s.agency_id?.toString() ?? 'unknown';
+		const agencyName = s.agencies?.name ?? 'Tanpa Instansi';
+		if (!agencyMap.has(agencyId)) {
+			agencyMap.set(agencyId, { agency: { id: agencyId, name: agencyName }, services: [] });
+		}
+		agencyMap.get(agencyId)!.services.push(formatService(s));
+	}
+
+	// For admin (non-super) with no services yet, still show their agency as an empty section
+	if (!isSuper && authUser?.agency_id && agencyMap.size === 0) {
+		const ownAgency = await db.agencies.findUnique({ where: { id: BigInt(authUser.agency_id) } });
+		if (ownAgency) {
+			agencyMap.set(ownAgency.id.toString(), {
+				agency: { id: ownAgency.id.toString(), name: ownAgency.name },
+				services: []
+			});
+		}
+	}
+
+	const agenciesWithServices = Array.from(agencyMap.values());
+
+	// Agencies not yet visible (for "Tambah Instansi" dropdown — superadmin only)
+	const visibleAgencyIds = new Set(agenciesWithServices.map((a) => a.agency.id));
+	const allAgencies = allAgenciesRaw.map((a) => ({
+		id: a.id.toString(),
+		name: a.name,
+		alreadyVisible: visibleAgencyIds.has(a.id.toString())
+	}));
 
 	return {
-		services: services.map((s) => {
-			let formattedRequirements = s.requirements || '';
-			try {
-				if (s.requirements) {
-					const parsed = JSON.parse(s.requirements);
-					if (Array.isArray(parsed)) {
-						formattedRequirements = parsed.join('\n');
-					}
-				}
-			} catch {
-				// Keep as is
-			}
-
-			return {
-				id: s.id.toString(),
-				name: s.name,
-				icon: s.icon,
-				order: s.order,
-				requirements: formattedRequirements,
-				fieldCount: s._count.service_form_fields,
-				submissionCount: s._count.service_submissions,
-				created_at: s.created_at?.toISOString() || null,
-				agency_name: s.agencies?.name || 'Semua Instansi'
-			};
-		}),
+		agenciesWithServices,
 		isSuper,
-		agencies: agenciesList.map(a => ({ id: a.id.toString(), name: a.name }))
+		allAgencies
 	};
 };
 
