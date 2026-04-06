@@ -35,6 +35,10 @@
 			showCreateModal = false;
 			editingService = null;
 			deletingService = null;
+
+			if (form?.action === 'create' && form?.newId) {
+				goto(`/admin/layanan/${form.newId}/fields`);
+			}
 		} else if (form?.error) {
 			toast.error(form.error);
 		}
