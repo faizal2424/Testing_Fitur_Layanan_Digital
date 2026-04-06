@@ -137,7 +137,7 @@ export const actions: Actions = {
 			)
 		);
 
-		return { success: true, message: 'Layanan berhasil ditambahkan.' };
+		return { success: true, message: 'Layanan berhasil ditambahkan.', action: 'create', newId: newService.id.toString() };
 	},
 
 	// Update existing service
