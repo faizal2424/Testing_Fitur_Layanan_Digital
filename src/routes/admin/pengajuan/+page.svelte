@@ -174,7 +174,9 @@
 								<td>{sub.assigned_to_name || '-'}</td>
 								<td class="date-cell">{formatDate(sub.created_at)}</td>
 								<td>
-									<a href="/admin/pengajuan/{sub.id}" class="btn btn-sm btn-ghost" style="color: var(--admin-primary);">Detail →</a>
+									<a href="/admin/pengajuan/{sub.id}" class="btn-detail">
+										Detail
+									</a>
 								</td>
 							</tr>
 						{/each}

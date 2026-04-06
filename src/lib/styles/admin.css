@@ -596,6 +596,34 @@
 .px-8 { padding-left: 2rem !important; padding-right: 2rem !important; }
 .px-10 { padding-left: 2.5rem !important; padding-right: 2.5rem !important; }
 
+/* Detail Button (Premium Pill) */
+.btn-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  background: var(--admin-primary-bg);
+  color: var(--admin-primary);
+  border-radius: var(--admin-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: var(--admin-transition);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.btn-detail:hover {
+  background: var(--admin-primary);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--admin-shadow-sm);
+}
+
+.btn-detail svg {
+  flex-shrink: 0;
+}
+
 /* ----------------------------------------------------------
    12. Layout Containers (Forms & Detail)
    ---------------------------------------------------------- */
