@@ -111,6 +111,7 @@ export const actions: Actions = {
             const submission = await db.service_submissions.create({
                 data: {
                     service_id: serviceId,
+                    agency_id: service.agency_id,
                     applicant_name: applicantName,
                     applicant_email: applicantEmail,
                     status: 'baru',

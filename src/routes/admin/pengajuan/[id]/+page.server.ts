@@ -13,7 +13,16 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 	const submission = await db.service_submissions.findUnique({
 		where: { id: submissionId },
 		include: {
-			services: { select: { id: true, name: true, icon: true } },
+			services: { 
+				select: { 
+					id: true, 
+					name: true, 
+					icon: true, 
+					agency_id: true,
+					agencies: { select: { name: true } }
+				} 
+			},
+			agencies: { select: { id: true, name: true } },
 			users: { select: { id: true, name: true } },
 			service_submission_values: {
 				include: { service_form_fields: { select: { label: true, name: true, type: true } } },
@@ -48,18 +57,27 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 
 	const isAssistantOnly = user?.role === 'pic' && !isPrimaryPic && isTeamMember;
 
-	// PIC Utama users (Only role 'pic')
+	// Filter PIC hanya dari OPD yang sama dengan submission
+	// Fallback ke services.agency_id jika submission.agency_id null
+	const targetAgencyId = submission.agency_id || submission.services.agency_id;
+	const agencyFilter = targetAgencyId
+		? { agency_id: targetAgencyId }
+		: {};
+
+	// PIC Utama users — hanya dari OPD terkait
 	const picUsers = await db.users.findMany({
 		where: {
-			user_roles: { some: { roles: { name: 'pic' } } }
+			user_roles: { some: { roles: { name: 'pic' } } },
+			...agencyFilter
 		},
 		select: { id: true, name: true, email: true }
 	});
 
-	// Assistant PICs (Only role 'pic')
+	// Assistant PICs — hanya dari OPD terkait
 	const assistantPICs = await db.users.findMany({
 		where: {
-			user_roles: { some: { roles: { name: 'pic' } } }
+			user_roles: { some: { roles: { name: 'pic' } } },
+			...agencyFilter
 		},
 		select: { id: true, name: true, email: true }
 	});
@@ -77,6 +95,7 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 			service_id: submission.services.id.toString(),
 			service_name: submission.services.name,
 			service_icon: submission.services.icon,
+			agency_name: submission.agencies?.name || submission.services.agencies?.name || null,
 			created_at: submission.created_at?.toISOString() || null,
 			updated_at: submission.updated_at?.toISOString() || null
 		},

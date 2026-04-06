@@ -387,21 +387,34 @@
 								style={selectedStatus !== 'ditugaskan' ? 'opacity: 0.6;' : ''}
 							>
 								<label for="pic-select">Penugasan PIC Utama</label>
-								<select
-									id="pic-select"
-									name="pic_id"
-									bind:value={selectedPic}
-									disabled={selectedStatus !== 'ditugaskan'}
-									required={selectedStatus === 'ditugaskan'}
-								>
-									<option value="">— Tidak ada PIC —</option>
-									{#each data.picUsers as u}
-										<option value={u.id}>{u.name} ({u.email})</option>
-									{/each}
-								</select>
+								{#if data.picUsers.length === 0}
+									<div class="no-pic-warning">
+										<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+										<span>
+											Tidak ada PIC terdaftar untuk <strong>{data.submission.agency_name || 'instansi ini'}</strong>.
+											Silakan tambahkan personel PIC di OPD terkait terlebih dahulu.
+										</span>
+									</div>
+									<select id="pic-select" name="pic_id" disabled class="disabled-select">
+										<option value="">— Tidak ada PIC —</option>
+									</select>
+								{:else}
+									<select
+										id="pic-select"
+										name="pic_id"
+										bind:value={selectedPic}
+										disabled={selectedStatus !== 'ditugaskan'}
+										required={selectedStatus === 'ditugaskan'}
+									>
+										<option value="">— Pilih PIC Utama —</option>
+										{#each data.picUsers as u}
+											<option value={u.id}>{u.name} ({u.email})</option>
+										{/each}
+									</select>
+								{/if}
 								<small class="help-text">
 									{#if selectedStatus === 'ditugaskan'}
-										Pilih PIC yang akan ditugaskan.
+										Pilih PIC dari {data.submission.agency_name || 'instansi terkait'} yang akan ditugaskan.
 									{:else}
 										Penugasan PIC hanya dapat diubah pada status "Ditugaskan".
 									{/if}
@@ -666,6 +679,30 @@
 		background: #fef2f2;
 		color: #dc2626;
 		border: 1px solid #fecaca;
+	}
+
+	.no-pic-warning {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.6rem;
+		padding: 0.75rem;
+		background: #fffbeb;
+		border: 1px solid #fde68a;
+		border-radius: 10px;
+		color: #92400e;
+		font-size: 0.8rem;
+		line-height: 1.4;
+		margin-bottom: 0.5rem;
+	}
+	.no-pic-warning svg {
+		flex-shrink: 0;
+		margin-top: 0.1rem;
+		color: #d97706;
+	}
+	.disabled-select {
+		opacity: 0.6;
+		cursor: not-allowed;
+		background: #f3f4f6 !important;
 	}
 
 	.detail-grid {
