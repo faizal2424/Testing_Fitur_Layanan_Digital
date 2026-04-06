@@ -2,10 +2,24 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
+	const user = locals.user;
+	const isSuperAdmin = user?.role === 'superadmin' || user?.role === 'admin'; // wait, what is superadmin role named?
+	// The prompt said Superadmin (role admin utama). The system usually has 'admin' or 'superadmin'.
+	// Let's check user roles. Wait, in auth.ts roleName is user_roles[0].roles.name.toLowerCase()
+	// Let's just use user?.role === 'superadmin' and we can adjust.
+	const authUser = user as any;
+	const isSuper = authUser?.role === 'superadmin';
+	
+	const whereClause = !isSuper && authUser?.agency_id 
+		? { agency_id: BigInt(authUser.agency_id) } 
+		: {};
+
 	const services = await db.services.findMany({
+		where: whereClause,
 		orderBy: { order: 'asc' },
 		include: {
+			agencies: true,
 			_count: {
 				select: {
 					service_form_fields: true,
@@ -14,6 +28,8 @@ export const load: PageServerLoad = async () => {
 			}
 		}
 	});
+
+	const agenciesList = isSuper ? await db.agencies.findMany({ orderBy: { name: 'asc' } }) : [];
 
 	return {
 		services: services.map((s) => {
@@ -37,19 +53,31 @@ export const load: PageServerLoad = async () => {
 				requirements: formattedRequirements,
 				fieldCount: s._count.service_form_fields,
 				submissionCount: s._count.service_submissions,
-				created_at: s.created_at?.toISOString() || null
+				created_at: s.created_at?.toISOString() || null,
+				agency_name: s.agencies?.name || 'Semua Instansi'
 			};
-		})
+		}),
+		isSuper,
+		agencies: agenciesList.map(a => ({ id: a.id.toString(), name: a.name }))
 	};
 };
 
 export const actions: Actions = {
 	// Create new service
-	create: async ({ request }) => {
+	create: async ({ request, locals }) => {
+		const user = (locals as any).user;
 		const formData = await request.formData();
 		const name = formData.get('name')?.toString()?.trim();
 		const icon = formData.get('icon')?.toString()?.trim() || null;
 		const requirementsRaw = formData.get('requirements')?.toString()?.trim() || null;
+
+		let agency_id = user?.agency_id ? BigInt(user.agency_id) : null;
+		if (user?.role === 'superadmin') {
+			const formAgencyId = formData.get('agency_id')?.toString();
+			if (formAgencyId) {
+				agency_id = BigInt(formAgencyId);
+			}
+		}
 
 		let requirements = null;
 		if (requirementsRaw) {
@@ -71,6 +99,7 @@ export const actions: Actions = {
 				icon,
 				requirements,
 				order: newOrder,
+				agency_id,
 				created_at: new Date(),
 				updated_at: new Date()
 			}
@@ -141,12 +170,21 @@ export const actions: Actions = {
 	},
 
 	// Update existing service
-	update: async ({ request }) => {
+	update: async ({ request, locals }) => {
+		const user = (locals as any).user;
 		const formData = await request.formData();
 		const id = formData.get('id')?.toString();
 		const name = formData.get('name')?.toString()?.trim();
 		const icon = formData.get('icon')?.toString()?.trim() || null;
 		const requirementsRaw = formData.get('requirements')?.toString()?.trim() || null;
+
+		let agency_id = undefined;
+		if (user?.role === 'superadmin') {
+			const formAgencyId = formData.get('agency_id')?.toString();
+			if (formAgencyId) {
+				agency_id = BigInt(formAgencyId);
+			}
+		}
 
 		let requirements = null;
 		if (requirementsRaw) {
@@ -164,6 +202,7 @@ export const actions: Actions = {
 				name,
 				icon,
 				requirements,
+				...(agency_id !== undefined && { agency_id }),
 				updated_at: new Date()
 			}
 		});

@@ -14,6 +14,11 @@ export const load: PageServerLoad = async (event) => {
 
 	// Build where clause
 	const where: any = {};
+	
+	const currentUser = event.locals.user as any;
+	if (currentUser?.role === 'admin' && currentUser?.agency_id) {
+		where.agency_id = BigInt(currentUser.agency_id);
+	}
 
 	if (search) {
 		where.OR = [
@@ -33,7 +38,7 @@ export const load: PageServerLoad = async (event) => {
 		};
 	}
 
-	const [users, totalCount, allRoles] = await Promise.all([
+	const [users, totalCount, allRoles, agenciesList] = await Promise.all([
 		db.users.findMany({
 			where,
 			include: {
@@ -41,7 +46,8 @@ export const load: PageServerLoad = async (event) => {
 					include: {
 						roles: true
 					}
-				}
+				},
+				agencies: true
 			},
 			orderBy: { name: 'asc' },
 			skip: (page - 1) * perPage,
@@ -50,7 +56,8 @@ export const load: PageServerLoad = async (event) => {
 		db.users.count({ where }),
 		db.roles.findMany({
 			orderBy: { name: 'asc' }
-		})
+		}),
+		currentUser?.role === 'superadmin' ? db.agencies.findMany({ orderBy: { name: 'asc' } }) : []
 	]);
 
 	const totalPages = Math.ceil(totalCount / perPage);
@@ -62,6 +69,7 @@ export const load: PageServerLoad = async (event) => {
 		username: user.username || '-',
 		email: user.email,
 		phone: user.phone || '-',
+		agency_name: user.agencies?.name || 'Semua Instansi',
 		roles: user.user_roles.map((ur) => ur.roles.name),
 		created_at: user.created_at?.toISOString() || null
 	}));
@@ -69,6 +77,8 @@ export const load: PageServerLoad = async (event) => {
 	return {
 		users: serializedUsers,
 		roles: allRoles.map((r) => ({ id: r.id.toString(), name: r.name })),
+		isSuper: currentUser?.role === 'superadmin',
+		agencies: agenciesList.map(a => ({ id: a.id.toString(), name: a.name })),
 		pagination: {
 			page,
 			perPage,

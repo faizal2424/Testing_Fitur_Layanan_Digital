@@ -8,16 +8,19 @@
         email: string;
         phone: string;
         roleIds: string[];
+        agency_id?: string;
     }
 
     interface Props {
         user?: UserData;
         roles: { id: string; name: string }[];
+        agencies?: { id: string; name: string }[];
+        isSuper?: boolean;
         isEdit?: boolean;
         loading?: boolean;
     }
 
-    let { user, roles, isEdit = false, loading = $bindable(false) }: Props = $props();
+    let { user, roles, agencies = [], isSuper = false, isEdit = false, loading = $bindable(false) }: Props = $props();
 
     // Form state
     let formData = $state({
@@ -27,7 +30,8 @@
         phone: user?.phone || '',
         password: '',
         password_confirmation: '',
-        roleIds: user?.roleIds || (roles.length > 0 ? [roles.find(r => r.name === 'pic')?.id || roles[0].id] : [])
+        roleIds: user?.roleIds || (roles.length > 0 ? [roles.find(r => r.name === 'pic')?.id || roles[0].id] : []),
+        agency_id: user?.agency_id || ''
     });
 
     function toggleRole(roleId: string) {
@@ -100,6 +104,18 @@
                 </select>
             </div>
             
+            {#if isSuper}
+            <div class="form-group full-width">
+                <label for="agency_id">Instansi / OPD <span class="required">*</span></label>
+                <select id="agency_id" name="agency_id" bind:value={formData.agency_id} required>
+                    <option value="" disabled selected={!formData.agency_id}>Pilih instansi pengguna</option>
+                    {#each agencies as agency}
+                        <option value={agency.id}>{agency.name}</option>
+                    {/each}
+                </select>
+            </div>
+            {/if}
+
             <div class="form-group">
                 <label for="password">Kata Sandi {isEdit ? '' : '*'}</label>
                 <input type="password" id="password" name="password" bind:value={formData.password} required={!isEdit} minlength="8" />

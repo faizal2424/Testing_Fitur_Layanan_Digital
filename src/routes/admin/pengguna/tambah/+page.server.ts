@@ -18,8 +18,12 @@ export const load: PageServerLoad = async (event) => {
 		orderBy: { name: 'asc' }
 	});
 
+	const agenciesList = userRole === 'superadmin' ? await db.agencies.findMany({ orderBy: { name: 'asc' } }) : [];
+
 	return {
-		roles: roles.map((r) => ({ id: r.id.toString(), name: r.name }))
+		roles: roles.map((r) => ({ id: r.id.toString(), name: r.name })),
+		agencies: agenciesList.map(a => ({ id: a.id.toString(), name: a.name })),
+		isSuper: userRole === 'superadmin'
 	};
 };
 
@@ -35,7 +39,17 @@ export const actions: Actions = {
 		const password = formData.get('password')?.toString();
 		const password_confirmation = formData.get('password_confirmation')?.toString();
 		const selectedRoleIds = formData.getAll('roles').map(id => BigInt(id.toString()));
-		const userRole = event.locals.user?.role;
+		
+		const currentUser = event.locals.user as any;
+		const userRole = currentUser?.role;
+		
+		let agency_id = currentUser?.agency_id ? BigInt(currentUser.agency_id) : null;
+		if (userRole === 'superadmin') {
+			const formAgencyId = formData.get('agency_id')?.toString();
+			if (formAgencyId) {
+				agency_id = BigInt(formAgencyId);
+			}
+		}
 
 		// Security check: Only superadmin can assign superadmin role
 		if (userRole !== 'superadmin') {
@@ -96,6 +110,7 @@ export const actions: Actions = {
 					email,
 					phone,
 					password: hashedPassword,
+					...(agency_id !== null && { agency_id }),
 					user_roles: {
 						create: selectedRoleIds.map(roleId => ({
 							role_id: roleId

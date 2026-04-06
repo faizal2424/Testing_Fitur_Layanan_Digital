@@ -8,7 +8,7 @@ export const load: PageServerLoad = async (event) => {
 	const id = event.params.id;
 
 	const userRole = event.locals.user?.role;
-	const [user, roles] = await Promise.all([
+	const [user, roles, agenciesList] = await Promise.all([
 		db.users.findUnique({
 			where: { id: BigInt(id) },
 			include: {
@@ -28,7 +28,8 @@ export const load: PageServerLoad = async (event) => {
 				}
 			},
 			orderBy: { name: 'asc' }
-		})
+		}),
+		userRole === 'superadmin' ? db.agencies.findMany({ orderBy: { name: 'asc' } }) : []
 	]);
 
 	if (!user) {
@@ -42,9 +43,12 @@ export const load: PageServerLoad = async (event) => {
 			username: user.username || '',
 			email: user.email,
 			phone: user.phone || '',
-			roleIds: user.user_roles.map((ur) => ur.role_id.toString())
+			roleIds: user.user_roles.map((ur) => ur.role_id.toString()),
+			agency_id: user.agency_id ? user.agency_id.toString() : ''
 		},
-		roles: roles.map((r) => ({ id: r.id.toString(), name: r.name }))
+		roles: roles.map((r) => ({ id: r.id.toString(), name: r.name })),
+		agencies: agenciesList.map(a => ({ id: a.id.toString(), name: a.name })),
+		isSuper: userRole === 'superadmin'
 	};
 };
 
@@ -61,7 +65,18 @@ export const actions: Actions = {
 		const password = formData.get('password')?.toString();
 		const password_confirmation = formData.get('password_confirmation')?.toString();
 		const selectedRoleIds = formData.getAll('roles').map(id => BigInt(id.toString()));
-		const userRole = event.locals.user?.role;
+		const currentUser = event.locals.user as any;
+		const userRole = currentUser?.role;
+
+		let agency_id: bigint | null | undefined = undefined;
+		if (userRole === 'superadmin') {
+			const formAgencyId = formData.get('agency_id')?.toString();
+			if (formAgencyId) {
+				agency_id = BigInt(formAgencyId);
+			} else {
+				agency_id = null; // Maybe they cleared it, wait, required in Svelte if superadmin.
+			}
+		}
 
 		// Security check: Only superadmin can assign superadmin role
 		if (userRole !== 'superadmin') {
@@ -119,7 +134,8 @@ export const actions: Actions = {
 				name,
 				username,
 				email,
-				phone
+				phone,
+				...(agency_id !== undefined && { agency_id })
 			};
 
 			if (password) {
