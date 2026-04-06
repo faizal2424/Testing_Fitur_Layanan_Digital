@@ -11,11 +11,23 @@
   let searchQuery = "";
   let isSearching = false;
   let selectedLayanan: any = null;
+  let activeAgencyName: string | null = null;
 
   // Filter List Layanan dari database
   $: filteredLayanan = data.listLayanan.filter((l: any) => 
     l.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Mengelompokkan berdasarkan instansi
+  let groupedLayanan: Record<string, any[]> = {};
+  $: groupedLayanan = filteredLayanan.reduce((groups: Record<string, any[]>, l: any) => {
+    const agencyName = l.agencies?.name || 'Layanan Umum (Semua Instansi)';
+    if (!groups[agencyName]) {
+      groups[agencyName] = [];
+    }
+    groups[agencyName].push(l);
+    return groups;
+  }, {});
 
   const STATUS_FLOW = [
     { key: 'baru', label: 'Diterima' },
@@ -275,10 +287,23 @@
 
     <!-- Service Catalog -->
     <section>
+      <!-- Header Section -->
       <div class="flex flex-col md:flex-row justify-between items-end mb-12 px-2">
         <div>
-            <h2 class="text-2xl font-bold text-slate-900 mb-2">Katalog Layanan</h2>
-            <p class="text-slate-500">Pilih layanan yang Anda butuhkan</p>
+            {#if activeAgencyName === null}
+              <h2 class="text-2xl font-bold text-slate-900 mb-2">Katalog Instansi</h2>
+              <p class="text-slate-500">Pilih instansi untuk melihat layanan yang tersedia</p>
+            {:else}
+              <button 
+                on:click={() => activeAgencyName = null} 
+                class="flex items-center gap-2 text-sm font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-full transition-colors mb-4"
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Kembali ke Daftar Instansi
+              </button>
+              <h2 class="text-2xl font-bold text-slate-900 mb-2">{activeAgencyName}</h2>
+              <p class="text-slate-500">Pilih layanan yang Anda butuhkan</p>
+            {/if}
         </div>
         
         <!-- Search Bar -->
@@ -290,6 +315,12 @@
             </div>
             <input 
               bind:value={searchQuery}
+              on:input={() => {
+                // Return to all view if searching
+                if (searchQuery.trim().length > 0 && activeAgencyName !== null) {
+                  activeAgencyName = null;
+                }
+              }}
               type="text" 
               placeholder="Cari layanan..." 
               class="w-full bg-slate-50 border-0 rounded-2xl pl-12 pr-4 py-3 text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-red-500/20 focus:bg-white transition-all shadow-sm group-hover:shadow-md"
@@ -297,38 +328,82 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {#each filteredLayanan as lay (lay.id)}
-          <button 
-            on:click={() => selectedLayanan = lay}
-            class="group relative bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:border-red-100 transition-all duration-300 text-left flex flex-col h-full overflow-hidden"
-          >
-            <!-- Decorative gradient on hover -->
-            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+      <!-- Content Section -->
+      <div class="space-y-12">
+        {#if activeAgencyName === null && searchQuery.trim() === ''}
+          <!-- Card View: Instansi -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {#each Object.entries(groupedLayanan) as [agencyName, services]}
+              <button 
+                on:click={() => activeAgencyName = agencyName}
+                class="group relative bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-xl hover:border-red-100 hover:-translate-y-1 transition-all duration-300 text-left flex flex-col h-full overflow-hidden"
+              >
+                <!-- Decorative accent line -->
+                <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-red-600 to-red-400 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+                
+                <div class="flex items-center gap-4 mb-6 relative z-10">
+                  <div class="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-sm border border-red-100">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-black text-slate-800 group-hover:text-red-700 transition-colors leading-tight">
+                        {agencyName}
+                    </h3>
+                  </div>
+                </div>
+                
+                <div class="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+                    <span class="text-sm font-bold text-slate-500 bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">
+                      {services.length} Layanan
+                    </span>
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-red-50 group-hover:text-red-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </div>
+                </div>
+              </button>
+            {/each}
+          </div>
+        {:else}
+          <!-- Detail View: Layanan dari Specific Instansi OR search result -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
+            {#each (activeAgencyName ? groupedLayanan[activeAgencyName] || [] : filteredLayanan) as lay (lay.id)}
+              <button 
+                on:click={() => selectedLayanan = lay}
+                class="group relative bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:border-red-100 transition-all duration-300 text-left flex flex-col h-full overflow-hidden"
+              >
+                <!-- Decorative gradient on hover -->
+                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
 
-            <div class="flex items-start justify-between mb-6">
-                <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-2xl text-red-600 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-sm">
-                    {lay.icon || '📁'}
+                <div class="flex items-start justify-between mb-6">
+                    <div class="w-12 h-12 bg-slate-50 group-hover:bg-red-50 rounded-2xl flex items-center justify-center text-2xl text-slate-400 group-hover:text-red-600 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm border border-slate-100">
+                        {lay.icon || '📁'}
+                    </div>
+                    <div class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 group-hover:bg-red-50 group-hover:border-red-200 group-hover:text-red-500 transition-colors bg-white">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                    </div>
                 </div>
-                <div class="w-8 h-8 rounded-full border border-slate-100 flex items-center justify-center text-slate-300 group-hover:border-red-200 group-hover:text-red-500 transition-colors">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                
+                <h3 class="text-lg font-bold text-slate-800 mb-2 group-hover:text-red-700 transition-colors leading-tight">
+                    {lay.name}
+                </h3>
+                
+                <p class="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-4 flex-grow">
+                    Klik untuk melihat detail persyaratan dan mengajukan permohonan layanan.
+                </p>
+                
+                {#if !activeAgencyName}
+                  <div class="mb-4 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded inline-block">
+                    {lay.agencies?.name || 'Layanan Umum'}
+                  </div>
+                {/if}
+
+                <div class="mt-auto pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-red-600 transition-colors uppercase tracking-wider">
+                    <span>Lihat Persyaratan</span>
                 </div>
-            </div>
-            
-            <h3 class="text-lg font-bold text-slate-800 mb-2 group-hover:text-red-700 transition-colors leading-tight">
-                {lay.name}
-            </h3>
-            
-            <p class="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-4 flex-grow">
-                Klik untuk melihat detail persyaratan dan mengajukan permohonan layanan ini.
-            </p>
-            
-            <!-- Tags/Meta if needed, for now just a divider line spacer -->
-            <div class="mt-auto pt-4 border-t border-slate-50 flex items-center gap-2 text-xs font-medium text-slate-400 group-hover:text-red-500 transition-colors uppercase tracking-wider">
-                <span>Lihat Persyaratan</span>
-            </div>
-          </button>
-        {/each}
+              </button>
+            {/each}
+          </div>
+        {/if}
       </div>
       
       {#if filteredLayanan.length === 0}

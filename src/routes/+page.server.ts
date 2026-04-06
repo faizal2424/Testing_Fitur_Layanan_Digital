@@ -6,6 +6,9 @@ export const load: PageServerLoad = async () => {
     const listLayanan = await db.services.findMany({
         orderBy: {
             order: 'asc'
+        },
+        include: {
+            agencies: true
         }
     });
 

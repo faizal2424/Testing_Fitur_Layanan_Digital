@@ -210,6 +210,17 @@
 						<label for="create-name">Nama Layanan *</label>
 						<input type="text" id="create-name" name="name" required placeholder="Contoh: Fasilitasi Zoom" />
 					</div>
+					{#if data.isSuper}
+					<div class="form-group">
+						<label for="create-agency">Instansi / OPD *</label>
+						<select id="create-agency" name="agency_id" required class="form-control">
+							<option value="">Pilih Instansi...</option>
+							{#each data.agencies as agency}
+								<option value={agency.id}>{agency.name}</option>
+							{/each}
+						</select>
+					</div>
+					{/if}
 					<div class="form-group">
 						<div class="icon-selector-premium">
 							<div class="selection-preview">
@@ -280,6 +291,17 @@
 						<label for="edit-name">Nama Layanan *</label>
 						<input type="text" id="edit-name" name="name" required value={editingService.name} />
 					</div>
+					{#if data.isSuper}
+					<div class="form-group">
+						<label for="edit-agency">Instansi / OPD</label>
+						<select id="edit-agency" name="agency_id" class="form-control" value={editingService.agency_name === 'Semua Instansi' ? '' : data.agencies.find(a => a.name === editingService.agency_name)?.id || ''}>
+							<option value="">Pilih Instansi...</option>
+							{#each data.agencies as agency}
+								<option value={agency.id}>{agency.name}</option>
+							{/each}
+						</select>
+					</div>
+					{/if}
 					<div class="form-group">
 						<div class="icon-selector-premium">
 							<div class="selection-preview">

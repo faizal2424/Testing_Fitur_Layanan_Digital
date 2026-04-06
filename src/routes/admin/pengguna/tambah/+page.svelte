@@ -53,7 +53,7 @@
 	{/if}
 
 	<div class="max-w-3xl mx-auto">
-		<UserForm roles={data.roles} bind:loading />
+		<UserForm roles={data.roles} agencies={data.agencies} isSuper={data.isSuper} bind:loading />
 	</div>
 </div>
 

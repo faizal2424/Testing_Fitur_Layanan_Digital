@@ -86,7 +86,7 @@ export async function getSessionUser(cookies: Cookies) {
 			data: { last_activity: now }
 		});
 
-		// Get user with role
+		// Get user with role and agency
 		const user = await db.users.findUnique({
 			where: { id: session.user_id },
 			include: {
@@ -94,7 +94,8 @@ export async function getSessionUser(cookies: Cookies) {
 					include: {
 						roles: true
 					}
-				}
+				},
+				agencies: true
 			}
 		});
 
@@ -111,7 +112,9 @@ export async function getSessionUser(cookies: Cookies) {
 			username: user.username || '',
 			email: user.email,
 			phone: user.phone,
-			role: roleName
+			role: roleName,
+			agency_id: user.agency_id ? user.agency_id.toString() : null,
+			agency_name: user.agencies ? user.agencies.name : null
 		};
 	} catch {
 		return null;

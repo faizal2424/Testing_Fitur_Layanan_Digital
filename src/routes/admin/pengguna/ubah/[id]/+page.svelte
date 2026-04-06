@@ -57,6 +57,8 @@
 		<UserForm 
 			user={data.editUser} 
 			roles={data.roles} 
+			agencies={data.agencies}
+			isSuper={data.isSuper}
 			isEdit={true} 
 			bind:loading 
 		/>

@@ -18,6 +18,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			{ assigned_to: BigInt(user.id) },
 			{ submission_team_members: { some: { user_id: BigInt(user.id) } } }
 		];
+	} else if (user?.role === 'admin' && user?.agency_id) {
+		where.services = { agency_id: BigInt(user.agency_id) };
 	}
 
 	if (serviceFilter) where.service_id = BigInt(serviceFilter);
@@ -56,6 +58,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		}),
 		db.service_submissions.count({ where }),
 		db.services.findMany({
+			where: user?.role === 'admin' && user?.agency_id ? { agency_id: BigInt(user.agency_id) } : {},
 			select: { id: true, name: true },
 			orderBy: { order: 'asc' }
 		})
