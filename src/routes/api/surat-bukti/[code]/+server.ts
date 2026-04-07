@@ -45,22 +45,22 @@ export const GET: RequestHandler = async ({ params }) => {
     }
 };
 
-// ── Color palette ──
+// ── Color palette (Minimalist/Grayscale) ──
 const COLORS = {
-    primary: '#1B3A5C',       // Dark navy blue
-    primaryLight: '#2C5282',  // Medium blue
-    accent: '#C6993A',        // Gold accent
-    accentLight: '#D4A84B',   // Light gold
+    primary: '#000000',       // Pure black for titles
+    primaryLight: '#333333',  // Dark gray for subheadings
+    accent: '#4A5568',        // Slate gray accent
+    accentLight: '#A0AEC0',   // Light gray accent
     dark: '#1A202C',          // Near black
     text: '#2D3748',          // Dark gray text
     textLight: '#718096',     // Medium gray text
-    border: '#CBD5E0',        // Light border
+    border: '#E2E8F0',        // Subtle light border
     bgLight: '#F7FAFC',       // Very light bg
-    bgRow: '#EDF2F7',         // Row highlight
+    bgRow: '#F9FAFB',         // Ultra light row highlight (minimalist)
     white: '#FFFFFF',
-    success: '#276749',       // Green for status
-    successBg: '#F0FFF4',     // Light green bg
-    red: '#C53030',           // Red accent
+    success: '#2D3748',       // Keep it dark for minimalism
+    successBg: '#F7FAFC',
+    red: '#000000',           // Minimalist: use black instead of red
 };
 
 async function generateSuratBukti(submission: any): Promise<Buffer> {
@@ -129,269 +129,193 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
 
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  HEADER BACKGROUND — navy blue band
+        //  HEADER — Official Letterhead (Unified Centering)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const headerH = 105;
-        doc.save();
-        doc.rect(20, 20, PW - 40, headerH)
-            .fill(COLORS.primary);
-        // Gold bottom accent line
-        doc.rect(20, 20 + headerH, PW - 40, 3)
-            .fill(COLORS.accent);
-        doc.restore();
+        
+        // ── 1. Calculate Dimensions for Unified Centering ──
+        const logoWidth = 62;
+        const hGap = 20; // Gap between logo and text
 
-        // ── Logo on header ──
+        const l1 = 'PEMERINTAH KABUPATEN SEMARANG';
+        const l2 = 'DINAS KOMUNIKASI DAN INFORMATIKA';
+        const l3 = 'Gedung Sekretariat Daerah Kabupaten Semarang';
+        const l4 = 'Jl. Diponegoro No. 14, Ungaran, Kab. Semarang 50511';
+        const l5 = 'Situs web: www.semarangkab.go.id | Email: diskominfo@semarangkab.go.id';
+
+        // Calculate widths for each line to find the widest part of the text block
+        doc.font(FB).fontSize(14);
+        const w1 = doc.widthOfString(l1);
+        doc.font(FB).fontSize(16);
+        const w2 = doc.widthOfString(l2);
+        doc.font(F).fontSize(9);
+        const w3 = doc.widthOfString(l3);
+        const w4 = doc.widthOfString(l4);
+        const w5 = doc.widthOfString(l5);
+
+        const maxTextWidth = Math.max(w1, w2, w3, w4, w5);
+        const totalHeaderWidth = logoWidth + hGap + maxTextWidth;
+
+        // Define our unified center horizontal starting point
+        const hStartX = ML + (CW - totalHeaderWidth) / 2;
+        const textStartX = hStartX + logoWidth + hGap;
+
+        // ── 2. Draw Logo ──
         const logoPath = join(process.cwd(), 'static', 'img', 'logokabsmg.png');
         try {
             const logoData = readFileSync(logoPath);
-            doc.image(logoData, 38, 30, { width: 62 });
+            // Vertically center the logo with the main heading text block
+            doc.image(logoData, hStartX, 32, { width: logoWidth });
         } catch {
             // skip
         }
 
-        // ── Header Text (white on blue) ──
-        let y = 32;
-        const hdrX = 110;
-        const hdrW = PW - hdrX - 60;
+        // ── 3. Draw Header Text (Each line centered within the text block) ──
+        let y = 34;
 
-        doc.fillColor(COLORS.white).font(FHB).fontSize(11.5);
-        doc.text('PEMERINTAH DAERAH KABUPATEN SEMARANG', hdrX, y, {
-            width: hdrW, align: 'center', lineBreak: false
-        });
+        doc.fillColor(COLORS.primary).font(FB).fontSize(14);
+        doc.text(l1, textStartX + (maxTextWidth - w1) / 2, y);
 
-        y += 16;
-        doc.fillColor(COLORS.white).font(FHB).fontSize(13);
-        doc.text('DINAS KOMUNIKASI DAN INFORMATIKA', hdrX, y, {
-            width: hdrW, align: 'center', lineBreak: false
-        });
+        y += 18;
+        doc.fillColor(COLORS.primary).font(FB).fontSize(16);
+        doc.text(l2, textStartX + (maxTextWidth - w2) / 2, y);
 
-        y += 20;
-        doc.fillColor('#CBD5E0').font(FH).fontSize(7.5);
-        doc.text('Jl. Diponegoro No. 14, Gedung D, Ungaran, Kab. Semarang 50511', hdrX, y, {
-            width: hdrW, align: 'center', lineBreak: false
-        });
-        y += 11;
-        doc.text('Telp: (024) 76901553  |  diskominfo.semarangkab.go.id  |  kominfo@semarangkab.go.id', hdrX, y, {
-            width: hdrW, align: 'center', lineBreak: false
-        });
+        y += 22;
+        doc.fillColor(COLORS.primary).font(F).fontSize(9);
+        doc.text(l3, textStartX + (maxTextWidth - w3) / 2, y);
+
+        y += 12;
+        doc.text(l4, textStartX + (maxTextWidth - w4) / 2, y);
+
+        y += 12;
+        doc.text(l5, textStartX + (maxTextWidth - w5) / 2, y);
+
+        // ── Official Double Line (Classic "KOP" style) ──
+        y += 18;
+        doc.save();
+        doc.moveTo(ML, y).lineTo(PW - MR, y).lineWidth(2.5).strokeColor(COLORS.primary).stroke();
+        doc.moveTo(ML, y + 3.5).lineTo(PW - MR, y + 3.5).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
+        doc.restore();
+
+        y += 14; 
+
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  DOCUMENT TITLE SECTION
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        y = 20 + headerH + 3 + 22; // after header + gold line + spacing
+        y += 25;
 
         doc.fillColor(COLORS.primary).font(FHB).fontSize(15);
-        doc.text('SURAT BUKTI PENGAJUAN LAYANAN', ML, y, {
+        doc.text('TANDA TERIMA PENGAJUAN LAYANAN', ML, y, {
             width: CW, align: 'center', lineBreak: false
         });
 
-        // Decorative underline below title
-        y += 20;
-        const titleLineW = 180;
-        const titleLineCx = PW / 2;
-        doc.save();
-        doc.moveTo(titleLineCx - titleLineW / 2, y)
-            .lineTo(titleLineCx + titleLineW / 2, y)
-            .lineWidth(2)
-            .strokeColor(COLORS.accent)
-            .stroke();
-        // small diamond in middle
-        const dy = y;
-        doc.moveTo(titleLineCx, dy - 4)
-            .lineTo(titleLineCx + 4, dy)
-            .lineTo(titleLineCx, dy + 4)
-            .lineTo(titleLineCx - 4, dy)
-            .fill(COLORS.accent);
-        doc.restore();
-
-        // ── Nomor Surat ──
-        y += 14;
-        doc.fillColor(COLORS.textLight).font(FH).fontSize(8.5);
-        doc.text(`No: ${submission.tracking_code} / DISKOMINFO / ${new Date(submission.created_at || Date.now()).getFullYear()}`, ML, y, {
+        // Nomor
+        y += 18;
+        const year = new Date(submission.created_at || Date.now()).getFullYear();
+        doc.fillColor(COLORS.primary).font(F).fontSize(10);
+        doc.text(`Nomor: ${submission.tracking_code}/DIG-SRVC/${year}`, ML, y, {
             width: CW, align: 'center', lineBreak: false
         });
+
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  INTRO TEXT
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        y += 22;
-        doc.fillColor(COLORS.text).font(F).fontSize(10.5);
-        const introText = 'Dengan hormat, dengan ini menerangkan bahwa pengajuan layanan berikut telah diterima dan tercatat dalam sistem kami:';
+        y += 30;
+        doc.fillColor(COLORS.primary).font(F).fontSize(11);
+        const introText = 'Telah diterima data pengajuan layanan digital melalui sistem Layanan Digital Kabupaten Semarang dengan rincian sebagai berikut:';
         doc.text(introText, ML, y, {
             width: CW, lineGap: 2, lineBreak: false
         });
-        // Calculate height manually
         const introH = doc.heightOfString(introText, { width: CW, lineGap: 2 });
-        y += introH;
+        y += introH + 15;
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  TRACKING CODE HIGHLIGHT BOX
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        y += 36;
-        const codeBoxH = 52;
-        const codeBoxW = 320;
-        const codeBoxX = (PW - codeBoxW) / 2;
 
-        doc.save();
-        // bg
-        doc.roundedRect(codeBoxX, y, codeBoxW, codeBoxH, 6)
-            .fill(COLORS.bgLight);
-        // border
-        doc.roundedRect(codeBoxX, y, codeBoxW, codeBoxH, 6)
-            .lineWidth(1.2)
-            .strokeColor(COLORS.primary)
-            .stroke();
-        // left accent bar
-        doc.rect(codeBoxX, y, 5, codeBoxH).fill(COLORS.accent);
-        doc.restore();
-
-        doc.fillColor(COLORS.textLight).font(FH).fontSize(7.5);
-        doc.text('KODE PENGAJUAN', codeBoxX + 18, y + 10, { width: codeBoxW - 30, lineBreak: false });
-
-        doc.fillColor(COLORS.primary).font(FHB).fontSize(18);
-        doc.text(submission.tracking_code, codeBoxX + 18, y + 24, { width: codeBoxW - 30, lineBreak: false });
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  INFO TABLE — styled with alternating rows
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        y += codeBoxH + 18;
-
-        // Section heading
-        doc.save();
-        doc.rect(ML, y, 4, 14).fill(COLORS.accent);
-        doc.restore();
-        doc.fillColor(COLORS.primary).font(FHB).fontSize(10.5);
-        doc.text('INFORMASI PENGAJUAN', ML + 12, y + 1, { lineBreak: false });
-        y += 22;
-
+        // INFO TABLE — Official style (2 columns, solid boundaries)
         const tableX = ML;
         const tableW = CW;
-        const colLabel = 150;
+        const colLabel = 160;
         const rowH = 22;
         const padX = 10;
+        const padY = 6;
 
         const infoRows: [string, string][] = [
+            ['Kode Pengajuan', submission.tracking_code],
+            ['Jenis Layanan', submission.services?.name || '-'],
             ['Nama Pemohon', submission.applicant_name || '-'],
             ['Email Pemohon', submission.applicant_email || '-'],
-            ['Layanan', submission.services?.name || '-'],
-            ['Kode Pengajuan', submission.tracking_code],
-            ['Tanggal Pengajuan', submission.created_at ? formatDateIndo(new Date(submission.created_at)) : '-'],
+            ['Waktu Pengajuan', submission.created_at ? formatDateIndo(new Date(submission.created_at)) : '-'],
         ];
 
-        // Table header
-        doc.save();
-        doc.rect(tableX, y, tableW, rowH).fill(COLORS.primary);
-        doc.restore();
-        doc.fillColor(COLORS.white).font(FHB).fontSize(8.5);
-        doc.text('KETERANGAN', tableX + padX, y + 6, { width: colLabel, lineBreak: false });
-        doc.text('DETAIL', tableX + colLabel + padX, y + 6, { width: tableW - colLabel - padX * 2, lineBreak: false });
-        y += rowH;
-
-        // Table rows
         for (let i = 0; i < infoRows.length; i++) {
             const [label, value] = infoRows[i];
-            const isAlt = i % 2 === 0;
-
+            
+            // Draw row boundary
             doc.save();
-            doc.rect(tableX, y, tableW, rowH).fill(isAlt ? COLORS.bgRow : COLORS.white);
-            // left border accent
-            doc.rect(tableX, y, 2, rowH).fill(COLORS.accent);
-            // right border accent
-            doc.rect(tableX + tableW - 2, y, 2, rowH).fill(COLORS.accent);
+            doc.rect(tableX, y, tableW, rowH).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
+            // middle divider
+            doc.moveTo(tableX + colLabel, y).lineTo(tableX + colLabel, y + rowH).stroke();
             doc.restore();
 
-            // bottom line
-            doc.save();
-            doc.moveTo(tableX, y + rowH).lineTo(tableX + tableW, y + rowH)
-                .lineWidth(0.3).strokeColor(COLORS.border).stroke();
-            doc.restore();
+            // Label
+            doc.fillColor(COLORS.primary).font(FB).fontSize(10);
+            doc.text(label, tableX + padX, y + padY, { width: colLabel - padX, lineBreak: false });
 
-            doc.fillColor(COLORS.textLight).font(FH).fontSize(8.5);
-            doc.text(label, tableX + padX, y + 6, { width: colLabel - padX, lineBreak: false });
-
-            if (label === 'Kode Pengajuan') {
-                doc.fillColor(COLORS.primary).font(FHB).fontSize(9);
-                doc.text(value, tableX + colLabel + padX, y + 6, { width: tableW - colLabel - padX * 2, lineBreak: false });
-            } else {
-                doc.fillColor(COLORS.dark).font(FH).fontSize(8.5);
-                doc.text(value, tableX + colLabel + padX, y + 6, { width: tableW - colLabel - padX * 2, lineBreak: false });
-            }
+            // Value
+            doc.fillColor(COLORS.primary).font(F).fontSize(10);
+            doc.text(value, tableX + colLabel + padX, y + padY, { width: tableW - colLabel - padX, lineBreak: false });
 
             y += rowH;
         }
 
-        // Table bottom border
-        doc.save();
-        doc.moveTo(tableX, y).lineTo(tableX + tableW, y)
-            .lineWidth(1.5).strokeColor(COLORS.primary).stroke();
-        doc.restore();
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  DETAIL ISIAN FORMULIR
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const fieldValues = submission.service_submission_values || [];
+        const fieldValues = (submission.service_submission_values || []).sort((a: any, b: any) => {
+            const orderA = a.service_form_fields?.order ?? 0;
+            const orderB = b.service_form_fields?.order ?? 0;
+            return orderA - orderB;
+        });
+
         if (fieldValues.length > 0) {
+            y += 25;
+
+            doc.fillColor(COLORS.primary).font(FHB).fontSize(11);
+            doc.text('Rincian Data Isian:', ML, y);
             y += 18;
 
-            // Check page space
-            if (y > PH - 200) {
-                addPage();
-                y = 40;
-            }
-
-            doc.save();
-            doc.rect(ML, y, 4, 14).fill(COLORS.accent);
-            doc.restore();
-            doc.fillColor(COLORS.primary).font(FHB).fontSize(10.5);
-            doc.text('DETAIL ISIAN FORMULIR', ML + 12, y + 1, { lineBreak: false });
-            y += 22;
-
-            // Detail table header
-            doc.save();
-            doc.rect(tableX, y, tableW, rowH).fill(COLORS.primaryLight);
-            doc.restore();
-            doc.fillColor(COLORS.white).font(FHB).fontSize(8.5);
-            doc.text('NO', tableX + padX, y + 6, { width: 25, lineBreak: false });
-            doc.text('FIELD', tableX + 35 + padX, y + 6, { width: colLabel - 35, lineBreak: false });
-            doc.text('NILAI', tableX + colLabel + padX, y + 6, { width: tableW - colLabel - padX * 2, lineBreak: false });
-            y += rowH;
-
+            // Detail values with two-column layout (Label | Value) to match top info table
             for (let i = 0; i < fieldValues.length; i++) {
                 const sv = fieldValues[i];
                 const fieldLabel = sv.service_form_fields?.label || 'Field';
                 const fieldValue = sv.value || (sv.file_path ? '[File Terlampir]' : '-');
 
-                if (y > PH - 80) {
+                // Dynamic height calculation (Width: tableW - colLabel - padding)
+                const valH = doc.font(F).fontSize(9.5).heightOfString(fieldValue, { width: tableW - colLabel - padX * 2 });
+                const cellH = Math.max(rowH, valH + 12);
+
+                if (y + cellH > PH - 80) {
                     addPage();
                     y = 40;
                 }
 
-                const isAlt = i % 2 === 0;
-                const valH = doc.font(FH).fontSize(8).heightOfString(fieldValue, { width: tableW - colLabel - padX * 2 - 10 });
-                const cellH = Math.max(rowH, valH + 12);
-
                 doc.save();
-                doc.rect(tableX, y, tableW, cellH).fill(isAlt ? COLORS.bgRow : COLORS.white);
-                doc.moveTo(tableX, y + cellH).lineTo(tableX + tableW, y + cellH)
-                    .lineWidth(0.3).strokeColor(COLORS.border).stroke();
+                doc.rect(tableX, y, tableW, cellH).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
+                // middle divider (matches top table divider at colLabel)
+                doc.moveTo(tableX + colLabel, y).lineTo(tableX + colLabel, y + cellH).stroke();
                 doc.restore();
 
-                doc.fillColor(COLORS.textLight).font(FH).fontSize(8);
-                doc.text(`${i + 1}.`, tableX + padX, y + 6, { width: 25, lineBreak: false });
-                doc.fillColor(COLORS.text).font(FHB).fontSize(8);
-                doc.text(fieldLabel, tableX + 35 + padX, y + 6, { width: colLabel - 35 - padX, lineBreak: false });
-                doc.fillColor(COLORS.dark).font(FH).fontSize(8);
-                doc.text(fieldValue, tableX + colLabel + padX, y + 6, { width: tableW - colLabel - padX * 2, lineBreak: false });
+                doc.fillColor(COLORS.primary).font(FB).fontSize(9.5);
+                doc.text(fieldLabel, tableX + padX, y + padY, { width: colLabel - padX });
+
+                doc.fillColor(COLORS.primary).font(F).fontSize(9.5);
+                doc.text(fieldValue, tableX + colLabel + padX, y + padY, { width: tableW - colLabel - padX * 2 });
 
                 y += cellH;
             }
-
-            // Table bottom
-            doc.save();
-            doc.moveTo(tableX, y).lineTo(tableX + tableW, y)
-                .lineWidth(1).strokeColor(COLORS.primaryLight).stroke();
-            doc.restore();
         }
+
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  CLOSING PARAGRAPH
@@ -430,23 +354,19 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         doc.text('Kabupaten Semarang', signX, y + 13, { width: 210, lineBreak: false });
 
         y += 55;
-        doc.save();
-        doc.moveTo(signX, y).lineTo(signX + 160, y)
-            .lineWidth(0.5).strokeColor(COLORS.border).stroke();
-        doc.restore();
+        // Signature line (no system name as requested)
         y += 4;
-        doc.fillColor(COLORS.primary).font(FHB).fontSize(10);
-        doc.text('Sistem Digital APTIKA', signX, y, { width: 210, lineBreak: false });
+        // Space reserved for potential manual signature or just a clean ending
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  FOOTER
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const footY = PH - 38;
 
-        // Gold accent line
+        // Minimalist footer line
         doc.save();
         doc.moveTo(ML, footY).lineTo(PW - MR, footY)
-            .lineWidth(1.2).strokeColor(COLORS.accent).stroke();
+            .lineWidth(0.8).strokeColor(COLORS.border).stroke();
         doc.restore();
 
         doc.fillColor(COLORS.textLight).font(FI).fontSize(7);
