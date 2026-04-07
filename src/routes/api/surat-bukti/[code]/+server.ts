@@ -45,22 +45,19 @@ export const GET: RequestHandler = async ({ params }) => {
     }
 };
 
-// ── Color palette (Minimalist/Grayscale) ──
+// ── Color palette (Strictly Black & White) ──
 const COLORS = {
-    primary: '#000000',       // Pure black for titles
-    primaryLight: '#333333',  // Dark gray for subheadings
-    accent: '#4A5568',        // Slate gray accent
-    accentLight: '#A0AEC0',   // Light gray accent
-    dark: '#1A202C',          // Near black
-    text: '#2D3748',          // Dark gray text
-    textLight: '#718096',     // Medium gray text
-    border: '#E2E8F0',        // Subtle light border
-    bgLight: '#F7FAFC',       // Very light bg
-    bgRow: '#F9FAFB',         // Ultra light row highlight (minimalist)
+    primary: '#000000',       // Pure black
+    secondary: '#000000',     // Pure black
+    accent: '#000000',        // Pure black
+    text: '#000000',          // Pure black
+    textLight: '#444444',     // Dark gray for sub-labels
+    border: '#000000',        // Black border
+    bgHeader: '#F2F2F2',      // Very light gray for visibility
+    bgRow: '#FFFFFF',         // White row
+    bgAlt: '#FAFAFA',         // Very light alt row (almost white)
     white: '#FFFFFF',
-    success: '#2D3748',       // Keep it dark for minimalism
-    successBg: '#F7FAFC',
-    red: '#000000',           // Minimalist: use black instead of red
+    black: '#000000',
 };
 
 async function generateSuratBukti(submission: any): Promise<Buffer> {
@@ -75,14 +72,13 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
-        const PW = doc.page.width;   // 595.28
-        const PH = doc.page.height;  // 841.89
-        const ML = 50;               // margin left
-        const MR = 50;               // margin right
-        const CW = PW - ML - MR;     // content width
+        const PW = doc.page.width;   
+        const PH = doc.page.height;  
+        const ML = 50;               
+        const MR = 50;               
+        const CW = PW - ML - MR;     
 
-        // Prevent PDFKit from auto-creating pages
-        // We intercept addPage and only allow it when we explicitly set the flag
+        // Prevent PDFKit from auto-creating pages to allow manual control
         let allowAddPage = false;
         const _origAddPage = doc.addPage.bind(doc);
         doc.addPage = function(...args: any[]) {
@@ -90,15 +86,16 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
                 allowAddPage = false;
                 return _origAddPage(...args);
             }
-            // Auto-pagination blocked — just return doc
             return doc;
         };
 
-        // Helper to explicitly add a page
         const addPage = () => {
             allowAddPage = true;
-            doc.addPage();
+            const newPage = doc.addPage();
+            // Reset Y for new page
+            return newPage;
         };
+
         // Register fonts
         const fontDir = join(process.cwd(), 'static', 'fonts');
         let hasCustomFonts = false;
@@ -126,15 +123,11 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         const FH = 'Helvetica';
         const FHB = 'Helvetica-Bold';
 
-
-
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  HEADER — Official Letterhead (Unified Centering)
+        //  HEADER — Official Letterhead
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        
-        // ── 1. Calculate Dimensions for Unified Centering ──
         const logoWidth = 62;
-        const hGap = 20; // Gap between logo and text
+        const hGap = 20; 
 
         const l1 = 'PEMERINTAH KABUPATEN SEMARANG';
         const l2 = 'DINAS KOMUNIKASI DAN INFORMATIKA';
@@ -142,7 +135,6 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         const l4 = 'Jl. Diponegoro No. 14, Ungaran, Kab. Semarang 50511';
         const l5 = 'Situs web: www.semarangkab.go.id | Email: diskominfo@semarangkab.go.id';
 
-        // Calculate widths for each line to find the widest part of the text block
         doc.font(FB).fontSize(14);
         const w1 = doc.widthOfString(l1);
         doc.font(FB).fontSize(16);
@@ -154,123 +146,126 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
 
         const maxTextWidth = Math.max(w1, w2, w3, w4, w5);
         const totalHeaderWidth = logoWidth + hGap + maxTextWidth;
-
-        // Define our unified center horizontal starting point
         const hStartX = ML + (CW - totalHeaderWidth) / 2;
         const textStartX = hStartX + logoWidth + hGap;
 
-        // ── 2. Draw Logo ──
+        // Logo
         const logoPath = join(process.cwd(), 'static', 'img', 'logokabsmg.png');
         try {
             const logoData = readFileSync(logoPath);
-            // Vertically center the logo with the main heading text block
             doc.image(logoData, hStartX, 32, { width: logoWidth });
-        } catch {
-            // skip
-        }
+        } catch {}
 
-        // ── 3. Draw Header Text (Each line centered within the text block) ──
+        // Header Text
         let y = 34;
-
         doc.fillColor(COLORS.primary).font(FB).fontSize(14);
         doc.text(l1, textStartX + (maxTextWidth - w1) / 2, y);
-
         y += 18;
         doc.fillColor(COLORS.primary).font(FB).fontSize(16);
         doc.text(l2, textStartX + (maxTextWidth - w2) / 2, y);
-
         y += 22;
         doc.fillColor(COLORS.primary).font(F).fontSize(9);
         doc.text(l3, textStartX + (maxTextWidth - w3) / 2, y);
-
         y += 12;
         doc.text(l4, textStartX + (maxTextWidth - w4) / 2, y);
-
         y += 12;
         doc.text(l5, textStartX + (maxTextWidth - w5) / 2, y);
 
-        // ── Official Double Line (Classic "KOP" style) ──
+        // Official Double Line
         y += 18;
-        doc.save();
-        doc.moveTo(ML, y).lineTo(PW - MR, y).lineWidth(2.5).strokeColor(COLORS.primary).stroke();
-        doc.moveTo(ML, y + 3.5).lineTo(PW - MR, y + 3.5).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
-        doc.restore();
+        doc.save().moveTo(ML, y).lineTo(PW - MR, y).lineWidth(2).strokeColor(COLORS.black).stroke();
+        doc.moveTo(ML, y + 3).lineTo(PW - MR, y + 3).lineWidth(0.5).strokeColor(COLORS.black).stroke().restore();
 
-        y += 14; 
-
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  DOCUMENT TITLE SECTION
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         y += 25;
 
-        doc.fillColor(COLORS.primary).font(FHB).fontSize(15);
-        doc.text('TANDA TERIMA PENGAJUAN LAYANAN', ML, y, {
-            width: CW, align: 'center', lineBreak: false
-        });
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  TITLE & TRACKING CODE SECTION
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        doc.fillColor(COLORS.primary).font(FHB).fontSize(16);
+        doc.text('TANDA TERIMA PENGAJUAN LAYANAN', ML, y, { width: CW, align: 'center' });
+        
+        y += 20;
+        doc.fillColor(COLORS.accent).font(FB).fontSize(10);
+        doc.text('Bukti Resmi Pengajuan Digital APTIKA', ML, y, { width: CW, align: 'center' });
+        
+        y += 25;
 
-        // Nomor
+        // ── Highlight Summary Box ──
+        const summaryY = y;
+        
+        // Top separator line for summary
+        doc.save();
+        doc.moveTo(ML, summaryY).lineTo(PW - MR, summaryY).lineWidth(0.5).strokeColor(COLORS.black).stroke();
+        doc.restore();
+
+        // Left: Tracking Code
+        doc.fillColor(COLORS.textLight).font(F).fontSize(8);
+        doc.text('KODE TRACKING / PENGAJUAN', ML, summaryY + 10);
+        doc.fillColor(COLORS.primary).font(FHB).fontSize(13);
+        doc.text(submission.tracking_code, ML, summaryY + 22);
+
+        // Center: Status
+        // Move status to the left to avoid overlapping
+        const statusX = ML + 220; 
+        doc.fillColor(COLORS.textLight).font(F).fontSize(8);
+        doc.text('STATUS DOKUMEN', statusX, summaryY + 10);
+        doc.fillColor(COLORS.primary).font(FB).fontSize(11);
+        doc.text('DITERIMA / TERSIMPAN', statusX, summaryY + 22);
+
+        // Right: Date
+        // Using right-aligned approach for Year to ensure it sits cleanly at the edge
+        const yearStr = new Date(submission.created_at || Date.now()).getFullYear().toString();
+        const dateX = PW - MR - 60;
+        doc.fillColor(COLORS.textLight).font(F).fontSize(8);
+        doc.text('TAHUN', dateX, summaryY + 10);
+        doc.fillColor(COLORS.primary).font(FB).fontSize(11);
+        doc.text(yearStr, dateX, summaryY + 22);
+
+        const summaryBottomY = summaryY + 45;
+        // Bottom separator line for summary
+        doc.save();
+        doc.moveTo(ML, summaryBottomY).lineTo(PW - MR, summaryBottomY).lineWidth(0.5).strokeColor(COLORS.black).stroke();
+        doc.restore();
+
+        y = summaryBottomY + 25;
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  BASIC INFORMATION TABLE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        doc.fillColor(COLORS.primary).font(FHB).fontSize(11);
+        doc.text('Informasi Dasar Pemohon', ML, y);
         y += 18;
-        const year = new Date(submission.created_at || Date.now()).getFullYear();
-        doc.fillColor(COLORS.primary).font(F).fontSize(10);
-        doc.text(`Nomor: ${submission.tracking_code}/DIG-SRVC/${year}`, ML, y, {
-            width: CW, align: 'center', lineBreak: false
-        });
-
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  INTRO TEXT
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        y += 30;
-        doc.fillColor(COLORS.primary).font(F).fontSize(11);
-        const introText = 'Telah diterima data pengajuan layanan digital melalui sistem Layanan Digital Kabupaten Semarang dengan rincian sebagai berikut:';
-        doc.text(introText, ML, y, {
-            width: CW, lineGap: 2, lineBreak: false
-        });
-        const introH = doc.heightOfString(introText, { width: CW, lineGap: 2 });
-        y += introH + 15;
-
-
-        // INFO TABLE — Official style (2 columns, solid boundaries)
-        const tableX = ML;
-        const tableW = CW;
-        const colLabel = 160;
-        const rowH = 22;
-        const padX = 10;
-        const padY = 6;
 
         const infoRows: [string, string][] = [
-            ['Kode Pengajuan', submission.tracking_code],
             ['Jenis Layanan', submission.services?.name || '-'],
             ['Nama Pemohon', submission.applicant_name || '-'],
             ['Email Pemohon', submission.applicant_email || '-'],
             ['Waktu Pengajuan', submission.created_at ? formatDateIndo(new Date(submission.created_at)) : '-'],
         ];
 
-        for (let i = 0; i < infoRows.length; i++) {
-            const [label, value] = infoRows[i];
-            
-            // Draw row boundary
+        const colLabel = 140;
+        const rowH = 22;
+        const padX = 10;
+        const padY = 6;
+
+        for (const [label, value] of infoRows) {
             doc.save();
-            doc.rect(tableX, y, tableW, rowH).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
-            // middle divider
-            doc.moveTo(tableX + colLabel, y).lineTo(tableX + colLabel, y + rowH).stroke();
+            doc.rect(ML, y, CW, rowH).lineWidth(0.5).strokeColor(COLORS.border).stroke();
+            doc.moveTo(ML + colLabel, y).lineTo(ML + colLabel, y + rowH).stroke();
             doc.restore();
 
-            // Label
-            doc.fillColor(COLORS.primary).font(FB).fontSize(10);
-            doc.text(label, tableX + padX, y + padY, { width: colLabel - padX, lineBreak: false });
-
-            // Value
+            doc.fillColor(COLORS.textLight).font(FB).fontSize(9);
+            doc.text(label, ML + padX, y + padY);
             doc.fillColor(COLORS.primary).font(F).fontSize(10);
-            doc.text(value, tableX + colLabel + padX, y + padY, { width: tableW - colLabel - padX, lineBreak: false });
+            doc.text(value, ML + colLabel + padX, y + padY, { width: CW - colLabel - padX * 2 });
 
             y += rowH;
         }
 
+        y += 30;
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  DETAIL ISIAN FORMULIR
+        //  DETAILED FORM DATA (Dynamic Table)
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const fieldValues = (submission.service_submission_values || []).sort((a: any, b: any) => {
             const orderA = a.service_form_fields?.order ?? 0;
@@ -279,114 +274,130 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         });
 
         if (fieldValues.length > 0) {
-            y += 25;
-
             doc.fillColor(COLORS.primary).font(FHB).fontSize(11);
-            doc.text('Rincian Data Isian:', ML, y);
-            y += 18;
+            doc.text('Rincian Data Isian Formulir', ML, y);
+            y += 15;
 
-            // Detail values with two-column layout (Label | Value) to match top info table
+            // Table Header
+            doc.save();
+            doc.rect(ML, y, CW, 20).fillColor(COLORS.bgHeader).fill();
+            doc.rect(ML, y, CW, 20).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
+            doc.moveTo(ML + colLabel, y).lineTo(ML + colLabel, y + 20).stroke();
+            doc.restore();
+
+            doc.fillColor(COLORS.primary).font(FB).fontSize(9);
+            doc.text('Nama Field / Atribut', ML + padX, y + 6);
+            doc.text('Data Isian', ML + colLabel + padX, y + 6);
+            y += 20;
+
             for (let i = 0; i < fieldValues.length; i++) {
                 const sv = fieldValues[i];
                 const fieldLabel = sv.service_form_fields?.label || 'Field';
                 const fieldValue = sv.value || (sv.file_path ? '[File Terlampir]' : '-');
 
-                // Dynamic height calculation (Width: tableW - colLabel - padding)
-                const valH = doc.font(F).fontSize(9.5).heightOfString(fieldValue, { width: tableW - colLabel - padX * 2 });
-                const cellH = Math.max(rowH, valH + 12);
+                // Dynamic height calculation
+                const valH = doc.font(F).fontSize(9.5).heightOfString(fieldValue, { width: CW - colLabel - padX * 2 });
+                const cellH = Math.max(22, valH + 12);
 
-                if (y + cellH > PH - 80) {
+                if (y + cellH > PH - 180) {
                     addPage();
-                    y = 40;
+                    y = 50;
+                    // Redraw header on new page
+                    doc.save();
+                    doc.rect(ML, y, CW, 20).fillColor(COLORS.bgHeader).fill();
+                    doc.rect(ML, y, CW, 20).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
+                    doc.moveTo(ML + colLabel, y).lineTo(ML + colLabel, y + 20).stroke();
+                    doc.restore();
+                    doc.fillColor(COLORS.primary).font(FB).fontSize(9);
+                    doc.text('Nama Field / Atribut (Lanjutan)', ML + padX, y + 6);
+                    y += 20;
                 }
 
                 doc.save();
-                doc.rect(tableX, y, tableW, cellH).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
-                // middle divider (matches top table divider at colLabel)
-                doc.moveTo(tableX + colLabel, y).lineTo(tableX + colLabel, y + cellH).stroke();
+                if (i % 2 === 1) doc.rect(ML, y, CW, cellH).fillColor(COLORS.bgAlt).fill();
+                doc.rect(ML, y, CW, cellH).lineWidth(0.5).strokeColor(COLORS.border).stroke();
+                doc.moveTo(ML + colLabel, y).lineTo(ML + colLabel, y + cellH).stroke();
                 doc.restore();
 
-                doc.fillColor(COLORS.primary).font(FB).fontSize(9.5);
-                doc.text(fieldLabel, tableX + padX, y + padY, { width: colLabel - padX });
+                doc.fillColor(COLORS.secondary).font(FB).fontSize(9);
+                doc.text(fieldLabel, ML + padX, y + padY, { width: colLabel - padX });
 
-                doc.fillColor(COLORS.primary).font(F).fontSize(9.5);
-                doc.text(fieldValue, tableX + colLabel + padX, y + padY, { width: tableW - colLabel - padX * 2 });
+                doc.fillColor(COLORS.text).font(F).fontSize(9.5);
+                doc.text(fieldValue, ML + colLabel + padX, y + padY, { width: CW - colLabel - padX * 2 });
 
                 y += cellH;
             }
         }
 
+        y += 30;
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  CLOSING PARAGRAPH
+        //  NEXT STEPS / PETUNJUK
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        y += 18;
-        if (y > PH - 180) {
+        if (y > PH - 200) {
             addPage();
-            y = 40;
+            y = 50;
         }
 
-        const closingText = 'Demikian surat bukti pengajuan ini dibuat. Kode pengajuan di atas dapat digunakan untuk memantau status layanan melalui sistem Layanan Digital APTIKA Dinas Komunikasi dan Informatika Kabupaten Semarang.';
-        doc.fillColor(COLORS.text).font(F).fontSize(10);
-        doc.text(closingText, ML, y, { width: CW, lineGap: 2, lineBreak: false });
-        const closingH = doc.heightOfString(closingText, { width: CW, lineGap: 2 });
-        y += closingH;
+        doc.save();
+        // Just add a line above instructions instead of a full box
+        doc.moveTo(ML, y).lineTo(PW - MR, y).lineWidth(0.5).strokeColor(COLORS.border).stroke();
+        doc.restore();
+        y += 10;
+
+        doc.fillColor(COLORS.accent).font(FB).fontSize(10);
+        doc.text('LANGKAH BERIKUTNYA & PETUNJUK:', ML + 15, y + 12);
+        
+        doc.fillColor(COLORS.text).font(F).fontSize(9);
+        const instructions = [
+            '1. Simpan tanda terima ini sebagai bukti sah pengajuan layanan.',
+            '2. Gunakan "Kode Tracking" untuk memantau status pengajuan secara berkala melalui portal.',
+            '3. Admin akan melakukan verifikasi berkas dalam waktu 1-3 hari kerja.',
+            '4. Notifikasi akan dikirimkan melalui email yang terdaftar jika status berubah.'
+        ];
+        
+        let instY = y + 28;
+        for (const inst of instructions) {
+            doc.text(inst, ML + 15, instY);
+            instY += 12;
+        }
+
+        y += 100;
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  SIGNATURE AREA
+        //  SIGNATURE & VERIFICATION AREA
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        y += 25;
-        if (y > PH - 130) {
+        if (y > PH - 140) {
             addPage();
-            y = 40;
+            y = 50;
         }
 
         const signX = PW - MR - 210;
         const dateTxt = formatDateIndoLong(submission.created_at ? new Date(submission.created_at) : new Date());
 
+        // Right side (Signature)
         doc.fillColor(COLORS.text).font(F).fontSize(10);
-        doc.text(`Ungaran, ${dateTxt}`, signX, y, { width: 210, lineBreak: false });
-
-        y += 14;
-        doc.fillColor(COLORS.primary).font(FHB).fontSize(10);
-        doc.text('Dinas Komunikasi dan Informatika', signX, y, { width: 210, lineBreak: false });
-        doc.fillColor(COLORS.text).font(F).fontSize(10);
-        doc.text('Kabupaten Semarang', signX, y + 13, { width: 210, lineBreak: false });
-
+        doc.text(`Ungaran, ${dateTxt}`, signX, y, { width: 210 });
+        y += 15;
+        doc.fillColor(COLORS.primary).font(FB).fontSize(10);
+        doc.text('Dinas Komunikasi dan Informatika', signX, y, { width: 210 });
+        doc.text('Kabupaten Semarang', signX, y + 12, { width: 210 });
         y += 55;
-        // Signature line (no system name as requested)
-        y += 4;
-        // Space reserved for potential manual signature or just a clean ending
+        doc.text('DICETAK SECARA DIGITAL', signX, y, { width: 210 });
+
+
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  FOOTER
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         const footY = PH - 38;
-
-        // Minimalist footer line
-        doc.save();
-        doc.moveTo(ML, footY).lineTo(PW - MR, footY)
-            .lineWidth(0.8).strokeColor(COLORS.border).stroke();
-        doc.restore();
+        doc.save().moveTo(ML, footY).lineTo(PW - MR, footY).lineWidth(0.5).strokeColor(COLORS.border).stroke().restore();
 
         doc.fillColor(COLORS.textLight).font(FI).fontSize(7);
         doc.text(
             'Dokumen ini digenerate secara otomatis oleh Sistem Layanan Digital APTIKA — Dinas Komunikasi dan Informatika Kabupaten Semarang',
-            ML, footY + 6, { width: CW, align: 'center', lineBreak: false }
+            ML, footY + 8, { width: CW, align: 'center' }
         );
-
-        // ── Watermark (subtle diagonal lines on current page) ──
-        doc.save();
-        doc.opacity(0.035);
-        doc.strokeColor(COLORS.primary);
-        doc.lineWidth(0.3);
-        for (let i = -8; i <= 8; i++) {
-            const cx = PW / 2 + i * 50;
-            const cy = PH / 2;
-            doc.moveTo(cx - 20, cy - 20).lineTo(cx + 20, cy + 20).stroke();
-            doc.moveTo(cx + 20, cy - 20).lineTo(cx - 20, cy + 20).stroke();
-        }
-        doc.restore();
 
         doc.end();
     });
