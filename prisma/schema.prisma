@@ -117,7 +117,6 @@ model service_submission_values {
 model service_submissions {
   id                         BigInt                       @id @default(autoincrement()) @db.UnsignedBigInt
   service_id                 BigInt                       @db.UnsignedBigInt
-  agency_id                  BigInt?                      @db.UnsignedBigInt
   applicant_name             String?                      @db.VarChar(255)
   applicant_email            String?                      @db.VarChar(255)
   status                     String                       @default("submitted") @db.VarChar(32)
@@ -126,10 +125,11 @@ model service_submissions {
   tracking_code              String                       @unique(map: "tracking_code") @db.VarChar(50)
   created_at                 DateTime?                    @db.Timestamp(0)
   updated_at                 DateTime?                    @db.Timestamp(0)
-  agencies                   agencies?                    @relation(fields: [agency_id], references: [id], onDelete: SetNull, onUpdate: Restrict)
+  agency_id                  BigInt?                      @db.UnsignedBigInt
   service_submission_members service_submission_members[]
   service_submission_values  service_submission_values[]
   users                      users?                       @relation(fields: [assigned_to], references: [id], onUpdate: Restrict, map: "fk_service_submissions_assigned_to")
+  agencies                   agencies?                    @relation(fields: [agency_id], references: [id], onUpdate: Restrict)
   services                   services                     @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "service_submissions_service_id_foreign")
   submission_notes           submission_notes[]
   submission_team_members    submission_team_members[]
@@ -141,16 +141,16 @@ model service_submissions {
 
 model services {
   id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
-  agency_id           BigInt?               @db.UnsignedBigInt
   order               Int                   @default(0)
   name                String                @db.VarChar(255)
   icon                String?               @db.VarChar(255)
   requirements        String?               @db.LongText
   created_at          DateTime?             @db.Timestamp(0)
   updated_at          DateTime?             @db.Timestamp(0)
-  agencies            agencies?             @relation(fields: [agency_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  agency_id           BigInt?               @db.UnsignedBigInt
   service_form_fields service_form_fields[]
   service_submissions service_submissions[]
+  agencies            agencies?             @relation(fields: [agency_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@index([agency_id], map: "fk_services_agency_id")
 }
@@ -199,7 +199,6 @@ model submission_team_members {
 
 model users {
   id                         BigInt                       @id @default(autoincrement()) @db.UnsignedBigInt
-  agency_id                  BigInt?                      @db.UnsignedBigInt
   name                       String                       @db.VarChar(255)
   username                   String?                      @unique(map: "users_username_unique") @db.VarChar(50)
   phone                      String?                      @db.VarChar(30)
@@ -209,13 +208,14 @@ model users {
   remember_token             String?                      @db.VarChar(100)
   created_at                 DateTime?                    @db.Timestamp(0)
   updated_at                 DateTime?                    @db.Timestamp(0)
-  agencies                   agencies?                    @relation(fields: [agency_id], references: [id], onDelete: SetNull, onUpdate: Restrict)
+  agency_id                  BigInt?                      @db.UnsignedBigInt
   notifications              notifications[]
   service_submission_members service_submission_members[]
   service_submissions        service_submissions[]
   submission_notes           submission_notes[]
   submission_team_members    submission_team_members[]
   user_roles                 user_roles[]
+  agencies                   agencies?                    @relation(fields: [agency_id], references: [id], onUpdate: Restrict)
 
   @@index([agency_id], map: "fk_users_agency_id")
 }
@@ -270,16 +270,16 @@ model notifications {
   @@index([user_id, is_read], map: "notifications_user_id_is_read_index")
 }
 
-enum service_submission_members_role {
-  member
-}
-
 model agencies {
   id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
   name                String                @db.VarChar(255)
   created_at          DateTime?             @default(now()) @db.Timestamp(0)
   updated_at          DateTime?             @default(now()) @db.Timestamp(0)
-  users               users[]
-  services            services[]
   service_submissions service_submissions[]
+  services            services[]
+  users               users[]
+}
+
+enum service_submission_members_role {
+  member
 }
