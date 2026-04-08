@@ -15,6 +15,7 @@ export const GET: RequestHandler = async ({ params }) => {
         const submission = await db.service_submissions.findUnique({
             where: { tracking_code: code },
             include: {
+                agencies: true,
                 services: true,
                 service_submission_values: {
                     include: {
@@ -129,13 +130,14 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         const headerTopY = 25;
         const hGap = 15;
 
+        const a = submission.agencies || {};
         const l1 = 'PEMERINTAH DAERAH KABUPATEN SEMARANG';
-        const l2 = 'DINAS KOMUNIKASI DAN INFORMATIKA';
-        const l3 = 'Alamat : Jl. Gatot Subroto No.104 A, Cirebonan, Bandarjo, Kec. Ungaran Barat Kabupaten';
-        const l4 = 'Semarang, Jawa Tengah';
-        const l5 = 'No. Tlp: (024) 76901553';
-        const l6 = 'Website : diskominfo.semarangkab.go.id,E-mail :  kominfo@semarangkab.go.id';
-        const l7 = 'Kode pos : 50517';
+        const l2 = a.name ? a.name.toUpperCase() : 'DINAS KOMUNIKASI DAN INFORMATIKA';
+        const address = a.address || 'Jl. Gatot Subroto No.104 A, Cirebonan, Bandarjo, Kec. Ungaran Barat Kabupaten Semarang, Jawa Tengah';
+        const phone = a.phone || '(024) 76901553';
+        const website = a.website || 'diskominfo.semarangkab.go.id';
+        const email = a.email || 'kominfo@semarangkab.go.id';
+        const postalCode = a.postal_code || '50517';
 
         // Area teks dimulai setelah logo
         const textStartX = logoX + logoWidth + hGap;
@@ -148,7 +150,6 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
             doc.image(logoData, logoX, headerTopY, { width: logoWidth });
         } catch {}
 
-        // Teks dipusatkan dalam area yang tersedia di sebelah kanan logo
         let y = headerTopY + 2;
         doc.fillColor(COLORS.primary).font(FB).fontSize(14);
         doc.text(l1, textStartX, y, { width: availableTextW, align: 'center' });
@@ -156,25 +157,25 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         y += 18;
         doc.fillColor(COLORS.primary).font(FB).fontSize(20);
         doc.text(l2, textStartX, y, { width: availableTextW, align: 'center' });
+        y += doc.heightOfString(l2, { width: availableTextW, align: 'center' }) + 4;
         
-        y += 24;
         doc.fillColor(COLORS.primary).font(F).fontSize(9.5);
-        doc.text(l3, textStartX, y, { width: availableTextW, align: 'center' });
         
-        y += 11;
-        doc.text(l4, textStartX, y, { width: availableTextW, align: 'center' });
+        const textAddress = `Alamat : ${address}`;
+        doc.text(textAddress, textStartX, y, { width: availableTextW, align: 'center' });
+        y += doc.heightOfString(textAddress, { width: availableTextW, align: 'center' }) + 1.5;
         
+        doc.text(`No. Tlp: ${phone}`, textStartX, y, { width: availableTextW, align: 'center' });
         y += 11;
-        doc.text(l5, textStartX, y, { width: availableTextW, align: 'center' });
         
+        doc.text(`Website : ${website}, E-mail : ${email}`, textStartX, y, { width: availableTextW, align: 'center' });
         y += 11;
-        doc.text(l6, textStartX, y, { width: availableTextW, align: 'center' });
         
+        doc.text(`Kode pos : ${postalCode}`, textStartX, y, { width: availableTextW, align: 'center' });
         y += 11;
-        doc.text(l7, textStartX, y, { width: availableTextW, align: 'center' });
 
         // Official Double Line
-        y += 20;
+        y += 15;
         doc.save().moveTo(ML, y).lineTo(PW - MR, y).lineWidth(2).strokeColor(COLORS.black).stroke();
         doc.moveTo(ML, y + 2.5).lineTo(PW - MR, y + 2.5).lineWidth(0.5).strokeColor(COLORS.black).stroke().restore();
 
@@ -357,15 +358,17 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
 
         const signX = PW - MR - 210;
         const dateTxt = formatDateIndoLong(submission.created_at ? new Date(submission.created_at) : new Date());
+        const agencySignName = submission.agencies?.name || 'Dinas Komunikasi dan Informatika';
 
         // Right side (Signature)
         doc.fillColor(COLORS.text).font(F).fontSize(10);
         doc.text(`Ungaran, ${dateTxt}`, signX, y, { width: 210 });
         y += 15;
         doc.fillColor(COLORS.primary).font(FB).fontSize(10);
-        doc.text('Dinas Komunikasi dan Informatika', signX, y, { width: 210 });
-        doc.text('Kabupaten Semarang', signX, y + 12, { width: 210 });
-        y += 55;
+        doc.text(agencySignName, signX, y, { width: 210 });
+        y += doc.heightOfString(agencySignName, { width: 210 }) + 2;
+        doc.text('Kabupaten Semarang', signX, y, { width: 210 });
+        y += 45;
         doc.text('DICETAK SECARA DIGITAL', signX, y, { width: 210 });
 
 

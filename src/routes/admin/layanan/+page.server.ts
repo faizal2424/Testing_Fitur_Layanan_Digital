@@ -54,13 +54,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	// Group services by agency — only agencies with ≥1 service are included
-	const agencyMap = new Map<string, { agency: { id: string; name: string }; services: ReturnType<typeof formatService>[] }>();
+	const agencyMap = new Map<string, { agency: { id: string; name: string; address?: string|null; phone?: string|null; website?: string|null; email?: string|null; postal_code?: string|null }; services: ReturnType<typeof formatService>[] }>();
 
 	for (const s of services) {
 		const agencyId = s.agency_id?.toString() ?? 'unknown';
 		const agencyName = s.agencies?.name ?? 'Tanpa Instansi';
 		if (!agencyMap.has(agencyId)) {
-			agencyMap.set(agencyId, { agency: { id: agencyId, name: agencyName }, services: [] });
+			agencyMap.set(agencyId, { 
+				agency: { 
+					id: agencyId, 
+					name: agencyName,
+					address: s.agencies?.address,
+					phone: s.agencies?.phone,
+					website: s.agencies?.website,
+					email: s.agencies?.email,
+					postal_code: s.agencies?.postal_code
+				}, 
+				services: [] 
+			});
 		}
 		agencyMap.get(agencyId)!.services.push(formatService(s));
 	}
@@ -70,7 +81,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 		const ownAgency = await db.agencies.findUnique({ where: { id: BigInt(authUser.agency_id) } });
 		if (ownAgency) {
 			agencyMap.set(ownAgency.id.toString(), {
-				agency: { id: ownAgency.id.toString(), name: ownAgency.name },
+				agency: { 
+					id: ownAgency.id.toString(), 
+					name: ownAgency.name,
+					address: ownAgency.address,
+					phone: ownAgency.phone,
+					website: ownAgency.website,
+					email: ownAgency.email,
+					postal_code: ownAgency.postal_code
+				},
 				services: []
 			});
 		}
@@ -94,6 +113,77 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	// Create new agency
+	create_agency: async ({ request }) => {
+		try {
+			const formData = await request.formData();
+			const name = formData.get('name')?.toString()?.trim();
+			const address = formData.get('address')?.toString()?.trim() || null;
+			const phone = formData.get('phone')?.toString()?.trim() || null;
+			const website = formData.get('website')?.toString()?.trim() || null;
+			const email = formData.get('email')?.toString()?.trim() || null;
+			const postal_code = formData.get('postal_code')?.toString()?.trim() || null;
+
+			if (!name) {
+				return fail(400, { error: 'Nama instansi wajib diisi.' });
+			}
+
+			await db.agencies.create({
+				data: {
+					name,
+					address,
+					phone,
+					website,
+					email,
+					postal_code,
+					created_at: new Date(),
+					updated_at: new Date()
+				}
+			});
+
+			return { success: true, message: 'Instansi berhasil ditambahkan.' };
+		} catch (e: any) {
+			console.error('Error create_agency:', e);
+			return fail(500, { error: 'Gagal membuat instansi: ' + (e.message || String(e)) });
+		}
+	},
+
+	// Update agency
+	update_agency: async ({ request }) => {
+		try {
+			const formData = await request.formData();
+			const id = formData.get('id')?.toString();
+			const name = formData.get('name')?.toString()?.trim();
+			const address = formData.get('address')?.toString()?.trim() || null;
+			const phone = formData.get('phone')?.toString()?.trim() || null;
+			const website = formData.get('website')?.toString()?.trim() || null;
+			const email = formData.get('email')?.toString()?.trim() || null;
+			const postal_code = formData.get('postal_code')?.toString()?.trim() || null;
+
+			if (!id || !name) {
+				return fail(400, { error: 'Data instansi tidak lengkap.' });
+			}
+
+			await db.agencies.update({
+				where: { id: BigInt(id) },
+				data: {
+					name,
+					address,
+					phone,
+					website,
+					email,
+					postal_code,
+					updated_at: new Date()
+				}
+			});
+
+			return { success: true, message: 'Profil instansi berhasil diperbarui.' };
+		} catch (e: any) {
+			console.error('Error update_agency:', e);
+			return fail(500, { error: 'Gagal memperbarui instansi: ' + (e.message || String(e)) });
+		}
+	},
+
 	// Create new service
 	create: async ({ request, locals }) => {
 		const user = (locals as any).user;

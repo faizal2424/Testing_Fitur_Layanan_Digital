@@ -24,13 +24,15 @@
 	let showCreateModal = $state(false);
 	let createAgencyId = $state(''); // which agency section triggered Tambah Layanan
 
-	// "Tambah Instansi" modal
-	let showAddAgencyModal = $state(false);
-	let selectedNewAgencyId = $state('');
+
 
 	// Edit / delete modal
 	let editingService = $state<any>(null);
 	let deletingService = $state<any>(null);
+
+	// Agency Modals
+	let editingAgency = $state<any>(null);
+	let creatingAgency = $state(false);
 
 	// Icon picker
 	const commonIcons = [
@@ -41,6 +43,10 @@
 	];
 	let selectedCreateIcon = $state('📄');
 	let selectedEditIcon = $state('');
+
+	const opdList = [
+		"Sekretariat Daerah","Sekretariat DPRD","Badan Perencanaan Pembangunan","Badan Kepegawaian dan Pengembangan Sumber Daya Manusia","Badan Penanggulangan Bencana Daerah","RSUD dr. Gunawan Mangunkusumo","RSUD dr. Gondo Suwarno","Badan Keuangan Daerah","Badan Kesatuan Bangsa dan Politik","Inspektorat Daerah","Satpol PP & Damkar","Dinas Kearsipan dan Perpustakaan","Dinas Lingkungan Hidup","Dinas Sosial","Dinas Tenaga Kerja","Dinas Pendidikan","Dinas Kesehatan","Dinas Pemberdayaan Perempuan","Dinas Penanaman Modal dan Pelayanan Terpadu Satu Pintu","Dinas Pemberdayaan Masyarakat dan Desa","Dinas Pekerjaan Umum","Dinas Kependudukan dan Pencatatan Sipil","Dinas Pertanian","Dinas Perhubungan","Dinas Komunikasi dan Informatika","Dinas Pariwisata","Dinas Koperasi","Kecamatan Ambarawa","Kecamatan Bancak","Kecamatan Bandungan","Kecamatan Banyubiru","Kecamatan Bawen","Kecamatan Bergas","Kecamatan Bringin","Kecamatan Getasan","Kecamatan Jambu","Kecamatan Kaliwungu","Kecamatan Pabelan","Kecamatan Pringapus","Kecamatan Sumowono","Kecamatan Suruh","Kecamatan Susukan","Kecamatan Tengaran","Kecamatan Tuntang","Kecamatan Ungaran Barat","Kecamatan Ungaran Timur","Lainnya"
+	];
 
 	// ── Reactivity ────────────────────────────────────────────────────────────
 
@@ -60,8 +66,8 @@
 			showCreateModal = false;
 			editingService = null;
 			deletingService = null;
-			showAddAgencyModal = false;
-			selectedNewAgencyId = '';
+			editingAgency = null;
+			creatingAgency = false;
 
 			if (form?.action === 'create' && form?.newId) {
 				goto(`/admin/layanan/${form.newId}/fields`);
@@ -92,28 +98,7 @@
 		deletingService = service;
 	}
 
-	// "Tambah Instansi" — add agency that isn't yet visible (state only, no DB call)
-	function confirmAddAgency() {
-		if (!selectedNewAgencyId) return;
-		const found = data.allAgencies.find((a) => a.id === selectedNewAgencyId);
-		if (!found) return;
-		// Push an empty section
-		localAgencies = [
-			...localAgencies,
-			{ agency: { id: found.id, name: found.name }, services: [] }
-		];
-		openSections[found.id] = true;
-		showAddAgencyModal = false;
-		selectedNewAgencyId = '';
-		// Immediately open create modal for that agency
-		openCreateFor(found.id);
-	}
 
-	// Agencies not yet in localAgencies
-	function hiddenAgencies() {
-		const visible = new Set(localAgencies.map((a) => a.agency.id));
-		return (data.allAgencies || []).filter((a) => !visible.has(a.id));
-	}
 
 	// ── Drag & Drop (per section) ─────────────────────────────────────────────
 
@@ -162,7 +147,7 @@
 			</p>
 		</div>
 		{#if data.isSuper}
-			<button class="btn btn-primary" onclick={() => (showAddAgencyModal = true)}>
+			<button class="btn btn-primary" onclick={() => (creatingAgency = true)}>
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
 				Tambah Instansi
 			</button>
@@ -224,6 +209,12 @@
 								<button class="btn btn-sm btn-ghost" onclick={() => { reorderModes[agencyId] = true; }}>
 									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
 									Atur Urutan
+								</button>
+							{/if}
+							{#if data.isSuper || (data.user as any)?.agency_id == agencyId}
+								<button class="btn btn-sm btn-secondary" onclick={() => { editingAgency = agencyGroup.agency; }}>
+									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+									Edit Instansi
 								</button>
 							{/if}
 							<button class="btn btn-sm btn-primary" onclick={() => openCreateFor(agencyId)}>
@@ -303,37 +294,119 @@
 	</div>
 </div>
 
-<!-- ── Modal: Tambah Instansi ─────────────────────────────────────────────── -->
-{#if showAddAgencyModal}
-	<div class="modal-overlay" onclick={() => { showAddAgencyModal = false; }} role="presentation">
-		<div class="modal modal-sm" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+<!-- ── Modal: Tambah Instansi Baru ────────────────────────────────────────── -->
+{#if creatingAgency}
+	<div class="modal-overlay" onclick={() => { creatingAgency = false; }} role="presentation">
+		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
 			<div class="modal-header">
 				<h3>Tambah Instansi</h3>
-				<button class="modal-close" onclick={() => { showAddAgencyModal = false; }} aria-label="Tutup">
+				<button class="modal-close" onclick={() => { creatingAgency = false; }} aria-label="Tutup">
 					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
-			<div class="modal-body">
-				<p class="modal-hint">Pilih instansi yang ingin ditambahkan ke halaman ini. Setelah itu Anda bisa menambahkan layanan di dalamnya.</p>
-				<div class="form-group">
-					<label for="new-agency-select">Instansi / OPD</label>
-					<select id="new-agency-select" class="form-control" bind:value={selectedNewAgencyId}>
-						<option value="">— Pilih instansi —</option>
-						{#each hiddenAgencies() as agency}
-							<option value={agency.id}>{agency.name}</option>
-						{/each}
-					</select>
-					{#if hiddenAgencies().length === 0}
-						<p class="hint-text">Semua instansi sudah ditampilkan.</p>
-					{/if}
+			<form method="POST" action="?/create_agency" use:enhance={() => {
+				return async ({ update }) => { await update({ reset: false }); };
+			}}>
+				<div class="modal-body">
+					<p class="modal-hint">Data ini akan digunakan sebagai kop surat otomatis pada bukti pengajuan layanan instansi.</p>
+					<div class="form-group">
+						<label for="c-agency-name">Nama Instansi *</label>
+						<select id="c-agency-name" name="name" required class="form-control">
+							<option value="">— Pilih OPD / Instansi —</option>
+							{#each opdList as opd}
+								<option value={opd}>{opd}</option>
+							{/each}
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="c-agency-address">Alamat</label>
+						<textarea id="c-agency-address" name="address" rows="2" placeholder="Contoh: Jl. Gatot Subroto No.104 A..."></textarea>
+					</div>
+					<div class="form-row" style="display: flex; gap: 1rem;">
+						<div class="form-group" style="flex: 1;">
+							<label for="c-agency-phone">No Telepon</label>
+							<input type="text" id="c-agency-phone" name="phone" placeholder="(024) 76901553" />
+						</div>
+						<div class="form-group" style="flex: 1;">
+							<label for="c-agency-email">Email</label>
+							<input type="email" id="c-agency-email" name="email" placeholder="kominfo@semarangkab.go.id" />
+						</div>
+					</div>
+					<div class="form-row" style="display: flex; gap: 1rem;">
+						<div class="form-group" style="flex: 1;">
+							<label for="c-agency-web">Website</label>
+							<input type="text" id="c-agency-web" name="website" placeholder="diskominfo.semarangkab.go.id" />
+						</div>
+						<div class="form-group" style="flex: 1;">
+							<label for="c-agency-postal">Kode Pos</label>
+							<input type="text" id="c-agency-postal" name="postal_code" placeholder="50517" />
+						</div>
+					</div>
 				</div>
-			</div>
-			<div class="modal-footer">
-				<button class="btn btn-secondary" onclick={() => { showAddAgencyModal = false; }}>Batal</button>
-				<button class="btn btn-primary" onclick={confirmAddAgency} disabled={!selectedNewAgencyId}>
-					Lanjut Tambah Layanan
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" onclick={() => { creatingAgency = false; }}>Batal</button>
+					<button type="submit" class="btn btn-primary">Simpan Instansi</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+<!-- ── Modal: Edit Instansi ───────────────────────────────────────────────── -->
+{#if editingAgency}
+	<div class="modal-overlay" onclick={() => { editingAgency = null; }} role="presentation">
+		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+			<div class="modal-header">
+				<h3>Edit Profil Instansi</h3>
+				<button class="modal-close" onclick={() => { editingAgency = null; }} aria-label="Tutup">
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
+			<form method="POST" action="?/update_agency" use:enhance={() => {
+				return async ({ update }) => { await update({ reset: false }); };
+			}}>
+				<input type="hidden" name="id" value={editingAgency.id} />
+				<div class="modal-body">
+					<p class="modal-hint">Data ini digunakan sebagai kop surat otomatis pada bukti pengajuan layanan.</p>
+					<div class="form-group">
+						<label for="u-agency-name">Nama Instansi *</label>
+						<select id="u-agency-name" name="name" required class="form-control" value={editingAgency.name}>
+							<option value="">— Pilih OPD / Instansi —</option>
+							{#each opdList as opd}
+								<option value={opd}>{opd}</option>
+							{/each}
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="u-agency-address">Alamat</label>
+						<textarea id="u-agency-address" name="address" rows="2">{editingAgency.address || ''}</textarea>
+					</div>
+					<div class="form-row" style="display: flex; gap: 1rem;">
+						<div class="form-group" style="flex: 1;">
+							<label for="u-agency-phone">No Telepon</label>
+							<input type="text" id="u-agency-phone" name="phone" value={editingAgency.phone || ''} />
+						</div>
+						<div class="form-group" style="flex: 1;">
+							<label for="u-agency-email">Email</label>
+							<input type="email" id="u-agency-email" name="email" value={editingAgency.email || ''} />
+						</div>
+					</div>
+					<div class="form-row" style="display: flex; gap: 1rem;">
+						<div class="form-group" style="flex: 1;">
+							<label for="u-agency-web">Website</label>
+							<input type="text" id="u-agency-web" name="website" value={editingAgency.website || ''} />
+						</div>
+						<div class="form-group" style="flex: 1;">
+							<label for="u-agency-postal">Kode Pos</label>
+							<input type="text" id="u-agency-postal" name="postal_code" value={editingAgency.postal_code || ''} />
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" onclick={() => { editingAgency = null; }}>Batal</button>
+					<button type="submit" class="btn btn-primary">Simpan Profil</button>
+				</div>
+			</form>
 		</div>
 	</div>
 {/if}
