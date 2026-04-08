@@ -53,8 +53,26 @@ export const load: PageServerLoad = async ({ locals }) => {
 		};
 	}
 
-	// Group services by agency — only agencies with ≥1 service are included
+	// Group services by agency
 	const agencyMap = new Map<string, { agency: { id: string; name: string; address?: string|null; phone?: string|null; website?: string|null; email?: string|null; postal_code?: string|null }; services: ReturnType<typeof formatService>[] }>();
+
+	// Add all agencies to map for superadmin so they can be viewed/edited even if empty
+	if (isSuper) {
+		for (const a of allAgenciesRaw) {
+			agencyMap.set(a.id.toString(), {
+				agency: {
+					id: a.id.toString(),
+					name: a.name,
+					address: a.address,
+					phone: a.phone,
+					website: a.website,
+					email: a.email,
+					postal_code: a.postal_code
+				},
+				services: []
+			});
+		}
+	}
 
 	for (const s of services) {
 		const agencyId = s.agency_id?.toString() ?? 'unknown';
@@ -181,6 +199,43 @@ export const actions: Actions = {
 		} catch (e: any) {
 			console.error('Error update_agency:', e);
 			return fail(500, { error: 'Gagal memperbarui instansi: ' + (e.message || String(e)) });
+		}
+	},
+
+	// Delete agency
+	delete_agency: async ({ request }) => {
+		try {
+			const formData = await request.formData();
+			const id = formData.get('id')?.toString();
+
+			if (!id) {
+				return fail(400, { error: 'ID instansi tidak valid.' });
+			}
+
+			// Prevent deletion if connected to services
+			const servicesCount = await db.services.count({
+				where: { agency_id: BigInt(id) }
+			});
+			if (servicesCount > 0) {
+				return fail(400, { error: `Tidak bisa menghapus Instansi. Terdapat ${servicesCount} layanan aktif.` });
+			}
+
+			// Prevent deletion if connected to users
+			const usersCount = await db.users.count({
+				where: { agency_id: BigInt(id) }
+			});
+			if (usersCount > 0) {
+				return fail(400, { error: `Tidak bisa menghapus Instansi. Terdapat ${usersCount} akun admin (OPD) yang terdaftar.` });
+			}
+
+			await db.agencies.delete({
+				where: { id: BigInt(id) }
+			});
+
+			return { success: true, message: 'Instansi berhasil dihapus.' };
+		} catch (e: any) {
+			console.error('Error delete_agency:', e);
+			return fail(500, { error: 'Gagal menghapus instansi: ' + (e.message || String(e)) });
 		}
 	},
 

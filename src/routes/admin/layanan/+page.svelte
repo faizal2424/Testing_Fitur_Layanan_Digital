@@ -33,6 +33,7 @@
 	// Agency Modals
 	let editingAgency = $state<any>(null);
 	let creatingAgency = $state(false);
+	let deletingAgency = $state<any>(null);
 
 	// Icon picker
 	const commonIcons = [
@@ -68,6 +69,7 @@
 			deletingService = null;
 			editingAgency = null;
 			creatingAgency = false;
+			deletingAgency = null;
 
 			if (form?.action === 'create' && form?.newId) {
 				goto(`/admin/layanan/${form.newId}/fields`);
@@ -209,6 +211,11 @@
 								<button class="btn btn-sm btn-ghost" onclick={() => { reorderModes[agencyId] = true; }}>
 									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
 									Atur Urutan
+								</button>
+							{/if}
+							{#if data.isSuper}
+								<button class="btn btn-sm btn-danger" onclick={() => { deletingAgency = agencyGroup.agency; }} aria-label="Hapus Instansi">
+									<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
 								</button>
 							{/if}
 							{#if data.isSuper || (data.user as any)?.agency_id == agencyId}
@@ -405,6 +412,37 @@
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" onclick={() => { editingAgency = null; }}>Batal</button>
 					<button type="submit" class="btn btn-primary">Simpan Profil</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+<!-- ── Modal: Hapus Instansi ──────────────────────────────────────────────── -->
+{#if deletingAgency}
+	<div class="modal-overlay" onclick={() => { deletingAgency = null; }} role="presentation">
+		<div class="modal modal-sm" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+			<div class="modal-header">
+				<h3>Hapus Instansi</h3>
+				<button class="modal-close" onclick={() => { deletingAgency = null; }} aria-label="Tutup">
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+				</button>
+			</div>
+			<form method="POST" action="?/delete_agency" use:enhance={() => {
+				return async ({ update }) => { await update(); };
+			}}>
+				<input type="hidden" name="id" value={deletingAgency.id} />
+				<div class="modal-body">
+					<p class="confirm-text">
+						Apakah Anda yakin ingin menghapus Instansi <strong>"{deletingAgency.name}"</strong>?
+					</p>
+					<div class="alert alert-error" style="margin-top: 0.75rem;">
+						Tindakan ini tidak bisa dibatalkan. Pastikan instansi ini tidak memiliki layanan aktif atau pengguna yang terikat.
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" onclick={() => { deletingAgency = null; }}>Batal</button>
+					<button type="submit" class="btn btn-danger">Hapus Instansi</button>
 				</div>
 			</form>
 		</div>
