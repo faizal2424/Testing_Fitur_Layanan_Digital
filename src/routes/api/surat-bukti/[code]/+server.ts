@@ -123,60 +123,64 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         const FH = 'Helvetica';
         const FHB = 'Helvetica-Bold';
 
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        //  HEADER — Official Letterhead
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        const logoWidth = 62;
-        const hGap = 20; 
+        // Logo proporsional, ditempatkan di kiri
+        const logoWidth = 78;
+        const logoX = ML; // Mulai dari margin kiri (50)
+        const headerTopY = 25;
+        const hGap = 15;
 
-        const l1 = 'PEMERINTAH KABUPATEN SEMARANG';
+        const l1 = 'PEMERINTAH DAERAH KABUPATEN SEMARANG';
         const l2 = 'DINAS KOMUNIKASI DAN INFORMATIKA';
-        const l3 = 'Gedung Sekretariat Daerah Kabupaten Semarang';
-        const l4 = 'Jl. Diponegoro No. 14, Ungaran, Kab. Semarang 50511';
-        const l5 = 'Situs web: www.semarangkab.go.id | Email: diskominfo@semarangkab.go.id';
+        const l3 = 'Alamat : Jl. Gatot Subroto No.104 A, Cirebonan, Bandarjo, Kec. Ungaran Barat Kabupaten';
+        const l4 = 'Semarang, Jawa Tengah';
+        const l5 = 'No. Tlp: (024) 76901553';
+        const l6 = 'Website : diskominfo.semarangkab.go.id,E-mail :  kominfo@semarangkab.go.id';
+        const l7 = 'Kode pos : 50517';
 
-        doc.font(FB).fontSize(14);
-        const w1 = doc.widthOfString(l1);
-        doc.font(FB).fontSize(16);
-        const w2 = doc.widthOfString(l2);
-        doc.font(F).fontSize(9);
-        const w3 = doc.widthOfString(l3);
-        const w4 = doc.widthOfString(l4);
-        const w5 = doc.widthOfString(l5);
-
-        const maxTextWidth = Math.max(w1, w2, w3, w4, w5);
-        const totalHeaderWidth = logoWidth + hGap + maxTextWidth;
-        const hStartX = ML + (CW - totalHeaderWidth) / 2;
-        const textStartX = hStartX + logoWidth + hGap;
+        // Area teks dimulai setelah logo
+        const textStartX = logoX + logoWidth + hGap;
+        const availableTextW = CW - logoWidth - hGap;
 
         // Logo
         const logoPath = join(process.cwd(), 'static', 'img', 'logokabsmg.png');
         try {
             const logoData = readFileSync(logoPath);
-            doc.image(logoData, hStartX, 32, { width: logoWidth });
+            doc.image(logoData, logoX, headerTopY, { width: logoWidth });
         } catch {}
 
-        // Header Text
-        let y = 34;
+        // Teks dipusatkan dalam area yang tersedia di sebelah kanan logo
+        let y = headerTopY + 2;
         doc.fillColor(COLORS.primary).font(FB).fontSize(14);
-        doc.text(l1, textStartX + (maxTextWidth - w1) / 2, y);
+        doc.text(l1, textStartX, y, { width: availableTextW, align: 'center' });
+        
         y += 18;
-        doc.fillColor(COLORS.primary).font(FB).fontSize(16);
-        doc.text(l2, textStartX + (maxTextWidth - w2) / 2, y);
-        y += 22;
-        doc.fillColor(COLORS.primary).font(F).fontSize(9);
-        doc.text(l3, textStartX + (maxTextWidth - w3) / 2, y);
-        y += 12;
-        doc.text(l4, textStartX + (maxTextWidth - w4) / 2, y);
-        y += 12;
-        doc.text(l5, textStartX + (maxTextWidth - w5) / 2, y);
+        doc.fillColor(COLORS.primary).font(FB).fontSize(20);
+        doc.text(l2, textStartX, y, { width: availableTextW, align: 'center' });
+        
+        y += 24;
+        doc.fillColor(COLORS.primary).font(F).fontSize(9.5);
+        doc.text(l3, textStartX, y, { width: availableTextW, align: 'center' });
+        
+        y += 11;
+        doc.text(l4, textStartX, y, { width: availableTextW, align: 'center' });
+        
+        y += 11;
+        doc.text(l5, textStartX, y, { width: availableTextW, align: 'center' });
+        
+        y += 11;
+        doc.text(l6, textStartX, y, { width: availableTextW, align: 'center' });
+        
+        y += 11;
+        doc.text(l7, textStartX, y, { width: availableTextW, align: 'center' });
 
         // Official Double Line
-        y += 18;
+        y += 20;
         doc.save().moveTo(ML, y).lineTo(PW - MR, y).lineWidth(2).strokeColor(COLORS.black).stroke();
-        doc.moveTo(ML, y + 3).lineTo(PW - MR, y + 3).lineWidth(0.5).strokeColor(COLORS.black).stroke().restore();
+        doc.moveTo(ML, y + 2.5).lineTo(PW - MR, y + 2.5).lineWidth(0.5).strokeColor(COLORS.black).stroke().restore();
 
         y += 25;
+
+
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         //  TITLE & TRACKING CODE SECTION
