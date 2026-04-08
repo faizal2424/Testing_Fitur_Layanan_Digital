@@ -184,17 +184,14 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
         doc.fillColor(COLORS.primary).font(FHB).fontSize(16);
         doc.text('TANDA TERIMA PENGAJUAN LAYANAN', ML, y, { width: CW, align: 'center' });
         
-        y += 20;
-        doc.fillColor(COLORS.accent).font(FB).fontSize(10);
-        doc.text('Bukti Resmi Pengajuan Digital APTIKA', ML, y, { width: CW, align: 'center' });
-        
-        y += 25;
+        y += 36;
 
         // ── Highlight Summary Box ──
         const summaryY = y;
         
         // Top separator line for summary
         doc.save();
+        doc.rect(ML, summaryY, CW, 45).fillColor('#F5F5F5').fill();
         doc.moveTo(ML, summaryY).lineTo(PW - MR, summaryY).lineWidth(0.5).strokeColor(COLORS.black).stroke();
         doc.restore();
 
@@ -250,6 +247,7 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
 
         for (const [label, value] of infoRows) {
             doc.save();
+            doc.rect(ML, y, CW, rowH).fillColor('#F5F5F5').fill();
             doc.rect(ML, y, CW, rowH).lineWidth(0.5).strokeColor(COLORS.border).stroke();
             doc.moveTo(ML + colLabel, y).lineTo(ML + colLabel, y + rowH).stroke();
             doc.restore();
@@ -278,17 +276,7 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
             doc.text('Rincian Data Isian Formulir', ML, y);
             y += 15;
 
-            // Table Header
-            doc.save();
-            doc.rect(ML, y, CW, 20).fillColor(COLORS.bgHeader).fill();
-            doc.rect(ML, y, CW, 20).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
-            doc.moveTo(ML + colLabel, y).lineTo(ML + colLabel, y + 20).stroke();
-            doc.restore();
 
-            doc.fillColor(COLORS.primary).font(FB).fontSize(9);
-            doc.text('Nama Field / Atribut', ML + padX, y + 6);
-            doc.text('Data Isian', ML + colLabel + padX, y + 6);
-            y += 20;
 
             for (let i = 0; i < fieldValues.length; i++) {
                 const sv = fieldValues[i];
@@ -302,19 +290,10 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
                 if (y + cellH > PH - 180) {
                     addPage();
                     y = 50;
-                    // Redraw header on new page
-                    doc.save();
-                    doc.rect(ML, y, CW, 20).fillColor(COLORS.bgHeader).fill();
-                    doc.rect(ML, y, CW, 20).lineWidth(0.8).strokeColor(COLORS.primary).stroke();
-                    doc.moveTo(ML + colLabel, y).lineTo(ML + colLabel, y + 20).stroke();
-                    doc.restore();
-                    doc.fillColor(COLORS.primary).font(FB).fontSize(9);
-                    doc.text('Nama Field / Atribut (Lanjutan)', ML + padX, y + 6);
-                    y += 20;
                 }
 
                 doc.save();
-                if (i % 2 === 1) doc.rect(ML, y, CW, cellH).fillColor(COLORS.bgAlt).fill();
+                doc.rect(ML, y, CW, cellH).fillColor('#F5F5F5').fill();
                 doc.rect(ML, y, CW, cellH).lineWidth(0.5).strokeColor(COLORS.border).stroke();
                 doc.moveTo(ML + colLabel, y).lineTo(ML + colLabel, y + cellH).stroke();
                 doc.restore();
