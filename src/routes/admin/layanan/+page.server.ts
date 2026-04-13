@@ -146,6 +146,15 @@ export const actions: Actions = {
 				return fail(400, { error: 'Nama instansi wajib diisi.' });
 			}
 
+			// Check if agency with the same name already exists
+			const existing = await db.agencies.findFirst({
+				where: { name: name }
+			});
+
+			if (existing) {
+				return fail(400, { error: `Instansi dengan nama "${name}" sudah terdaftar.` });
+			}
+
 			await db.agencies.create({
 				data: {
 					name,
@@ -180,6 +189,18 @@ export const actions: Actions = {
 
 			if (!id || !name) {
 				return fail(400, { error: 'Data instansi tidak lengkap.' });
+			}
+
+			// Check if another agency with the same name already exists
+			const existing = await db.agencies.findFirst({
+				where: { 
+					name: name,
+					id: { not: BigInt(id) }
+				}
+			});
+
+			if (existing) {
+				return fail(400, { error: `Instansi dengan nama "${name}" sudah terdaftar.` });
 			}
 
 			await db.agencies.update({
