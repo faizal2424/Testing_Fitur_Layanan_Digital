@@ -12,8 +12,15 @@ export const load: PageServerLoad = async () => {
         }
     });
 
+    const allAgencies = await db.agencies.findMany({
+        orderBy: { name: 'asc' }
+    });
+
     return { 
         listLayanan: JSON.parse(JSON.stringify(listLayanan, (key, value) =>
+            typeof value === 'bigint' ? value.toString() : value
+        )),
+        allAgencies: JSON.parse(JSON.stringify(allAgencies, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value
         ))
     };
