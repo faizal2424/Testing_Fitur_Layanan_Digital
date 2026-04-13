@@ -20,14 +20,23 @@
 
   // Mengelompokkan berdasarkan instansi
   let groupedLayanan: Record<string, any[]> = {};
-  $: groupedLayanan = filteredLayanan.reduce((groups: Record<string, any[]>, l: any) => {
-    const agencyName = l.agencies?.name || 'Layanan Umum (Semua Instansi)';
-    if (!groups[agencyName]) {
-      groups[agencyName] = [];
+  $: {
+    const initGroups: Record<string, any[]> = {};
+    if (searchQuery.trim() === '') {
+      for (const a of data.allAgencies || []) {
+        initGroups[a.name] = [];
+      }
     }
-    groups[agencyName].push(l);
-    return groups;
-  }, {});
+
+    groupedLayanan = filteredLayanan.reduce((groups: Record<string, any[]>, l: any) => {
+      const agencyName = l.agencies?.name || 'Layanan Umum (Semua Instansi)';
+      if (!groups[agencyName]) {
+        groups[agencyName] = [];
+      }
+      groups[agencyName].push(l);
+      return groups;
+    }, initGroups);
+  }
 
   const STATUS_FLOW = [
     { key: 'baru', label: 'Diterima' },

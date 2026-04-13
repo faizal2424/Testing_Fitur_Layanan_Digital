@@ -281,6 +281,11 @@ export const actions: Actions = {
 			}
 		});
 
+		// Fetch all agencies for dynamic OPD dropdown
+		const daftarOpd = await db.agencies.findMany({ select: { name: true }, orderBy: { name: 'asc' }});
+		const arrayOpd = daftarOpd.map(opd => opd.name);
+		arrayOpd.push("Lainnya");
+
 		// Add default form fields
 		const defaultFields = [
 			{ 
@@ -298,9 +303,7 @@ export const actions: Actions = {
 				is_required: true, 
 				order: 2,
 				placeholder: 'Pilih OPD',
-				options: JSON.stringify([
-					"Sekretariat Daerah","Sekretariat DPRD","Badan Perencanaan Pembangunan","Badan Kepegawaian dan Pengembangan Sumber Daya Manusia","Badan Penanggulangan Bencana Daerah","RSUD dr. Gunawan Mangunkusumo","RSUD dr. Gondo Suwarno","Badan Keuangan Daerah","Badan Kesatuan Bangsa dan Politik","Inspektorat Daerah","Satpol PP & Damkar","Dinas Kearsipan dan Perpustakaan","Dinas Lingkungan Hidup","Dinas Sosial","Dinas Tenaga Kerja","Dinas Pendidikan","Dinas Kesehatan","Dinas Pemberdayaan Perempuan","Dinas Penanaman Modal dan Pelayanan Terpadu Satu Pintu","Dinas Pemberdayaan Masyarakat dan Desa","Dinas Pekerjaan Umum","Dinas Kependudukan dan Pencatatan Sipil","Dinas Pertanian","Dinas Perhubungan","Dinas Komunikasi dan Informatika","Dinas Pariwisata","Dinas Koperasi","Kecamatan Ambarawa","Kecamatan Bancak","Kecamatan Bandungan","Kecamatan Banyubiru","Kecamatan Bawen","Kecamatan Bergas","Kecamatan Bringin","Kecamatan Getasan","Kecamatan Jambu","Kecamatan Kaliwungu","Kecamatan Pabelan","Kecamatan Pringapus","Kecamatan Sumowono","Kecamatan Suruh","Kecamatan Susukan","Kecamatan Tengaran","Kecamatan Tuntang","Kecamatan Ungaran Barat","Kecamatan Ungaran Timur","Lainnya"
-				])
+				options: JSON.stringify(arrayOpd)
 			},
 			{ 
 				label: 'No WhatsApp', 
