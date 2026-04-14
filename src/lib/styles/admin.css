@@ -350,6 +350,10 @@
 .status-badge.indigo,
 .role-badge.indigo { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }
 
+.status-chip.violet,
+.status-badge.violet,
+.role-badge.violet { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
+
 .status-chip.orange,
 .status-badge.orange,
 .role-badge.orange { background: #fff7ed; color: #ea580c; border-color: #fed7aa; }
