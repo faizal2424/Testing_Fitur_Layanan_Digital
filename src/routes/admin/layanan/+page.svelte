@@ -53,10 +53,10 @@
 
 	$effect(() => {
 		localAgencies = data.agenciesWithServices.map((a) => ({ ...a, services: [...a.services] }));
-		// Default all sections open
+		// Default all sections closed
 		for (const a of data.agenciesWithServices) {
 			if (openSections[a.agency.id] === undefined) {
-				openSections[a.agency.id] = true;
+				openSections[a.agency.id] = false;
 			}
 		}
 	});
