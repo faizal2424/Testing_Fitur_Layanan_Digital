@@ -5,7 +5,7 @@
       <!-- About Column -->
       <div class="space-y-5">
         <div class="flex items-center gap-3">
-          <img src="/img/kabupatensemarang.png" alt="Logo" class="h-8 brightness-0 invert opacity-80" />
+          <img src="/img/kabupatensemarang.png" alt="Logo" class="h-10 drop-shadow-sm" />
           <span class="text-white font-bold text-lg tracking-tight">Layanan Digital</span>
         </div>
         <p class="text-sm leading-relaxed text-slate-400">
