@@ -4,6 +4,13 @@
 	import { toast } from '$lib/stores/toast';
 	import { goto } from '$app/navigation';
 
+	import AgencyCreateModal from '$lib/components/admin/modals/AgencyCreateModal.svelte';
+	import AgencyEditModal from '$lib/components/admin/modals/AgencyEditModal.svelte';
+	import AgencyDeleteModal from '$lib/components/admin/modals/AgencyDeleteModal.svelte';
+	import ServiceCreateModal from '$lib/components/admin/modals/ServiceCreateModal.svelte';
+	import ServiceEditModal from '$lib/components/admin/modals/ServiceEditModal.svelte';
+	import ServiceDeleteModal from '$lib/components/admin/modals/ServiceDeleteModal.svelte';
+
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	// ── State ──────────────────────────────────────────────────────────────────
@@ -35,15 +42,12 @@
 	let creatingAgency = $state(false);
 	let deletingAgency = $state<any>(null);
 
-	// Icon picker
 	const commonIcons = [
 		'🏛️', '⚖️', '📜', '🗳️', '📄', '📝', '📁', '📋', '🛂', '🆔',
 		'👤', '👥', '🏢', '🏠', '🏥', '🏫', '🛠️', '🏗️', '🚜', '⚙️',
 		'💻', '🖥️', '⌨️', '🖱️', '💾', '🌐', '📱', '📡', '🔌', '🔋',
 		'✉️', '📞', '📢', '🔔', '🔒', '🔑', '🛡️', '💰', '💳', '🚀'
 	];
-	let selectedCreateIcon = $state('📄');
-	let selectedEditIcon = $state('');
 
 	const opdList = [
 		"Sekretariat Daerah","Sekretariat DPRD","Badan Perencanaan Pembangunan","Badan Kepegawaian dan Pengembangan Sumber Daya Manusia","Badan Penanggulangan Bencana Daerah","RSUD dr. Gunawan Mangunkusumo","RSUD dr. Gondo Suwarno","Badan Keuangan Daerah","Badan Kesatuan Bangsa dan Politik","Inspektorat Daerah","Satpol PP & Damkar","Dinas Kearsipan dan Perpustakaan","Dinas Lingkungan Hidup","Dinas Sosial","Dinas Tenaga Kerja","Dinas Pendidikan","Dinas Kesehatan","Dinas Pemberdayaan Perempuan","Dinas Penanaman Modal dan Pelayanan Terpadu Satu Pintu","Dinas Pemberdayaan Masyarakat dan Desa","Dinas Pekerjaan Umum","Dinas Kependudukan dan Pencatatan Sipil","Dinas Pertanian","Dinas Perhubungan","Dinas Komunikasi dan Informatika","Dinas Pariwisata","Dinas Koperasi","Kecamatan Ambarawa","Kecamatan Bancak","Kecamatan Bandungan","Kecamatan Banyubiru","Kecamatan Bawen","Kecamatan Bergas","Kecamatan Bringin","Kecamatan Getasan","Kecamatan Jambu","Kecamatan Kaliwungu","Kecamatan Pabelan","Kecamatan Pringapus","Kecamatan Sumowono","Kecamatan Suruh","Kecamatan Susukan","Kecamatan Tengaran","Kecamatan Tuntang","Kecamatan Ungaran Barat","Kecamatan Ungaran Timur","Lainnya"
@@ -85,15 +89,13 @@
 		openSections[agencyId] = !openSections[agencyId];
 	}
 
-	function openCreateFor(agencyId: string) {
-		createAgencyId = agencyId;
-		selectedCreateIcon = '📄';
+	function openCreate(agency_id: string = '') {
+		createAgencyId = agency_id;
 		showCreateModal = true;
 	}
 
 	function openEdit(service: any) {
 		editingService = { ...service };
-		selectedEditIcon = service.icon || '📄';
 	}
 
 	function openDelete(service: any) {
@@ -224,7 +226,7 @@
 									Edit Instansi
 								</button>
 							{/if}
-							<button class="btn btn-sm btn-primary" onclick={() => openCreateFor(agencyId)}>
+							<button class="btn btn-sm btn-primary" onclick={() => openCreate(agencyId)}>
 								<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 								Tambah Layanan
 							</button>
@@ -301,314 +303,53 @@
 	</div>
 </div>
 
-<!-- ── Modal: Tambah Instansi Baru ────────────────────────────────────────── -->
+<!-- ── Modals ────────────────────────────────────────────────────────────── -->
 {#if creatingAgency}
-	<div class="modal-overlay" onclick={() => { creatingAgency = false; }} role="presentation">
-		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-			<div class="modal-header">
-				<h3>Tambah Instansi</h3>
-				<button class="modal-close" onclick={() => { creatingAgency = false; }} aria-label="Tutup">
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-				</button>
-			</div>
-			<form method="POST" action="?/create_agency" use:enhance={() => {
-				return async ({ update }) => { await update({ reset: false }); };
-			}}>
-				<div class="modal-body">
-					<p class="modal-hint">Data ini akan digunakan sebagai kop surat otomatis pada bukti pengajuan layanan instansi.</p>
-					<div class="form-group">
-						<label for="c-agency-name">Nama Instansi *</label>
-						<select id="c-agency-name" name="name" required class="form-control">
-							<option value="">— Pilih OPD / Instansi —</option>
-							{#each opdList as opd}
-								<option value={opd}>{opd}</option>
-							{/each}
-						</select>
-					</div>
-					<div class="form-group">
-						<label for="c-agency-address">Alamat</label>
-						<textarea id="c-agency-address" name="address" rows="2" placeholder="Contoh: Jl. Gatot Subroto No.104 A..."></textarea>
-					</div>
-					<div class="form-row" style="display: flex; gap: 1rem;">
-						<div class="form-group" style="flex: 1;">
-							<label for="c-agency-phone">No Telepon</label>
-							<input type="text" id="c-agency-phone" name="phone" placeholder="(024) 76901553" />
-						</div>
-						<div class="form-group" style="flex: 1;">
-							<label for="c-agency-email">Email</label>
-							<input type="email" id="c-agency-email" name="email" placeholder="kominfo@semarangkab.go.id" />
-						</div>
-					</div>
-					<div class="form-row" style="display: flex; gap: 1rem;">
-						<div class="form-group" style="flex: 1;">
-							<label for="c-agency-web">Website</label>
-							<input type="text" id="c-agency-web" name="website" placeholder="diskominfo.semarangkab.go.id" />
-						</div>
-						<div class="form-group" style="flex: 1;">
-							<label for="c-agency-postal">Kode Pos</label>
-							<input type="text" id="c-agency-postal" name="postal_code" placeholder="50517" />
-						</div>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={() => { creatingAgency = false; }}>Batal</button>
-					<button type="submit" class="btn btn-primary">Simpan Instansi</button>
-				</div>
-			</form>
-		</div>
-	</div>
+	<AgencyCreateModal
+		{opdList}
+		onClose={() => { creatingAgency = false; }}
+	/>
 {/if}
 
-<!-- ── Modal: Edit Instansi ───────────────────────────────────────────────── -->
 {#if editingAgency}
-	<div class="modal-overlay" onclick={() => { editingAgency = null; }} role="presentation">
-		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-			<div class="modal-header">
-				<h3>Edit Profil Instansi</h3>
-				<button class="modal-close" onclick={() => { editingAgency = null; }} aria-label="Tutup">
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-				</button>
-			</div>
-			<form method="POST" action="?/update_agency" use:enhance={() => {
-				return async ({ update }) => { await update({ reset: false }); };
-			}}>
-				<input type="hidden" name="id" value={editingAgency.id} />
-				<div class="modal-body">
-					<p class="modal-hint">Data ini digunakan sebagai kop surat otomatis pada bukti pengajuan layanan.</p>
-					<div class="form-group">
-						<label for="u-agency-name">Nama Instansi *</label>
-						<select id="u-agency-name" name="name" required class="form-control" value={editingAgency.name}>
-							<option value="">— Pilih OPD / Instansi —</option>
-							{#each opdList as opd}
-								<option value={opd}>{opd}</option>
-							{/each}
-						</select>
-					</div>
-					<div class="form-group">
-						<label for="u-agency-address">Alamat</label>
-						<textarea id="u-agency-address" name="address" rows="2">{editingAgency.address || ''}</textarea>
-					</div>
-					<div class="form-row" style="display: flex; gap: 1rem;">
-						<div class="form-group" style="flex: 1;">
-							<label for="u-agency-phone">No Telepon</label>
-							<input type="text" id="u-agency-phone" name="phone" value={editingAgency.phone || ''} />
-						</div>
-						<div class="form-group" style="flex: 1;">
-							<label for="u-agency-email">Email</label>
-							<input type="email" id="u-agency-email" name="email" value={editingAgency.email || ''} />
-						</div>
-					</div>
-					<div class="form-row" style="display: flex; gap: 1rem;">
-						<div class="form-group" style="flex: 1;">
-							<label for="u-agency-web">Website</label>
-							<input type="text" id="u-agency-web" name="website" value={editingAgency.website || ''} />
-						</div>
-						<div class="form-group" style="flex: 1;">
-							<label for="u-agency-postal">Kode Pos</label>
-							<input type="text" id="u-agency-postal" name="postal_code" value={editingAgency.postal_code || ''} />
-						</div>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={() => { editingAgency = null; }}>Batal</button>
-					<button type="submit" class="btn btn-primary">Simpan Profil</button>
-				</div>
-			</form>
-		</div>
-	</div>
+	<AgencyEditModal
+		agency={editingAgency}
+		{opdList}
+		onClose={() => { editingAgency = null; }}
+	/>
 {/if}
 
-<!-- ── Modal: Hapus Instansi ──────────────────────────────────────────────── -->
 {#if deletingAgency}
-	<div class="modal-overlay" onclick={() => { deletingAgency = null; }} role="presentation">
-		<div class="modal modal-sm" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-			<div class="modal-header">
-				<h3>Hapus Instansi</h3>
-				<button class="modal-close" onclick={() => { deletingAgency = null; }} aria-label="Tutup">
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-				</button>
-			</div>
-			<form method="POST" action="?/delete_agency" use:enhance={() => {
-				return async ({ update }) => { await update(); };
-			}}>
-				<input type="hidden" name="id" value={deletingAgency.id} />
-				<div class="modal-body">
-					<p class="confirm-text">
-						Apakah Anda yakin ingin menghapus Instansi <strong>"{deletingAgency.name}"</strong>?
-					</p>
-					<div class="alert alert-error" style="margin-top: 0.75rem;">
-						Tindakan ini tidak bisa dibatalkan. Pastikan instansi ini tidak memiliki layanan aktif atau pengguna yang terikat.
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={() => { deletingAgency = null; }}>Batal</button>
-					<button type="submit" class="btn btn-danger">Hapus Instansi</button>
-				</div>
-			</form>
-		</div>
-	</div>
+	<AgencyDeleteModal
+		agency={deletingAgency}
+		onClose={() => { deletingAgency = null; }}
+	/>
 {/if}
 
-<!-- ── Modal: Tambah Layanan ──────────────────────────────────────────────── -->
 {#if showCreateModal}
-	<div class="modal-overlay" onclick={() => { showCreateModal = false; }} role="presentation">
-		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-			<div class="modal-header">
-				<h3>Tambah Layanan Baru</h3>
-				<button class="modal-close" onclick={() => { showCreateModal = false; }} aria-label="Tutup">
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-				</button>
-			</div>
-			<form method="POST" action="?/create" use:enhance={() => {
-				return async ({ update }) => { await update({ reset: false }); };
-			}}>
-				<!-- Hidden: agency_id from the section that triggered this modal -->
-				<input type="hidden" name="agency_id" value={createAgencyId} />
-
-				<div class="modal-body">
-					<!-- Agency info chip -->
-					{#if createAgencyId}
-						{@const agencyName = localAgencies.find(a => a.agency.id === createAgencyId)?.agency.name ?? ''}
-						<div class="agency-chip">
-							<span>🏛️</span>
-							<span>{agencyName}</span>
-						</div>
-					{/if}
-
-					<div class="form-group">
-						<label for="create-name">Nama Layanan *</label>
-						<input type="text" id="create-name" name="name" required placeholder="Contoh: Fasilitasi Zoom" />
-					</div>
-					<div class="form-group">
-						<div class="icon-selector-premium">
-							<div class="selection-preview">
-								<div class="preview-box">
-									<span class="preview-emoji">{selectedCreateIcon || '❓'}</span>
-								</div>
-								<div class="preview-info">
-									<label for="create-icon">Ikon Terpilih</label>
-									<input type="text" id="create-icon" name="icon" bind:value={selectedCreateIcon} placeholder="Pilih atau ketik..." class="manual-input-premium" maxlength="5" />
-								</div>
-							</div>
-							<div class="icon-grid-scroll">
-								<div class="icon-grid">
-									{#each commonIcons as icon}
-										<button type="button" class="icon-item-btn" class:active={selectedCreateIcon === icon} onclick={() => selectedCreateIcon = icon}>{icon}</button>
-									{/each}
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="form-group">
-						<label for="create-requirements">Persyaratan</label>
-						<textarea id="create-requirements" name="requirements" rows="4" placeholder="Tuliskan persyaratan layanan..."></textarea>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={() => { showCreateModal = false; }}>Batal</button>
-					<button type="submit" class="btn btn-primary">Simpan</button>
-				</div>
-			</form>
-		</div>
-	</div>
+	<ServiceCreateModal
+		agencyId={createAgencyId}
+		agencyName={localAgencies.find(a => a.agency.id === createAgencyId)?.agency.name ?? ''}
+		{commonIcons}
+		onClose={() => { showCreateModal = false; }}
+	/>
 {/if}
 
-<!-- ── Modal: Edit Layanan ────────────────────────────────────────────────── -->
 {#if editingService}
-	<div class="modal-overlay" onclick={() => { editingService = null; }} role="presentation">
-		<div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-			<div class="modal-header">
-				<h3>Edit Layanan</h3>
-				<button class="modal-close" onclick={() => { editingService = null; }} aria-label="Tutup">
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-				</button>
-			</div>
-			<form method="POST" action="?/update" use:enhance={() => {
-				return async ({ update }) => { await update({ reset: false }); };
-			}}>
-				<input type="hidden" name="id" value={editingService.id} />
-				<div class="modal-body">
-					{#if data.isSuper}
-						<div class="form-group">
-							<label for="edit-agency">Instansi / OPD</label>
-							<select id="edit-agency" name="agency_id" class="form-control"
-								value={data.allAgencies.find(a => a.id === editingService.agency_id)?.id || ''}>
-								<option value="">Pilih Instansi...</option>
-								{#each data.allAgencies as agency}
-									<option value={agency.id}>{agency.name}</option>
-								{/each}
-							</select>
-						</div>
-					{/if}
-					<div class="form-group">
-						<label for="edit-name">Nama Layanan *</label>
-						<input type="text" id="edit-name" name="name" required value={editingService.name} />
-					</div>
-					<div class="form-group">
-						<div class="icon-selector-premium">
-							<div class="selection-preview">
-								<div class="preview-box">
-									<span class="preview-emoji">{selectedEditIcon || '❓'}</span>
-								</div>
-								<div class="preview-info">
-									<label for="edit-icon">Ikon Terpilih</label>
-									<input type="text" id="edit-icon" name="icon" bind:value={selectedEditIcon} placeholder="Pilih atau ketik..." class="manual-input-premium" maxlength="5" />
-								</div>
-							</div>
-							<div class="icon-grid-scroll">
-								<div class="icon-grid">
-									{#each commonIcons as icon}
-										<button type="button" class="icon-item-btn" class:active={selectedEditIcon === icon} onclick={() => selectedEditIcon = icon}>{icon}</button>
-									{/each}
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="form-group">
-						<label for="edit-requirements">Persyaratan</label>
-						<textarea id="edit-requirements" name="requirements" rows="4">{editingService.requirements || ''}</textarea>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={() => { editingService = null; }}>Batal</button>
-					<button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-				</div>
-			</form>
-		</div>
-	</div>
+	<ServiceEditModal
+		service={editingService}
+		isSuper={data.isSuper}
+		allAgencies={data.allAgencies}
+		{commonIcons}
+		onClose={() => { editingService = null; }}
+	/>
 {/if}
 
-<!-- ── Modal: Hapus Layanan ───────────────────────────────────────────────── -->
 {#if deletingService}
-	<div class="modal-overlay" onclick={() => { deletingService = null; }} role="presentation">
-		<div class="modal modal-sm" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
-			<div class="modal-header">
-				<h3>Hapus Layanan</h3>
-				<button class="modal-close" onclick={() => { deletingService = null; }} aria-label="Tutup">
-					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-				</button>
-			</div>
-			<form method="POST" action="?/delete" use:enhance={() => {
-				return async ({ update }) => { await update(); };
-			}}>
-				<input type="hidden" name="id" value={deletingService.id} />
-				<div class="modal-body">
-					<p class="confirm-text">
-						Apakah Anda yakin ingin menghapus layanan <strong>"{deletingService.name}"</strong>?
-					</p>
-					{#if deletingService.submissionCount > 0}
-						<div class="alert alert-error" style="margin-top: 0.75rem;">
-							Layanan ini memiliki {deletingService.submissionCount} pengajuan dan tidak bisa dihapus.
-						</div>
-					{/if}
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={() => { deletingService = null; }}>Batal</button>
-					<button type="submit" class="btn btn-danger" disabled={deletingService.submissionCount > 0}>Hapus</button>
-				</div>
-			</form>
-		</div>
-	</div>
+	<ServiceDeleteModal
+		service={deletingService}
+		onClose={() => { deletingService = null; }}
+	/>
 {/if}
 
 <style>
@@ -868,248 +609,6 @@
 	}
 
 	/* ── Modal ───────────────────────────────────────────────────────────────── */
-	.modal-overlay {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
-		backdrop-filter: blur(4px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 100;
-		padding: 1rem;
-	}
-
-	.modal {
-		background: white;
-		border-radius: 24px;
-		width: 100%;
-		max-width: 520px;
-		box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-		animation: modalIn 0.2s ease-out;
-		overflow: hidden;
-	}
-
-	.modal-sm { max-width: 420px; }
-
-	@keyframes modalIn {
-		from { opacity: 0; transform: scale(0.95) translateY(10px); }
-		to   { opacity: 1; transform: scale(1) translateY(0); }
-	}
-
-	.modal-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 1.25rem 1.5rem;
-		border-bottom: 1px solid #f3f4f6;
-		background: #fafafa;
-	}
-
-	.modal-header h3 {
-		font-size: 1.05rem;
-		font-weight: 700;
-		color: #111827;
-		margin: 0;
-	}
-
-	.modal-close {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		border-radius: 10px;
-		border: none;
-		background: #f3f4f6;
-		color: #6b7280;
-		cursor: pointer;
-		transition: all 0.2s;
-	}
-
-	.modal-close:hover { background: #e5e7eb; color: #111827; }
-
-	.modal-body {
-		padding: 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1.25rem;
-	}
-
-	.modal-hint {
-		font-size: 0.85rem;
-		color: #6b7280;
-		margin: 0;
-		line-height: 1.5;
-	}
-
-	.modal-footer {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.75rem;
-		padding: 1.25rem 1.5rem;
-		border-top: 1px solid #f3f4f6;
-		background: #fafafa;
-	}
-
-	/* ── Form ────────────────────────────────────────────────────────────────── */
-	.form-group {
-		display: flex;
-		flex-direction: column;
-		gap: 0.45rem;
-	}
-
-	.form-group label {
-		font-size: 0.82rem;
-		font-weight: 600;
-		color: #374151;
-	}
-
-	.form-group input,
-	.form-group textarea,
-	.form-group select,
-	.form-control {
-		padding: 0.75rem 1rem;
-		border: 1.5px solid #e5e7eb;
-		border-radius: 12px;
-		font-size: 0.88rem;
-		color: #1f2937;
-		background: #f9fafb;
-		font-family: inherit;
-		transition: all 0.2s;
-		resize: vertical;
-	}
-
-	.form-group input:focus,
-	.form-group textarea:focus,
-	.form-group select:focus {
-		outline: none;
-		border-color: #800020;
-		box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
-		background: white;
-	}
-
-	.hint-text {
-		font-size: 0.78rem;
-		color: #9ca3af;
-		margin: 0;
-	}
-
-	.confirm-text {
-		font-size: 0.9rem;
-		color: #374151;
-		margin: 0;
-		line-height: 1.5;
-	}
-
-	/* ── Icon Picker ─────────────────────────────────────────────────────────── */
-	.icon-selector-premium {
-		background: #f8fafc;
-		border: 1.5px solid #e2e8f0;
-		border-radius: 20px;
-		padding: 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.selection-preview {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		background: white;
-		padding: 0.75rem;
-		border-radius: 12px;
-		border: 1px solid #e2e8f0;
-	}
-
-	.preview-box {
-		width: 56px;
-		height: 56px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: linear-gradient(135deg, #fdf2f8, #fce7f3);
-		border-radius: 12px;
-		border: 1.5px solid #fbcfe8;
-		flex-shrink: 0;
-	}
-
-	.preview-emoji { font-size: 1.75rem; }
-
-	.preview-info {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.preview-info label {
-		font-size: 0.75rem;
-		font-weight: 700;
-		color: #64748b;
-		text-transform: uppercase;
-		letter-spacing: 0.025em;
-	}
-
-	.manual-input-premium {
-		background: transparent !important;
-		border-color: #cbd5e1 !important;
-		padding: 0.4rem 0.6rem !important;
-		font-size: 1rem !important;
-		font-weight: 500 !important;
-		width: 100% !important;
-	}
-
-	.manual-input-premium:focus {
-		border-color: #800020 !important;
-		box-shadow: none !important;
-	}
-
-	.icon-grid-scroll {
-		max-height: 160px;
-		overflow-y: auto;
-		padding-right: 0.5rem;
-	}
-
-	.icon-grid-scroll::-webkit-scrollbar { width: 5px; }
-	.icon-grid-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-	.icon-grid-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-	.icon-grid {
-		display: grid;
-		grid-template-columns: repeat(8, 1fr);
-		gap: 0.4rem;
-	}
-
-	.icon-item-btn {
-		aspect-ratio: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 1.15rem;
-		background: white;
-		border: 1px solid #e2e8f0;
-		border-radius: 8px;
-		cursor: pointer;
-		transition: all 0.2s;
-		padding: 0;
-	}
-
-	.icon-item-btn:hover {
-		border-color: #800020;
-		transform: translateY(-2px);
-		box-shadow: 0 4px 8px rgba(128, 0, 32, 0.1);
-	}
-
-	.icon-item-btn.active {
-		background: #800020;
-		border-color: #800020;
-		color: white;
-		transform: scale(1.1);
-		z-index: 1;
-	}
-
 	/* ── Responsive ──────────────────────────────────────────────────────────── */
 	@media (max-width: 640px) {
 		.section-header { flex-wrap: wrap; gap: 0.75rem; }
