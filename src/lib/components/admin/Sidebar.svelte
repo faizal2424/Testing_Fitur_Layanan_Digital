@@ -84,25 +84,7 @@
 	<div class="sidebar-header">
 		<div class="brand">
 			<div class="logo-box">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="28"
-					height="28"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path d="M3 21h18" />
-					<path d="M5 21V7l8-4v18" />
-					<path d="M19 21V11l-6-4" />
-					<path d="M9 9v.01" />
-					<path d="M9 12v.01" />
-					<path d="M9 15v.01" />
-					<path d="M9 18v.01" />
-				</svg>
+				<img src="/img/kabupatensemarang.png" alt="Logo Kab Semarang" class="w-8 h-8 object-contain drop-shadow-sm" />
 			</div>
 			<div class="brand-text">
 				<h1>Layanan Digital</h1>
