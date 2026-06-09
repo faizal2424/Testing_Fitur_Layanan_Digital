@@ -3,6 +3,7 @@ import { db } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ url, parent }) => {
 	const parentData = await parent();
+	const user = parentData.user;
 
 	// Parse filter params
 	const serviceFilter = url.searchParams.get('layanan') || '';
@@ -15,6 +16,13 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 
 	// Build where clause for submissions
 	const where: any = {};
+
+	// Role-based scope filtering:
+	// If the user is an admin (admin OPD), restrict to their agency's services.
+	// If the user is a superadmin, show everything (global).
+	if (user?.role === 'admin' && user?.agency_id) {
+		where.services = { agency_id: BigInt(user.agency_id) };
+	}
 
 	if (serviceFilter) {
 		where.service_id = BigInt(serviceFilter);
@@ -42,6 +50,53 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		];
 	}
 
+	// Prepare conditions for general/stat queries based on role
+	const statsWhere: any = {};
+	const servicesWhere: any = {};
+	if (user?.role === 'admin' && user?.agency_id) {
+		const agencyIdBigInt = BigInt(user.agency_id);
+		statsWhere.services = { agency_id: agencyIdBigInt };
+		servicesWhere.agency_id = agencyIdBigInt;
+	}
+
+	// Dynamic SQL clauses for queryRaw
+	let trendSql = `
+		SELECT DATE(sub.created_at) as date, COUNT(*) as count 
+		FROM service_submissions sub 
+		WHERE sub.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+		GROUP BY DATE(sub.created_at) 
+		ORDER BY date ASC
+	`;
+	let popularitySql = `
+		SELECT s.name, COUNT(*) as count 
+		FROM service_submissions sub 
+		JOIN services s ON sub.service_id = s.id 
+		GROUP BY s.id 
+		ORDER BY count DESC 
+		LIMIT 5
+	`;
+
+	if (user?.role === 'admin' && user?.agency_id) {
+		trendSql = `
+			SELECT DATE(sub.created_at) as date, COUNT(*) as count 
+			FROM service_submissions sub 
+			JOIN services s ON sub.service_id = s.id
+			WHERE sub.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
+			  AND s.agency_id = ${user.agency_id}
+			GROUP BY DATE(sub.created_at) 
+			ORDER BY date ASC
+		`;
+		popularitySql = `
+			SELECT s.name, COUNT(*) as count 
+			FROM service_submissions sub 
+			JOIN services s ON sub.service_id = s.id 
+			WHERE s.agency_id = ${user.agency_id}
+			GROUP BY s.id 
+			ORDER BY count DESC 
+			LIMIT 5
+		`;
+	}
+
 	// === Statistics & Analytics ===
 	const [
 		totalServices, 
@@ -54,14 +109,15 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		popularityData
 	] = await Promise.all([
 		// Total layanan
-		db.services.count(),
+		db.services.count({ where: servicesWhere }),
 
-		// Total pengajuan (all time)
-		db.service_submissions.count(),
+		// Total pengajuan (scoped all time)
+		db.service_submissions.count({ where: statsWhere }),
 
 		// Pengajuan dalam proses
 		db.service_submissions.count({
 			where: {
+				...statsWhere,
 				status: {
 					notIn: ['selesai', 'ditolak_pengajuan']
 				}
@@ -74,6 +130,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		// Today's submissions
 		db.service_submissions.count({
 			where: {
+				...statsWhere,
 				created_at: {
 					gte: new Date(new Date().toISOString().split('T')[0] + 'T00:00:00'),
 					lte: new Date(new Date().toISOString().split('T')[0] + 'T23:59:59')
@@ -83,28 +140,16 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 
 		// Count per status
 		db.service_submissions.groupBy({
+			where: statsWhere,
 			by: ['status'],
 			_count: { id: true }
 		}),
 
 		// Trend: Last 30 days
-		db.$queryRawUnsafe<any[]>(`
-			SELECT DATE(created_at) as date, COUNT(*) as count 
-			FROM service_submissions 
-			WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) 
-			GROUP BY DATE(created_at) 
-			ORDER BY date ASC
-		`),
+		db.$queryRawUnsafe<any[]>(trendSql),
 
 		// Popularity: By Service
-		db.$queryRawUnsafe<any[]>(`
-			SELECT s.name, COUNT(*) as count 
-			FROM service_submissions sub 
-			JOIN services s ON sub.service_id = s.id 
-			GROUP BY s.id 
-			ORDER BY count DESC 
-			LIMIT 5
-		`)
+		db.$queryRawUnsafe<any[]>(popularitySql)
 	]);
 
 	// === Submissions list with pagination ===
@@ -126,6 +171,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 
 		// All services for filter dropdown
 		db.services.findMany({
+			where: servicesWhere,
 			select: { id: true, name: true },
 			orderBy: { order: 'asc' }
 		})
