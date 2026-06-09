@@ -8,6 +8,7 @@
 			username: string;
 			email: string;
 			role: string;
+			agency_name?: string | null;
 		};
 		onClose: () => void;
 	}
@@ -111,6 +112,11 @@
 		</button>
 	</div>
 
+	<!-- Simple User Role & OPD Context Info -->
+	<div class="user-context-label">
+		{getRoleBadge(user.role)} — {user.role === 'superadmin' ? 'Seluruh OPD' : (user.agency_name || 'OPD')}
+	</div>
+
 	<!-- Navigation -->
 	<nav class="sidebar-nav">
 		<ul>
@@ -176,9 +182,6 @@
 				</div>
 			</div>
 			<div class="footer-actions">
-				<div class="user-role-badge">
-					{getRoleBadge(user.role)}
-				</div>
 				<button class="logout-link" onclick={handleLogout} title="Keluar">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -195,6 +198,7 @@
 						<polyline points="16 17 21 12 16 7" />
 						<line x1="21" y1="12" x2="9" y2="12" />
 					</svg>
+					<span style="font-size: 0.8rem; font-weight: 600; margin-left: 0.5rem;">Keluar</span>
 				</button>
 			</div>
 		</div>
@@ -288,10 +292,20 @@
 		background: rgba(255, 255, 255, 0.2);
 	}
 
+	.user-context-label {
+		font-size: 0.725rem;
+		font-weight: 600;
+		color: rgba(255, 255, 255, 0.6);
+		margin: 1rem 1.5rem 0;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		line-height: 1.35;
+	}
+
 	/* Navigation */
 	.sidebar-nav {
 		flex: 1;
-		padding: 1.25rem 0;
+		padding: 0.5rem 0;
 	}
 
 	.sidebar-nav ul {

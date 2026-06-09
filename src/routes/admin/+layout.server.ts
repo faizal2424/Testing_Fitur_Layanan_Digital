@@ -15,7 +15,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 			email: locals.user.email,
 			phone: locals.user.phone,
 			role: locals.user.role,
-			agency_id: (locals.user as any).agency_id?.toString() || null
+			agency_id: (locals.user as any).agency_id?.toString() || null,
+			agency_name: (locals.user as any).agency_name || null
 		}
 	};
 };
