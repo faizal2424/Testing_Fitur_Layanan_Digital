@@ -407,7 +407,7 @@
                 {/if}
 
                 <div class="mt-auto pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-bold text-slate-400 group-hover:text-red-600 transition-colors uppercase tracking-wider">
-                    <span>Lihat Persyaratan</span>
+                    <span>Ajukan Permohonan</span>
                 </div>
               </button>
             {/each}

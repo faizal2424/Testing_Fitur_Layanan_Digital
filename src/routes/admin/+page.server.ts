@@ -46,6 +46,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 	const [
 		totalServices, 
 		totalSubmissions, 
+		inProgressCount,
 		filteredCount, 
 		todayCount, 
 		statusCounts,
@@ -57,6 +58,15 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 
 		// Total pengajuan (all time)
 		db.service_submissions.count(),
+
+		// Pengajuan dalam proses
+		db.service_submissions.count({
+			where: {
+				status: {
+					notIn: ['selesai', 'ditolak_pengajuan']
+				}
+			}
+		}),
 
 		// Filtered count
 		db.service_submissions.count({ where }),
@@ -152,6 +162,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		stats: {
 			totalServices,
 			totalSubmissions,
+			inProgressCount,
 			filteredCount,
 			todayCount,
 			statusMap,

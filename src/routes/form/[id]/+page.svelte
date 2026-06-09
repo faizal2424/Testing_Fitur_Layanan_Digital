@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fade, fly } from 'svelte/transition';
+  import { fly } from 'svelte/transition';
   import { enhance } from '$app/forms';
   import { cubicOut } from 'svelte/easing';
   import type { PageData, ActionData } from './$types';
@@ -10,15 +10,6 @@
   export let form: ActionData;
 
   let isSubmitting = false;
-
-  // Parse requirements safely
-  $: requirements = (() => {
-    try {
-      return data.service.requirements ? JSON.parse(data.service.requirements) : [];
-    } catch {
-      return [];
-    }
-  })();
 
   // Parse options for select/radio fields
   function parseOptions(optionsStr: string | null): string[] {
@@ -332,32 +323,6 @@
   </header>
 
   <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-    
-    <!-- Requirements Card -->
-    {#if requirements.length > 0}
-      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-8" transition:fade>
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Persyaratan Dokumen</h2>
-        </div>
-        <div class="grid gap-2">
-          {#each requirements as req, i}
-            <div class="flex items-start gap-3 py-2.5 px-4 bg-slate-50 rounded-xl border border-slate-50 hover:border-slate-200 transition-colors">
-              <div class="mt-0.5 w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
-                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span class="text-sm font-medium text-slate-600">{req}</span>
-            </div>
-          {/each}
-        </div>
-      </div>
-    {/if}
 
     <!-- Form Card -->
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">

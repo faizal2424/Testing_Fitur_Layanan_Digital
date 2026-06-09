@@ -168,18 +168,6 @@
 	<!-- Stats Grid -->
 	<div class="stats-grid">
 		<div class="stat-card">
-			<div class="stat-icon blue">
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-				</svg>
-			</div>
-			<div class="stat-info">
-				<span class="stat-label">Total Layanan</span>
-				<span class="stat-value">{data.stats.totalServices}</span>
-			</div>
-		</div>
-
-		<div class="stat-card">
 			<div class="stat-icon green">
 				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -189,6 +177,19 @@
 			<div class="stat-info">
 				<span class="stat-label">Total Pengajuan</span>
 				<span class="stat-value">{data.stats.totalSubmissions}</span>
+			</div>
+		</div>
+
+		<div class="stat-card">
+			<div class="stat-icon blue">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+					<polyline points="21 3 21 8 16 8" />
+				</svg>
+			</div>
+			<div class="stat-info">
+				<span class="stat-label">Pengajuan Dalam Proses</span>
+				<span class="stat-value">{data.stats.inProgressCount}</span>
 			</div>
 		</div>
 
