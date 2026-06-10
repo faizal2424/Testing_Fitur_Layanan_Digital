@@ -10,6 +10,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const page = parseInt(url.searchParams.get('halaman') || '1');
 	const perPage = 15;
 
+	// Sorting params
+	const sortBy = url.searchParams.get('sort_by') || '';
+	const sortDir = url.searchParams.get('sort_dir') || 'desc';
+
 	const where: any = {};
 	const user = (locals as any).user;
 
@@ -39,6 +43,26 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		if (dateTo) where.created_at.lte = new Date(dateTo + 'T23:59:59');
 	}
 
+	// Dynamically build the order by clause
+	const orderBy: any[] = [];
+	if (sortBy) {
+		if (sortBy === 'tracking_code') {
+			orderBy.push({ tracking_code: sortDir });
+		} else if (sortBy === 'applicant_name') {
+			orderBy.push({ applicant_name: sortDir });
+		} else if (sortBy === 'service_name') {
+			orderBy.push({ services: { name: sortDir } });
+		} else if (sortBy === 'status') {
+			orderBy.push({ status: sortDir });
+		} else if (sortBy === 'created_at') {
+			orderBy.push({ created_at: sortDir });
+		}
+	} else {
+		// Default sorting
+		orderBy.push({ is_priority: 'desc' });
+		orderBy.push({ created_at: 'desc' });
+	}
+
 	const [submissions, total, allServices] = await Promise.all([
 		db.service_submissions.findMany({
 			where,
@@ -49,10 +73,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 					select: { user_id: true }
 				}
 			},
-			orderBy: [
-				{ is_priority: 'desc' },
-				{ created_at: 'desc' }
-			],
+			orderBy,
 			skip: (page - 1) * perPage,
 			take: perPage
 		}),
@@ -90,6 +111,14 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		}),
 		services: allServices.map((s) => ({ id: s.id.toString(), name: s.name })),
 		pagination: { page, perPage, totalPages: Math.ceil(total / perPage), total },
-		filters: { layanan: serviceFilter, status: statusFilter, cari: search, dari: dateFrom, sampai: dateTo }
+		filters: {
+			layanan: serviceFilter,
+			status: statusFilter,
+			cari: search,
+			dari: dateFrom,
+			sampai: dateTo,
+			sort_by: sortBy,
+			sort_dir: sortDir
+		}
 	};
 };

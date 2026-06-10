@@ -38,6 +38,22 @@
 	}
 
 	let hasActiveFilter = $derived(!!data.filters.cari || !!data.filters.peran);
+
+	function toggleSort(field: string) {
+		const params = new URLSearchParams($page.url.searchParams);
+		const currentSortBy = params.get('sort_by') || '';
+		const currentSortDir = params.get('sort_dir') || 'asc';
+
+		if (currentSortBy === field) {
+			params.set('sort_dir', currentSortDir === 'asc' ? 'desc' : 'asc');
+		} else {
+			params.set('sort_by', field);
+			params.set('sort_dir', 'asc');
+		}
+		// Reset page parameter since data set order changed
+		params.delete('halaman');
+		goto(`/admin/pengguna?${params.toString()}`);
+	}
 </script>
 
 <svelte:head>
@@ -142,8 +158,26 @@
 				<table>
 					<thead>
 						<tr>
-							<th>Nama Lengkap & Email</th>
-							<th>Username</th>
+							<th onclick={() => toggleSort('name')} class="sortable-th">
+								<div class="th-content">
+									Nama Lengkap & Email
+									{#if data.filters.sort_by === 'name'}
+										<span class="sort-icon">{data.filters.sort_dir === 'asc' ? '▲' : '▼'}</span>
+									{:else}
+										<span class="sort-icon-placeholder">↕</span>
+									{/if}
+								</div>
+							</th>
+							<th onclick={() => toggleSort('username')} class="sortable-th">
+								<div class="th-content">
+									Username
+									{#if data.filters.sort_by === 'username'}
+										<span class="sort-icon">{data.filters.sort_dir === 'asc' ? '▲' : '▼'}</span>
+									{:else}
+										<span class="sort-icon-placeholder">↕</span>
+									{/if}
+								</div>
+							</th>
 							<th>Peran Sistem</th>
 							<th>Kontak Telepon</th>
 							<th style="text-align: right;">Opsi</th>
@@ -301,6 +335,13 @@
 	.text-dim { color: var(--admin-text-dim); }
 
 	.actions-group { display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; }
+
+	.sortable-th { cursor: pointer; user-select: none; }
+	.sortable-th:hover { background-color: #f3f4f6; }
+	.th-content { display: flex; align-items: center; gap: 0.25rem; }
+	.sort-icon { color: var(--admin-primary); font-size: 0.75rem; }
+	.sort-icon-placeholder { color: #d1d5db; font-size: 0.75rem; opacity: 0.5; transition: opacity 0.2s; }
+	.sortable-th:hover .sort-icon-placeholder { opacity: 1; }
 
 	@media (max-width: 1024px) {
 		.filters-grid { grid-template-columns: 1fr 1fr; }

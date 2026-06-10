@@ -41,6 +41,22 @@
 	}
 
 	let hasActiveFilter = $derived(!!data.filters.layanan || !!data.filters.status || !!data.filters.cari || !!data.filters.dari || !!data.filters.sampai);
+
+	function toggleSort(field: string) {
+		const params = new URLSearchParams($page.url.searchParams);
+		const currentSortBy = params.get('sort_by') || '';
+		const currentSortDir = params.get('sort_dir') || 'desc';
+
+		if (currentSortBy === field) {
+			params.set('sort_dir', currentSortDir === 'asc' ? 'desc' : 'asc');
+		} else {
+			params.set('sort_by', field);
+			params.set('sort_dir', 'asc');
+		}
+		// Reset page parameter since data set order changed
+		params.delete('halaman');
+		goto(`/admin/log-status?${params.toString()}`);
+	}
 </script>
 
 <svelte:head><title>Log Status — Layanan Digital</title></svelte:head>
@@ -141,11 +157,56 @@
 				<table>
 					<thead>
 						<tr>
-							<th>Tanggal</th>
-							<th>Tracking</th>
-							<th>Pemohon</th>
-							<th>Layanan</th>
-							<th>Perubahan</th>
+							<th onclick={() => toggleSort('created_at')} class="sortable-th">
+								<div class="th-content">
+									Tanggal
+									{#if data.filters.sort_by === 'created_at'}
+										<span class="sort-icon">{data.filters.sort_dir === 'asc' ? '▲' : '▼'}</span>
+									{:else}
+										<span class="sort-icon-placeholder">↕</span>
+									{/if}
+								</div>
+							</th>
+							<th onclick={() => toggleSort('tracking_code')} class="sortable-th">
+								<div class="th-content">
+									Tracking
+									{#if data.filters.sort_by === 'tracking_code'}
+										<span class="sort-icon">{data.filters.sort_dir === 'asc' ? '▲' : '▼'}</span>
+									{:else}
+										<span class="sort-icon-placeholder">↕</span>
+									{/if}
+								</div>
+							</th>
+							<th onclick={() => toggleSort('applicant_name')} class="sortable-th">
+								<div class="th-content">
+									Pemohon
+									{#if data.filters.sort_by === 'applicant_name'}
+										<span class="sort-icon">{data.filters.sort_dir === 'asc' ? '▲' : '▼'}</span>
+									{:else}
+										<span class="sort-icon-placeholder">↕</span>
+									{/if}
+								</div>
+							</th>
+							<th onclick={() => toggleSort('service_name')} class="sortable-th">
+								<div class="th-content">
+									Layanan
+									{#if data.filters.sort_by === 'service_name'}
+										<span class="sort-icon">{data.filters.sort_dir === 'asc' ? '▲' : '▼'}</span>
+									{:else}
+										<span class="sort-icon-placeholder">↕</span>
+									{/if}
+								</div>
+							</th>
+							<th onclick={() => toggleSort('status_to')} class="sortable-th">
+								<div class="th-content">
+									Perubahan
+									{#if data.filters.sort_by === 'status_to'}
+										<span class="sort-icon">{data.filters.sort_dir === 'asc' ? '▲' : '▼'}</span>
+									{:else}
+										<span class="sort-icon-placeholder">↕</span>
+									{/if}
+								</div>
+							</th>
 							<th>Catatan</th>
 							<th>Oleh</th>
 						</tr>
@@ -221,5 +282,10 @@
 </div>
 
 <style>
-	/* All styles moved to admin.css */
+	.sortable-th { cursor: pointer; user-select: none; }
+	.sortable-th:hover { background-color: #f3f4f6; }
+	.th-content { display: flex; align-items: center; gap: 0.25rem; }
+	.sort-icon { color: var(--admin-primary); font-size: 0.75rem; }
+	.sort-icon-placeholder { color: #d1d5db; font-size: 0.75rem; opacity: 0.5; transition: opacity 0.2s; }
+	.sortable-th:hover .sort-icon-placeholder { opacity: 1; }
 </style>

@@ -12,6 +12,10 @@ export const load: PageServerLoad = async (event) => {
 	const page = parseInt(url.searchParams.get('halaman') || '1');
 	const perPage = 10;
 
+	// Sorting params
+	const sortBy = url.searchParams.get('sort_by') || '';
+	const sortDir = url.searchParams.get('sort_dir') || 'asc';
+
 	// Build where clause
 	const where: any = {};
 	
@@ -38,6 +42,23 @@ export const load: PageServerLoad = async (event) => {
 		};
 	}
 
+	// Dynamically build orderBy
+	const orderBy: any[] = [];
+	if (sortBy) {
+		if (sortBy === 'name') {
+			orderBy.push({ name: sortDir });
+		} else if (sortBy === 'username') {
+			orderBy.push({ username: sortDir });
+		} else if (sortBy === 'email') {
+			orderBy.push({ email: sortDir });
+		} else if (sortBy === 'agency') {
+			orderBy.push({ agencies: { name: sortDir } });
+		}
+	} else {
+		// Default
+		orderBy.push({ name: 'asc' });
+	}
+
 	const [users, totalCount, allRoles, agenciesList] = await Promise.all([
 		db.users.findMany({
 			where,
@@ -49,7 +70,7 @@ export const load: PageServerLoad = async (event) => {
 				},
 				agencies: true
 			},
-			orderBy: { name: 'asc' },
+			orderBy,
 			skip: (page - 1) * perPage,
 			take: perPage
 		}),
@@ -87,7 +108,9 @@ export const load: PageServerLoad = async (event) => {
 		},
 		filters: {
 			cari: search,
-			peran: roleFilter
+			peran: roleFilter,
+			sort_by: sortBy,
+			sort_dir: sortDir
 		}
 	};
 };

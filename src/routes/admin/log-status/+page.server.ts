@@ -10,6 +10,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const page = parseInt(url.searchParams.get('halaman') || '1');
 	const perPage = 20;
 
+	// Sorting params
+	const sortBy = url.searchParams.get('sort_by') || '';
+	const sortDir = url.searchParams.get('sort_dir') || 'desc';
+
 	const where: any = {
 		user_id: locals.user?.id
 	};
@@ -42,6 +46,25 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		if (dateTo) where.created_at.lte = new Date(dateTo + 'T23:59:59');
 	}
 
+	// Dynamically build orderBy
+	const orderBy: any[] = [];
+	if (sortBy) {
+		if (sortBy === 'created_at') {
+			orderBy.push({ created_at: sortDir });
+		} else if (sortBy === 'tracking_code') {
+			orderBy.push({ service_submissions: { tracking_code: sortDir } });
+		} else if (sortBy === 'applicant_name') {
+			orderBy.push({ service_submissions: { applicant_name: sortDir } });
+		} else if (sortBy === 'service_name') {
+			orderBy.push({ service_submissions: { services: { name: sortDir } } });
+		} else if (sortBy === 'status_to') {
+			orderBy.push({ status_to: sortDir });
+		}
+	} else {
+		// Default
+		orderBy.push({ created_at: 'desc' });
+	}
+
 	const [logs, total, services] = await Promise.all([
 		db.submission_notes.findMany({
 			where,
@@ -55,7 +78,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 					}
 				}
 			},
-			orderBy: { created_at: 'desc' },
+			orderBy,
 			skip: (page - 1) * perPage,
 			take: perPage
 		}),
@@ -81,6 +104,14 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		})),
 		services: services.map((s) => ({ id: s.id.toString(), name: s.name })),
 		pagination: { page, perPage, totalPages: Math.ceil(total / perPage), total },
-		filters: { layanan: serviceFilter, status: statusFilter, cari: search, dari: dateFrom, sampai: dateTo }
+		filters: {
+			layanan: serviceFilter,
+			status: statusFilter,
+			cari: search,
+			dari: dateFrom,
+			sampai: dateTo,
+			sort_by: sortBy,
+			sort_dir: sortDir
+		}
 	};
 };
