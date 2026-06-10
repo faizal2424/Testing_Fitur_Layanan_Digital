@@ -139,10 +139,6 @@
 				</div>
 			{/if}
 		</div>
-
-		<div class="topbar-user">
-			<span class="topbar-user-name">{user.name}</span>
-		</div>
 	</div>
 </header>
 
