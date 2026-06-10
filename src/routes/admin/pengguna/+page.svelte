@@ -310,19 +310,22 @@
 		border: 1px solid #f1f5f9;
 	}
 
-	.role-badges-list { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+	.role-badges-list { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 	.role-badge {
-		font-size: 0.7rem;
-		font-weight: 800;
-		letter-spacing: 0.05em;
+		display: inline-block;
+		width: 90px;
+		text-align: center;
 		padding: 0.25rem 0.6rem;
-		border-radius: 8px;
+		border-radius: var(--admin-radius-pill, 999px);
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		white-space: nowrap;
 		text-transform: uppercase;
+		background: transparent;
+		color: #64748b;
+		border: 1px solid #cbd5e1;
 	}
-
-	.role-badge.superadmin { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; }
-	.role-badge.admin      { background: #fdf2f8; color: #800020; border: 1px solid #fbcfe8; }
-	.role-badge.pic        { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
 
 	.phone-link {
 		display: flex;
