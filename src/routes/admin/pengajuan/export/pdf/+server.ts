@@ -57,10 +57,16 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	const submissions = await db.service_submissions.findMany({
 		where,
 		include: {
-			services: { select: { name: true } },
+			services: { 
+				select: { 
+					name: true,
+					agencies: { select: { name: true } }
+				} 
+			},
 			users: { select: { name: true } },
+			agencies: { select: { name: true } },
 			submission_notes: {
-				where: { NOT: { file_path: null } } as any,
+				where: { status_to: 'selesai' },
 				orderBy: { created_at: 'desc' },
 				take: 1
 			}
@@ -85,7 +91,7 @@ async function generateListPDF(submissions: any[], filters: any): Promise<Buffer
     return new Promise((resolve, reject) => {
         const doc = new PDFDocument({
             size: 'A4',
-            layout: 'landscape',
+            layout: 'portrait',
             margins: { top: 30, bottom: 40, left: 40, right: 40 }
         });
 
@@ -117,9 +123,11 @@ async function generateListPDF(submissions: any[], filters: any): Promise<Buffer
             if (w > maxTextW) maxTextW = w;
         });
 
-        // The text is centered to the page, so it spans from (PW - maxTextW)/2 to (PW + maxTextW)/2
-        const textStartX = (PW - maxTextW) / 2;
-        const logoX = textStartX - gap - logoW;
+        // Calculate unified block start X to center the combined (logo + gap + text) block on the page
+        const totalKopW = logoW + gap + maxTextW;
+        const kopStartX = (PW - totalKopW) / 2;
+        const logoX = kopStartX;
+        const textStartX = kopStartX + logoW + gap;
         let currentHdrY = 35;
 
         const logoPath = join(process.cwd(), 'static', 'img', 'logokabsmg.png');
@@ -129,8 +137,8 @@ async function generateListPDF(submissions: any[], filters: any): Promise<Buffer
 
         doc.fillColor('#000');
         lines.forEach((l, i) => {
-            // Text is centered relative to the PAGE width
-            doc.font(l.font).fontSize(l.size).text(l.text, 0, currentHdrY, { align: 'center', width: PW });
+            // Text is centered relative to the text block width
+            doc.font(l.font).fontSize(l.size).text(l.text, textStartX, currentHdrY, { align: 'center', width: maxTextW });
             if (i === 1) currentHdrY += 23; 
             else if (i === 0) currentHdrY += 17;
             else currentHdrY += 11;
@@ -157,9 +165,9 @@ async function generateListPDF(submissions: any[], filters: any): Promise<Buffer
 
         // ── Table Implementation ──
         const tableTop = doc.y + 10;
-        // Columns: NO, LAYANAN, KODE TRACKING, NAMA PEMOHON, EMAIL, STATUS, PIC, TANGGAL, BUKTI
-        const colWidths = [25, 80, 65, 85, 105, 75, 65, 80, 181];
-        const headers = ['NO', 'LAYANAN', 'KODE TRACKING', 'NAMA PEMOHON', 'EMAIL', 'STATUS', 'PIC', 'TANGGAL', 'BUKTI'];
+        // Columns: No, Layanan, OPD Pengaju, Status, Tanggal Pengajuan Masuk, Tanggal Pengajuan Selesai
+        const colWidths = [25, 115, 135, 80, 80, 80];
+        const headers = ['NO', 'LAYANAN', 'OPD PENGAJU', 'STATUS', 'TANGGAL MASUK', 'TANGGAL SELESAI'];
         
         const drawTableHeader = (y: number) => {
             doc.save();
@@ -178,63 +186,49 @@ async function generateListPDF(submissions: any[], filters: any): Promise<Buffer
         drawTableHeader(tableTop);
 
         let currentY = tableTop + 30;
-        const rowHeight = 70; // Increased to fit thumbnails
+        const rowHeight = 45;
+
+        const formatDateStr = (date: Date | string | null) => {
+            if (!date) return '—';
+            const d = new Date(date);
+            const dateStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+            return `${dateStr}\n${timeStr}`;
+        };
 
         submissions.forEach((s, index) => {
             if (currentY + rowHeight > doc.page.height - 60) {
-                doc.addPage({ size: 'A4', layout: 'landscape', margins: { top: 30, bottom: 40, left: 40, right: 40 } });
+                doc.addPage({ size: 'A4', layout: 'portrait', margins: { top: 30, bottom: 40, left: 40, right: 40 } });
                 currentY = 40;
                 drawTableHeader(currentY);
                 currentY += 30;
             }
 
             let currentX = 40;
+            const opdName = s.agencies?.name || s.services?.agencies?.name || '—';
+            const selesaiDate = s.submission_notes?.[0]?.created_at || (s.status === 'selesai' ? s.updated_at : null);
+
             const rowData = [
                 (index + 1).toString(),
                 s.services.name,
-                s.tracking_code,
-                s.applicant_name,
-                s.applicant_email,
+                opdName,
                 getStatusLabel(s.status).toUpperCase(),
-                s.users?.name || '—',
-                s.created_at ? new Date(s.created_at).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '\n') : '—',
-                '' // Evidence placeholder
+                formatDateStr(s.created_at),
+                formatDateStr(selesaiDate)
             ];
 
             doc.font('Helvetica').fontSize(8);
             rowData.forEach((text, i) => {
                 doc.rect(currentX, currentY, colWidths[i], rowHeight).stroke('#000');
                 
-                if (i === 8) { // Bukti Pengerjaan
-                    const evidence = s.submission_notes?.[0]?.file_path;
-                    if (evidence) {
-                        const fullPath = join(process.cwd(), 'static', evidence);
-                        if (existsSync(fullPath)) {
-                            try {
-                                // Fit image in column (4x6 ratio-ish center)
-                                // We use fit: [maxWidth, maxHeight] to maintain aspect ratio
-                                doc.image(fullPath, currentX + (colWidths[i] - 40) / 2, currentY + 5, { 
-                                    fit: [40, 60] 
-                                });
-                            } catch (e) {
-                                doc.text('Err', currentX, currentY + rowHeight/2 - 4, { width: colWidths[i], align: 'center' });
-                            }
-                        } else {
-                            doc.text('-', currentX, currentY + rowHeight/2 - 4, { width: colWidths[i], align: 'center' });
-                        }
-                    } else {
-                        doc.text('-', currentX, currentY + rowHeight/2 - 4, { width: colWidths[i], align: 'center' });
-                    }
-                } else {
-                    let align: 'center' | 'left' = 'left';
-                    if ([0, 2, 5, 7].includes(i)) align = 'center';
-                    
-                    doc.text(text, currentX + 3, currentY + (rowHeight/2 - 8), { 
-                        width: colWidths[i] - 6, 
-                        align: align,
-                        lineBreak: true
-                    });
-                }
+                let align: 'center' | 'left' = 'left';
+                if ([0, 3, 4, 5].includes(i)) align = 'center';
+                
+                doc.text(text, currentX + 5, currentY + 14, { 
+                    width: colWidths[i] - 10, 
+                    align: align,
+                    lineBreak: true
+                });
                 currentX += colWidths[i];
             });
 
