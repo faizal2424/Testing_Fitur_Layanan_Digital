@@ -327,6 +327,8 @@
 /* Status badge (table cells) */
 .status-badge {
   display: inline-block;
+  width: 120px;
+  text-align: center;
   padding: 0.25rem 0.6rem;
   border-radius: var(--admin-radius-pill);
   font-size: 0.75rem;
@@ -334,7 +336,7 @@
   white-space: nowrap;
 }
 
-.status-badge.sm { padding: 0.15rem 0.4rem; font-size: 0.68rem; }
+.status-badge.sm { padding: 0.15rem 0.4rem; font-size: 0.68rem; width: 95px; }
 
 /* Shared colour variants for both chips and badges */
 .status-chip.blue,
