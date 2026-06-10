@@ -244,24 +244,7 @@
 		</div>
 	</div>
 
-	<!-- Status Overview -->
-	{#if Object.keys(data.stats.statusMap).length > 0}
-		<div class="status-overview">
-			<h3 class="section-title">Ringkasan Status</h3>
-			<div class="status-chips">
-				{#each Object.entries(data.stats.statusMap) as [status, count]}
-					<button
-						class="status-chip {getStatusColor(status)}"
-						class:active={filterStatus === status}
-						onclick={() => { filterStatus = status; applyFilters(); }}
-					>
-						<span class="chip-label">{getStatusLabel(status)}</span>
-						<span class="chip-count">{count}</span>
-					</button>
-				{/each}
-			</div>
-		</div>
-	{/if}
+
 
 	<!-- Filters -->
 	<div class="filters-card">
