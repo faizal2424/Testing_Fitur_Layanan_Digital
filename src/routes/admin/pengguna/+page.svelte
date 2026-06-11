@@ -192,7 +192,7 @@
 										<span class="user-subemail">{user.email}</span>
 									</div>
 								</td>
-								<td><code class="user-code">{user.username}</code></td>
+								<td><span class="user-username">{user.username}</span></td>
 								<td>
 									<div class="role-badges-list">
 										{#each user.roles as role}
@@ -300,14 +300,9 @@
 	.user-fullname { font-weight: 700; color: var(--admin-text); font-size: 0.95rem; }
 	.user-subemail { font-size: 0.75rem; color: var(--admin-text-subtle); }
 
-	.user-code { 
-		background: #f8fafc; 
-		padding: 0.25rem 0.5rem; 
-		border-radius: 6px; 
-		font-size: 0.8rem; 
-		font-family: inherit; 
+	.user-username {
+		font-size: 0.85rem;
 		color: var(--admin-text-subtle);
-		border: 1px solid #f1f5f9;
 	}
 
 	.role-badges-list { display: flex; gap: 0.4rem; flex-wrap: wrap; }
