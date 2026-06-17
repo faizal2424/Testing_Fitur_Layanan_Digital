@@ -100,6 +100,61 @@
 	function isFileField(type: string) {
 		return type === 'file';
 	}
+
+	let selectedEvidenceFile = $state<File | null>(null);
+	let evidencePreviewUrl = $state<string>('');
+	let fileInput = $state<HTMLInputElement>();
+
+	$effect(() => {
+		if (selectedEvidenceFile) {
+			const type = selectedEvidenceFile.type;
+			if (type.startsWith('image/')) {
+				const url = URL.createObjectURL(selectedEvidenceFile);
+				evidencePreviewUrl = url;
+				return () => {
+					URL.revokeObjectURL(url);
+				};
+			} else {
+				evidencePreviewUrl = '';
+			}
+		} else {
+			evidencePreviewUrl = '';
+		}
+	});
+
+	$effect(() => {
+		if (!showProcessModal) {
+			selectedEvidenceFile = null;
+		}
+	});
+
+	function handleFileChange(e: Event) {
+		const target = e.target as HTMLInputElement;
+		if (target.files && target.files[0]) {
+			selectedEvidenceFile = target.files[0];
+		} else {
+			selectedEvidenceFile = null;
+		}
+	}
+
+	function clearSelectedFile() {
+		selectedEvidenceFile = null;
+		if (fileInput) {
+			fileInput.value = '';
+		}
+	}
+
+	function formatSize(bytes: number): string {
+		if (bytes === 0) return '0 Bytes';
+		const k = 1024;
+		const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+	}
+
+	function getFileExtension(filename: string): string {
+		return filename.slice(((filename.lastIndexOf(".") - 1) >>> 0) + 2);
+	}
 </script>
 
 <svelte:head><title>Detail Pengajuan — Layanan Digital</title></svelte:head>
@@ -565,15 +620,58 @@
 						{#if selectedStatus === 'diselesaikan_pic'}
 							<div class="form-group">
 								<label for="evidence-upload">Unggah Bukti Pengerjaan (Wajib)</label>
-								<div class="file-dropzone">
-									<input 
-										type="file" 
-										id="evidence-upload" 
-										name="evidence" 
-										accept="image/*" 
-										required
-									/>
-									<p class="help-text">Klik atau tarik gambar bukti progres ke sini (.jpg, .png)</p>
+								<div class="file-upload-wrapper">
+									<div class="file-dropzone" class:hidden={selectedEvidenceFile !== null}>
+										<input 
+											type="file" 
+											id="evidence-upload" 
+											name="evidence" 
+											accept="image/*" 
+											required
+											bind:this={fileInput}
+											onchange={handleFileChange}
+										/>
+										<div class="dropzone-content">
+											<div class="dropzone-icon">
+												<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+													<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+													<polyline points="17 8 12 3 7 8"/>
+													<line x1="12" y1="3" x2="12" y2="15"/>
+												</svg>
+											</div>
+											<p class="help-text">Klik atau tarik gambar bukti progres ke sini (.jpg, .png)</p>
+										</div>
+									</div>
+
+									{#if selectedEvidenceFile}
+										<div class="evidence-preview-card">
+											{#if evidencePreviewUrl}
+												<div class="preview-image-wrapper">
+													<img src={evidencePreviewUrl} alt="Preview Bukti" class="preview-image" />
+												</div>
+											{:else}
+												<div class="preview-icon-wrapper">
+													<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+														<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+														<path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+													</svg>
+												</div>
+											{/if}
+											<div class="preview-details">
+												<div class="file-info-header">
+													<span class="file-name" title={selectedEvidenceFile.name}>{selectedEvidenceFile.name}</span>
+													<span class="file-type-badge">{getFileExtension(selectedEvidenceFile.name).toUpperCase()}</span>
+												</div>
+												<span class="file-size">{formatSize(selectedEvidenceFile.size)}</span>
+											</div>
+											<button type="button" class="btn-remove-file" onclick={clearSelectedFile} aria-label="Hapus file">
+												<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+													<line x1="18" y1="6" x2="6" y2="18"></line>
+													<line x1="6" y1="6" x2="18" y2="18"></line>
+												</svg>
+											</button>
+										</div>
+									{/if}
 								</div>
 							</div>
 						{/if}
@@ -1535,13 +1633,151 @@
 		text-align: center;
 		background: #f8fafc;
 		transition: all 0.2s;
+		position: relative;
 	}
 	.file-dropzone:hover {
 		border-color: #800020;
 		background: #fdf2f8;
 	}
 	.file-dropzone input[type="file"] {
+		position: absolute;
+		top: 0;
+		left: 0;
 		width: 100%;
+		height: 100%;
+		opacity: 0;
 		cursor: pointer;
+	}
+
+	.file-dropzone.hidden {
+		display: none;
+	}
+
+	.dropzone-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		pointer-events: none;
+	}
+
+	.dropzone-icon {
+		color: #94a3b8;
+		transition: color 0.2s;
+	}
+
+	.file-dropzone:hover .dropzone-icon {
+		color: #800020;
+	}
+
+	.evidence-preview-card {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 1rem;
+		background: #f8fafc;
+		border: 1px dashed #cbd5e1;
+		border-radius: 12px;
+		position: relative;
+		transition: all 0.2s;
+	}
+
+	.evidence-preview-card:hover {
+		border-color: #94a3b8;
+		background: #f1f5f9;
+	}
+
+	.preview-image-wrapper {
+		width: 64px;
+		height: 64px;
+		border-radius: 8px;
+		overflow: hidden;
+		border: 1px solid #e2e8f0;
+		background: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.preview-image {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.preview-icon-wrapper {
+		width: 64px;
+		height: 64px;
+		border-radius: 8px;
+		background: #e2e8f0;
+		color: #64748b;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.preview-details {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.file-info-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.file-name {
+		font-size: 0.88rem;
+		font-weight: 600;
+		color: #1e293b;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 240px;
+	}
+
+	.file-type-badge {
+		font-size: 0.68rem;
+		font-weight: 700;
+		background: #e2e8f0;
+		color: #475569;
+		padding: 0.1rem 0.4rem;
+		border-radius: 4px;
+	}
+
+	.file-size {
+		font-size: 0.75rem;
+		color: #64748b;
+	}
+
+	.btn-remove-file {
+		background: white;
+		border: 1px solid #e2e8f0;
+		color: #64748b;
+		border-radius: 50%;
+		width: 32px;
+		height: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: all 0.2s;
+		box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+		flex-shrink: 0;
+	}
+
+	.btn-remove-file:hover {
+		color: #ef4444;
+		border-color: #fca5a5;
+		background: #fef2f2;
+		transform: scale(1.05);
 	}
 	</style>
