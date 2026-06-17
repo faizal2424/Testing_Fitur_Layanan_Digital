@@ -231,7 +231,7 @@
 										<div class="name-with-badge">
 											<span class="applicant-name">{sub.applicant_name}</span>
 											{#if sub.is_priority}
-												<span class="priority-badge">
+												<span class="priority-badge" class:standard={sub.status === 'selesai'}>
 													<svg
 														xmlns="http://www.w3.org/2000/svg"
 														width="12"

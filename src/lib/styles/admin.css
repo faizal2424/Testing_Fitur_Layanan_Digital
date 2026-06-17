@@ -461,6 +461,20 @@
 	transform: translateY(-1px);
 }
 
+/* Priority badge — muted/standard style when submission is completed (selesai) */
+.priority-badge.standard {
+	background: #f9fafb;
+	color: #6b7280;
+	border-color: #e5e7eb;
+}
+
+.priority-badge.standard:hover {
+	background: #f3f4f6;
+	border-color: #d1d5db;
+	transform: none;
+}
+
+
 .status-chip.gray,
 .status-badge.gray,
 .role-badge.gray {
