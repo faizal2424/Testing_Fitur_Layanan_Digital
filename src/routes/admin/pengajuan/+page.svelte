@@ -151,7 +151,15 @@
 	<div class="table-card">
 		<div class="table-header">
 			<h3 class="section-title">Daftar Pengajuan</h3>
-			<span class="table-count">{data.pagination.total} pengajuan</span>
+			<span class="table-count">
+				{#if data.pagination.total > 0}
+					Menunjukkan
+					<strong>{(data.pagination.page - 1) * data.pagination.perPage + 1}–{Math.min(data.pagination.page * data.pagination.perPage, data.pagination.total)}</strong>
+					dari <strong>{data.pagination.total}</strong> pengajuan
+				{:else}
+					0 pengajuan
+				{/if}
+			</span>
 		</div>
 
 		{#if data.submissions.length === 0}
@@ -275,39 +283,44 @@
 			</div>
 
 			<!-- Pagination -->
-			{#if data.pagination.totalPages > 1}
-				<div class="pagination">
-					<button
-						class="page-btn"
-						disabled={data.pagination.page <= 1}
-						onclick={() => goToPage(data.pagination.page - 1)}
-					>
-						← Sebelumnya
-					</button>
+			{#if data.pagination.totalPages >= 1}
+				<div class="pagination-wrapper">
+					<div class="pagination">
+						<button
+							class="page-btn"
+							disabled={data.pagination.page <= 1}
+							onclick={() => goToPage(data.pagination.page - 1)}
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+							Sebelumnya
+						</button>
 
-					<div class="page-numbers">
-						{#each Array.from({ length: data.pagination.totalPages }, (_, i) => i + 1) as p}
-							{#if p === 1 || p === data.pagination.totalPages || (p >= data.pagination.page - 2 && p <= data.pagination.page + 2)}
-								<button
-									class="page-num"
-									class:active={p === data.pagination.page}
-									onclick={() => goToPage(p)}
-								>
-									{p}
-								</button>
-							{:else if p === data.pagination.page - 3 || p === data.pagination.page + 3}
-								<span class="page-dots">...</span>
-							{/if}
-						{/each}
+						<div class="page-numbers">
+							{#each Array.from({ length: data.pagination.totalPages }, (_, i) => i + 1) as p}
+								{#if p === 1 || p === data.pagination.totalPages || (p >= data.pagination.page - 2 && p <= data.pagination.page + 2)}
+									<button
+										class="page-num"
+										class:active={p === data.pagination.page}
+										onclick={() => goToPage(p)}
+									>
+										{p}
+									</button>
+								{:else if p === data.pagination.page - 3 || p === data.pagination.page + 3}
+									<span class="page-dots">...</span>
+								{/if}
+							{/each}
+						</div>
+
+						<button
+							class="page-btn"
+							disabled={data.pagination.page >= data.pagination.totalPages}
+							onclick={() => goToPage(data.pagination.page + 1)}
+						>
+							Selanjutnya
+							<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+						</button>
 					</div>
-
-					<button
-						class="page-btn"
-						disabled={data.pagination.page >= data.pagination.totalPages}
-						onclick={() => goToPage(data.pagination.page + 1)}
-					>
-						Selanjutnya →
-					</button>
+					<p class="pagination-info">Halaman {data.pagination.page} dari {data.pagination.totalPages}</p>
 				</div>
 			{/if}
 		{/if}

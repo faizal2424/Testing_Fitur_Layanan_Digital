@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const dateFrom = url.searchParams.get('dari') || '';
 	const dateTo = url.searchParams.get('sampai') || '';
 	const page = parseInt(url.searchParams.get('halaman') || '1');
-	const perPage = 15;
+	const perPage = 10;
 
 	// Sorting params
 	const sortBy = url.searchParams.get('sort_by') || '';
