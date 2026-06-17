@@ -230,7 +230,12 @@
 									<div class="applicant-info">
 										<div class="name-with-badge">
 											<span class="applicant-name">{sub.applicant_name}</span>
-											{#if sub.is_priority}<span class="priority-badge">Prioritas</span>{/if}
+											{#if sub.is_priority}
+												<span class="priority-badge">
+													<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+													Prioritas Tinggi
+												</span>
+											{/if}
 											{#if sub.userRoleInSubmission}
 												<span class="role-badge {sub.userRoleInSubmission === 'PIC Utama' ? 'primary' : 'assistant'}">
 													{sub.userRoleInSubmission}

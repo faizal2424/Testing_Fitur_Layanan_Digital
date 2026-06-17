@@ -199,8 +199,15 @@ export const actions: Actions = {
 		const newPicId = picIdStr ? BigInt(picIdStr) : null;
 		const newIsPriority = isPriorityStr === 'on' || isPriorityStr === 'true'; // checkboxes often post 'on'
 
+		const statusChanged = newStatus !== oldStatus;
+		const priorityChanged = newIsPriority !== submission.is_priority;
+
+		if (!statusChanged && !priorityChanged) {
+			return fail(400, { error: 'Tidak ada perubahan yang dilakukan.' });
+		}
+
 		// If status is changing, check validations
-		if (newStatus !== oldStatus) {
+		if (statusChanged) {
 			const allowedStatuses = getAllowedStatuses(oldStatus, userRole);
 			if (!allowedStatuses.includes(newStatus)) {
 				return fail(400, { error: 'Transisi status tidak diizinkan untuk peran Anda.' });
@@ -209,8 +216,6 @@ export const actions: Actions = {
 			if (userRole === 'pic' && submission.is_priority && newStatus === 'ditolak_pic') {
 				return fail(400, { error: 'Pengajuan prioritas tinggi tidak boleh ditolak.' });
 			}
-		} else {
-			return fail(400, { error: 'Status belum diubah. Silakan pilih status baru sebelum menyimpan perubahan.' });
 		}
 
 		// Validation: evidence is required if status is diselesaikan_pic
@@ -224,8 +229,7 @@ export const actions: Actions = {
 		}
 
 		// Priority locking logic
-		const isAssignmentPhase = (oldStatus === 'baru' || oldStatus === 'ditolak_pic') && newStatus === 'ditugaskan';
-		const canChangePriority = (userRole === 'admin' || userRole === 'superadmin') && isAssignmentPhase;
+		const canChangePriority = userRole === 'admin' || userRole === 'superadmin';
 
 		// Handle file upload if present
 		let evidencePath: string | null = null;

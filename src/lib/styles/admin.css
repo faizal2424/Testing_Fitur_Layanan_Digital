@@ -365,13 +365,31 @@
 .role-badge.amber,
 .status-chip.orange,
 .status-badge.orange,
-.role-badge.orange,
-.priority-badge    { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+.role-badge.orange { background: #fffbeb; color: #d97706; border-color: #fde68a; }
 
 .status-chip.red,
 .status-badge.red,
-.role-badge.red,
-.priority-badge.urgent { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.role-badge.red { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #fff5f5;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--admin-radius-pill);
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(197, 48, 48, 0.05);
+  white-space: nowrap;
+}
+
+.priority-badge svg {
+  flex-shrink: 0;
+}
 
 .status-chip.gray,
 .status-badge.gray,
@@ -1243,7 +1261,7 @@ tbody tr:hover {
 		color: #374151;
 	}
 
-	.form-group input,
+	.form-group input:not([type="checkbox"]):not([type="radio"]),
 	.form-group textarea,
 	.form-group select,
 	.form-control {
@@ -1258,7 +1276,7 @@ tbody tr:hover {
 		resize: vertical;
 	}
 
-	.form-group input:focus,
+	.form-group input:not([type="checkbox"]):not([type="radio"]):focus,
 	.form-group textarea:focus,
 	.form-group select:focus {
 		outline: none;

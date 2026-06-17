@@ -15,6 +15,7 @@
 	let statusError = $state('');
 	let showToast = $state(false);
 	let toastMessage = $state('');
+	let isPriority = $state(data.submission?.is_priority || false);
 
 	$effect(() => {
 		if (selectedStatus !== data.submission?.status) {
@@ -34,6 +35,7 @@
 	$effect(() => {
 		selectedStatus = data.submission?.status || '';
 		selectedPic = data.submission?.assigned_to || '';
+		isPriority = data.submission?.is_priority || false;
 	});
 
 	$effect(() => {
@@ -78,9 +80,7 @@
 	});
 
 	let canEditPriority = $derived(
-		(data.userRole === 'admin' || data.userRole === 'superadmin') &&
-			(data.submission?.status === 'baru' || data.submission?.status === 'ditolak_pic') &&
-			selectedStatus === 'ditugaskan'
+		data.userRole === 'admin' || data.userRole === 'superadmin'
 	);
 
 	function formatDate(d: string | null) {
@@ -111,7 +111,10 @@
 				<div class="tracking-row">
 					<code class="tracking-code">{data.submission.tracking_code}</code>
 					{#if data.submission.is_priority}
-						<span class="priority-badge">Prioritas</span>
+						<span class="priority-badge">
+							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+							Prioritas Tinggi
+						</span>
 					{/if}
 					<StatusBadge status={data.submission.status} />
 				</div>
@@ -322,8 +325,11 @@
 					action="?/process"
 					enctype="multipart/form-data"
 					use:enhance={({ cancel }) => {
-						if (selectedStatus === data.submission?.status) {
-							statusError = 'Status belum diubah. Silakan pilih status baru sebelum menyimpan perubahan.';
+						const statusChanged = selectedStatus !== data.submission?.status;
+						const priorityChanged = isPriority !== data.submission?.is_priority;
+						
+						if (!statusChanged && !priorityChanged) {
+							statusError = 'Tidak ada perubahan yang dilakukan. Silakan pilih status baru atau ubah prioritas sebelum menyimpan.';
 							cancel();
 							return;
 						}
@@ -366,18 +372,13 @@
 									type="checkbox"
 									id="is_priority"
 									name="is_priority"
-									checked={data.submission?.is_priority}
+									bind:checked={isPriority}
 									disabled={!canEditPriority}
 								/>
 								<span>Tandai sebagai Prioritas Tinggi</span>
 							</label>
-							{#if !canEditPriority && data.userRole !== 'pic'}
-								<small class="help-text"
-									>Prioritas hanya dapat diatur saat menugaskan PIC untuk pertama kali (dari
-									Baru/Ditolak PIC).</small
-								>
-							{:else}
-								<small class="help-text">Read-only untuk PIC.</small>
+							{#if !canEditPriority}
+								<small class="help-text">Prioritas hanya dapat diatur oleh Admin/Superadmin.</small>
 							{/if}
 						</div>
 
@@ -637,15 +638,7 @@
 		font-weight: 700;
 		color: #374151;
 	}
-	.priority-badge {
-		background: #fffbeb;
-		color: #d97706;
-		font-size: 0.72rem;
-		font-weight: 700;
-		padding: 0.2rem 0.5rem;
-		border-radius: 6px;
-		border: 1px solid #fde68a;
-	}
+
 	.detail-title {
 		font-size: 1.25rem;
 		font-weight: 700;
@@ -1186,10 +1179,15 @@
 		color: #111827;
 	}
 	.checkbox-label input[type='checkbox'] {
+		appearance: checkbox;
+		-webkit-appearance: checkbox;
 		width: 1.1rem;
 		height: 1.1rem;
+		padding: 0;
+		margin: 0;
+		border-radius: 4px;
 		cursor: pointer;
-		accent-color: #800020;
+		accent-color: #dc2626;
 	}
 	.help-text {
 		font-size: 0.75rem;
