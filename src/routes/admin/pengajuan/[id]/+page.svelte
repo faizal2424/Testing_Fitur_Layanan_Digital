@@ -17,8 +17,11 @@
 	let toastMessage = $state('');
 	let isPriority = $state(data.submission?.is_priority || false);
 
+	// Derived: apakah status sudah diubah dari nilai asal
+	let statusChanged = $derived(selectedStatus !== (data.submission?.status || ''));
+
 	$effect(() => {
-		if (selectedStatus !== data.submission?.status) {
+		if (statusChanged) {
 			statusError = '';
 		}
 	});
@@ -325,11 +328,8 @@
 					action="?/process"
 					enctype="multipart/form-data"
 					use:enhance={({ cancel }) => {
-						const statusChanged = selectedStatus !== data.submission?.status;
-						const priorityChanged = isPriority !== data.submission?.is_priority;
-						
-						if (!statusChanged && !priorityChanged) {
-							statusError = 'Tidak ada perubahan yang dilakukan. Silakan pilih status baru atau ubah prioritas sebelum menyimpan.';
+						if (!statusChanged) {
+							statusError = 'Status pengajuan harus diubah terlebih dahulu sebelum menyimpan. Silakan pilih status baru dari dropdown di atas.';
 							cancel();
 							return;
 						}
@@ -349,8 +349,17 @@
 							</div>
 						{/if}
 						<div class="form-group">
-							<label for="new-status">Status Pengajuan</label>
-							<select id="new-status" name="status" bind:value={selectedStatus} required>
+							<label for="new-status">
+								Status Pengajuan
+								<span class="required-badge">Wajib diubah</span>
+							</label>
+							<select
+								id="new-status"
+								name="status"
+								bind:value={selectedStatus}
+								required
+								class={statusChanged ? 'status-select changed' : 'status-select'}
+							>
 								<option value={data.submission.status}
 									>{getStatusLabel(data.submission.status)}</option
 								>
@@ -577,22 +586,29 @@
 								showProcessModal = false;
 							}}>Batal</button
 						>
-						<button type="submit" class="btn btn-primary">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2.5"
-								stroke-linecap="round"
-								stroke-linejoin="round"
+						<div class="save-btn-wrapper" title={!statusChanged ? 'Ubah status pengajuan terlebih dahulu untuk dapat menyimpan' : ''}>
+							<button
+								type="submit"
+								class="btn btn-primary"
+								class:btn-disabled={!statusChanged}
+								aria-disabled={!statusChanged}
 							>
-								<polyline points="20 6 9 17 4 12" />
-							</svg>
-							Simpan Perubahan
-						</button>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.5"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<polyline points="20 6 9 17 4 12" />
+								</svg>
+								Simpan Perubahan
+							</button>
+						</div>
 					</div>
 				</form>
 			</div>
@@ -672,6 +688,41 @@
 		background: #fef2f2;
 		color: #dc2626;
 		border: 1px solid #fecaca;
+	}
+
+	/* Validasi status wajib diubah */
+	.required-badge {
+		display: inline-block;
+		margin-left: 0.4rem;
+		padding: 0.1rem 0.45rem;
+		background: #fff7ed;
+		color: #c2410c;
+		border: 1px solid #fed7aa;
+		border-radius: 6px;
+		font-size: 0.68rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		vertical-align: middle;
+	}
+
+	.status-select {
+		transition: border-color 0.2s, box-shadow 0.2s;
+	}
+	.status-select.changed {
+		border-color: #16a34a !important;
+		box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+		background: #f0fdf4;
+	}
+
+	.save-btn-wrapper {
+		display: inline-block;
+	}
+	.btn.btn-disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+		pointer-events: none;
+		filter: grayscale(30%);
 	}
 
 	.no-pic-warning {
