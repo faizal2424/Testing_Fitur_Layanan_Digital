@@ -197,7 +197,12 @@ export const actions: Actions = {
 		});
 
 		const newPicId = picIdStr ? BigInt(picIdStr) : null;
-		const newIsPriority = isPriorityStr === 'on' || isPriorityStr === 'true'; // checkboxes often post 'on'
+		
+		// Priority locking logic: only admin/superadmin can change it, and only when current status is 'baru'
+		const canChangePriority = (userRole === 'admin' || userRole === 'superadmin') && submission.status === 'baru';
+		const newIsPriority = canChangePriority
+			? (isPriorityStr === 'on' || isPriorityStr === 'true')
+			: submission.is_priority;
 
 		const statusChanged = newStatus !== oldStatus;
 		const priorityChanged = newIsPriority !== submission.is_priority;
@@ -227,9 +232,6 @@ export const actions: Actions = {
 		if (newStatus === 'ditugaskan' && !newPicId) {
 			return fail(400, { error: 'PIC wajib ditempatkan ketika status adalah ditugaskan.' });
 		}
-
-		// Priority locking logic
-		const canChangePriority = userRole === 'admin' || userRole === 'superadmin';
 
 		// Handle file upload if present
 		let evidencePath: string | null = null;

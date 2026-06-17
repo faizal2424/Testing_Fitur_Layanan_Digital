@@ -83,7 +83,8 @@
 	});
 
 	let canEditPriority = $derived(
-		data.userRole === 'admin' || data.userRole === 'superadmin'
+		(data.userRole === 'admin' || data.userRole === 'superadmin') &&
+		data.submission?.status === 'baru'
 	);
 
 	function formatDate(d: string | null) {
@@ -442,7 +443,13 @@
 								<span>Tandai sebagai Prioritas Tinggi</span>
 							</label>
 							{#if !canEditPriority}
-								<small class="help-text">Prioritas hanya dapat diatur oleh Admin/Superadmin.</small>
+								<small class="help-text">
+									{#if data.userRole !== 'admin' && data.userRole !== 'superadmin'}
+										Prioritas hanya dapat diatur oleh Admin/Superadmin.
+									{:else}
+										Prioritas tidak dapat diubah setelah status pengajuan berubah.
+									{/if}
+								</small>
 							{/if}
 						</div>
 
