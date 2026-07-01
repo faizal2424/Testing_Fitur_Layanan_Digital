@@ -23,7 +23,10 @@
         if (val) {
             formValues[`field_${field.id}`] = val.value || '';
             if (field.type === 'select') {
-                selectedDisplay[field.id] = val.value || '';
+                // Find label for the stored value (which may be an ID in new format)
+                const opts = parseOptions(field.options);
+                const matched = opts.find(o => o.value === (val.value || ''));
+                selectedDisplay[field.id] = matched ? matched.label : (val.value || '');
             }
         }
     });
@@ -40,10 +43,17 @@
     return () => window.removeEventListener('click', handleClickOutside);
   });
 
-  // Helpers
-  function parseOptions(str: string | null): string[] {
+  // Parse options — supports legacy string[] and new {label, value}[] format
+  function parseOptions(str: string | null): { label: string; value: string }[] {
     if (!str) return [];
-    try { return JSON.parse(str); } catch { return str.split(',').map(o => o.trim()); }
+    try {
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        if (typeof parsed[0] === 'object' && parsed[0] !== null) return parsed;
+        return (parsed as string[]).map((s) => ({ label: s, value: s }));
+      }
+    } catch { return str.split(',').map(o => ({ label: o.trim(), value: o.trim() })); }
+    return [];
   }
 
   function parseMeta(str: string | null): Record<string, any> {
@@ -101,16 +111,16 @@
     if (input) input.value = '';
   }
 
-  function getFilteredOptions(optionsStr: string | null, fieldId: number): string[] {
+  function getFilteredOptions(optionsStr: string | null, fieldId: number): { label: string; value: string }[] {
     const options = parseOptions(optionsStr);
     const search = selectSearch[fieldId]?.toLowerCase() || '';
     if (!search) return options;
-    return options.filter(opt => opt.toLowerCase().includes(search));
+    return options.filter(opt => opt.label.toLowerCase().includes(search));
   }
 
-  function selectOption(fieldId: number, option: string) {
-    selectedDisplay[fieldId] = option;
-    formValues[`field_${fieldId}`] = option;
+  function selectOption(fieldId: number, opt: { label: string; value: string }) {
+    selectedDisplay[fieldId] = opt.label;
+    formValues[`field_${fieldId}`] = opt.value;
     openSelectId = null;
   }
 
@@ -189,7 +199,7 @@
                     <div class="p-2 bg-slate-50"><input type="text" bind:value={selectSearch[field.id]} placeholder="Cari..." class="w-full px-3 py-1.5 text-sm rounded-lg border-slate-200" onclick={e => e.stopPropagation()}/></div>
                     <div class="max-h-48 overflow-y-auto">
                       {#each getFilteredOptions(field.options, field.id) as opt}
-                        <button type="button" onclick={() => selectOption(field.id, opt)} class="w-full px-4 py-2 text-sm text-left hover:bg-slate-50 {selectedDisplay[field.id] === opt ? 'bg-red-50 text-red-700 font-bold' : ''}">{opt}</button>
+                        <button type="button" onclick={() => selectOption(field.id, opt)} class="w-full px-4 py-2 text-sm text-left hover:bg-slate-50 {selectedDisplay[field.id] === opt.label ? 'bg-red-50 text-red-700 font-bold' : ''}">{opt.label}</button>
                       {/each}
                     </div>
                   </div>

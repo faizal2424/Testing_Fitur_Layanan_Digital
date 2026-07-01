@@ -1229,8 +1229,17 @@
 		border-radius: 16px;
 		width: 100%;
 		max-width: 480px;
+		max-height: 90vh;
+		display: flex;
+		flex-direction: column;
 		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 		animation: modalIn 0.2s ease-out;
+	}
+	.modal form {
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		flex: 1;
 	}
 	@keyframes modalIn {
 		from {
@@ -1248,6 +1257,7 @@
 		justify-content: space-between;
 		padding: 1.25rem 1.5rem;
 		border-bottom: 1px solid #f3f4f6;
+		flex-shrink: 0;
 	}
 	.modal-header h3 {
 		font-size: 1.05rem;
@@ -1276,6 +1286,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+		overflow-y: auto;
+		flex: 1;
 	}
 	.modal-footer {
 		display: flex;

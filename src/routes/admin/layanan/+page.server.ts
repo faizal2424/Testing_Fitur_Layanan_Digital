@@ -123,10 +123,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 		alreadyVisible: visibleAgencyIds.has(a.id.toString())
 	}));
 
+	// Fetch master OPD list for dropdown (single source of truth)
+	const opdMaster = await db.opd.findMany({ orderBy: { order: 'asc' }, select: { id: true, name: true } });
+	const opdList = opdMaster.map((o) => o.name);
+
 	return {
 		agenciesWithServices,
 		isSuper,
-		allAgencies
+		allAgencies,
+		opdList
 	};
 };
 
@@ -302,10 +307,9 @@ export const actions: Actions = {
 			}
 		});
 
-		// Fetch all agencies for dynamic OPD dropdown
-		const daftarOpd = await db.agencies.findMany({ select: { name: true }, orderBy: { name: 'asc' }});
-		const arrayOpd = daftarOpd.map(opd => opd.name);
-		arrayOpd.push("Lainnya");
+		// Build OPD options from master table as {label, value} for statistics-ready submissions
+		const opdMaster = await db.opd.findMany({ orderBy: { order: 'asc' }, select: { id: true, name: true } });
+		const arrayOpd = opdMaster.map((o) => ({ label: o.name, value: o.id.toString() }));
 
 		// Add default form fields
 		const defaultFields = [

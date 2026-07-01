@@ -11,14 +11,22 @@
 
   let isSubmitting = false;
 
-  // Parse options for select/radio fields
-  function parseOptions(optionsStr: string | null): string[] {
+  // Parse options for select/radio fields.
+  // Supports both legacy string[] and new {label, value}[] format.
+  function parseOptions(optionsStr: string | null): { label: string; value: string }[] {
     if (!optionsStr) return [];
     try {
-      return JSON.parse(optionsStr);
+      const parsed = JSON.parse(optionsStr);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // New format: [{label, value}]
+        if (typeof parsed[0] === 'object' && parsed[0] !== null) return parsed;
+        // Legacy format: string[] — normalise
+        return (parsed as string[]).map((s) => ({ label: s, value: s }));
+      }
     } catch {
-      return optionsStr.split(',').map((o: string) => o.trim());
+      return optionsStr.split(',').map((o: string) => ({ label: o.trim(), value: o.trim() }));
     }
+    return [];
   }
 
   // Parse meta JSON field safely
@@ -155,23 +163,23 @@
     }
   }
 
-  function selectOption(fieldId: number, option: string) {
-    selectedDisplay[fieldId] = option;
+  function selectOption(fieldId: number, opt: { label: string; value: string }) {
+    selectedDisplay[fieldId] = opt.label;
     openSelectId = null;
     
     // Set value to hidden select/input
     const el = document.getElementById(`field_${fieldId}`) as HTMLSelectElement;
     if (el) {
-      el.value = option;
+      el.value = opt.value;
       el.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
-  function getFilteredOptions(optionsStr: string | null, search: string): string[] {
+  function getFilteredOptions(optionsStr: string | null, search: string): { label: string; value: string }[] {
     const options = parseOptions(optionsStr);
     if (!search) return options;
     const s = search.toLowerCase();
-    return options.filter(opt => opt.toLowerCase().includes(s));
+    return options.filter(opt => opt.label.toLowerCase().includes(s));
   }
 
   // Handle click outside to close dropdowns
@@ -472,7 +480,7 @@
                       >
                         <option value="">— Pilih —</option>
                         {#each parseOptions(field.options) as opt}
-                          <option value={opt}>{opt}</option>
+                          <option value={opt.value}>{opt.label}</option>
                         {/each}
                       </select>
 
@@ -485,7 +493,7 @@
                         class:border-red-300={getFieldError(`field_${field.id}`)}
                       >
                         <span class={selectedDisplay[field.id] ? 'text-slate-800 font-medium' : 'text-slate-400'}>
-                          {selectedDisplay[field.id] || '— Pilih —'}
+                              {selectedDisplay[field.id] || '— Pilih —'}
                         </span>
                         <svg 
                           class="w-4 h-4 text-slate-400 group-hover/btn:text-slate-600 transition-transform duration-200" 
@@ -526,10 +534,10 @@
                                   type="button"
                                   on:click={() => selectOption(field.id, opt)}
                                   class="w-full text-left px-4 py-2.5 text-sm rounded-lg transition-colors flex items-center justify-between
-                                    {selectedDisplay[field.id] === opt ? 'bg-red-50 text-red-700 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
+                                    {selectedDisplay[field.id] === opt.label ? 'bg-red-50 text-red-700 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}"
                                 >
-                                  <span>{opt}</span>
-                                  {#if selectedDisplay[field.id] === opt}
+                                  <span>{opt.label}</span>
+                                  {#if selectedDisplay[field.id] === opt.label}
                                     <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg>
@@ -537,6 +545,7 @@
                                 </button>
                               {/each}
                             {:else}
+
                               <div class="py-6 px-4 text-center">
                                 <p class="text-xs text-slate-400">Pilihan tidak ditemukan</p>
                               </div>
@@ -557,11 +566,11 @@
                           <input
                             type="radio"
                             name="field_{field.id}"
-                            value={opt}
+                            value={opt.value}
                             required={field.is_required && i === 0}
                             class="text-red-600 focus:ring-red-500/20 border-slate-300"
                           />
-                          <span class="font-medium">{opt}</span>
+                          <span class="font-medium">{opt.label}</span>
                         </label>
                       {/each}
                     </div>
