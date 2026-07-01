@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 			agencies: { select: { id: true, name: true } },
 			users: { select: { id: true, name: true } },
 			service_submission_values: {
-				include: { service_form_fields: { select: { label: true, name: true, type: true } } },
+				include: { service_form_fields: { select: { label: true, name: true, type: true, options: true } } },
 				orderBy: { service_form_fields: { order: 'asc' } }
 			},
 			submission_notes: {
@@ -99,14 +99,26 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 			created_at: submission.created_at?.toISOString() || null,
 			updated_at: submission.updated_at?.toISOString() || null
 		},
-		values: submission.service_submission_values.map((v) => ({
-			id: v.id.toString(),
-			label: v.service_form_fields.label,
-			name: v.service_form_fields.name,
-			type: v.service_form_fields.type,
-			value: v.value,
-			file_path: v.file_path
-		})),
+		values: submission.service_submission_values.map((v) => {
+			let displayValue = v.value;
+			if (v.service_form_fields.type === 'select' && v.service_form_fields.options && v.value) {
+				try {
+					const opts = JSON.parse(v.service_form_fields.options);
+					const matched = opts.find((opt: any) => opt.value === String(v.value));
+					if (matched && matched.label) {
+						displayValue = matched.label;
+					}
+				} catch (e) {}
+			}
+			return {
+				id: v.id.toString(),
+				label: v.service_form_fields.label,
+				name: v.service_form_fields.name,
+				type: v.service_form_fields.type,
+				value: displayValue,
+				file_path: v.file_path
+			};
+		}),
 		notes: submission.submission_notes.map((n: any) => ({
 			id: n.id.toString(),
 			status_from: n.status_from,

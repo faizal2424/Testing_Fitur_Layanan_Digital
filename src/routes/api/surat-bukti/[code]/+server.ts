@@ -286,7 +286,19 @@ async function generateSuratBukti(submission: any): Promise<Buffer> {
             for (let i = 0; i < fieldValues.length; i++) {
                 const sv = fieldValues[i];
                 const fieldLabel = sv.service_form_fields?.label || 'Field';
-                const fieldValue = sv.value || (sv.file_path ? '[File Terlampir]' : '-');
+                let fieldValue = sv.value || (sv.file_path ? '[File Terlampir]' : '-');
+
+                if (sv.service_form_fields?.type === 'select' && sv.service_form_fields?.options && sv.value) {
+                    try {
+                        const options = JSON.parse(sv.service_form_fields.options);
+                        const matched = options.find((opt: any) => opt.value === String(sv.value));
+                        if (matched && matched.label) {
+                            fieldValue = matched.label;
+                        }
+                    } catch (e) {
+                        // ignore error and fallback to value
+                    }
+                }
 
                 // Dynamic height calculation
                 const valH = doc.font(F).fontSize(9.5).heightOfString(fieldValue, { width: CW - colLabel - padX * 2 });
