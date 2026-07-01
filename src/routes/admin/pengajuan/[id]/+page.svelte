@@ -218,7 +218,7 @@
 							<span class="info-label">Terakhir Diperbarui</span>
 							<span class="info-value">{formatDate(data.submission.updated_at)}</span>
 						</div>
-						{#if data.userRole === 'pic' || (data.submission.status !== 'baru' && data.submission.status !== 'ditugaskan')}
+						{#if data.submission.status !== 'baru'}
 							<div class="info-item" style="grid-column: span 2;">
 								<span class="info-label">Anggota Tim</span>
 								<span class="info-value">
@@ -571,12 +571,6 @@
 											</div>
 										{/if}
 									</div>
-									
-									<!-- Hidden inputs for form submission -->
-									{#each selectedTeamIds as id}
-										<input type="hidden" name="team_members" value={id} />
-									{/each}
-									
 									<small class="help-text">Klik untuk mencari dan memilih beberapa anggota tim pembantu.</small>
 								</div>
 							{:else}
@@ -613,6 +607,11 @@
 								<small class="help-text">Hanya PIC yang dapat mengelola anggota tim pembantu.</small>
 							</div>
 						{/if}
+
+						<!-- Hidden inputs for team members to preserve them across form submissions -->
+						{#each selectedTeamIds as id}
+							<input type="hidden" name="team_members" value={id} />
+						{/each}
 
 						<div class="form-group">
 							<label for="status-note">Catatan Tambahan</label>
