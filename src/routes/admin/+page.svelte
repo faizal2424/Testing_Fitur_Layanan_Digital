@@ -54,9 +54,21 @@
 	// Analytics Chart variables
 	let trendChartCanvas: HTMLCanvasElement;
 	let statusChartCanvas: HTMLCanvasElement;
-	let popularityChartCanvas: HTMLCanvasElement;
-	let opdChartCanvas: HTMLCanvasElement;
 	let charts: any[] = [];
+
+	// Rank medal colors
+	const rankColors = ['#f59e0b', '#9ca3af', '#cd7c2f', '#6366f1', '#14b8a6'];
+
+	// Trend derived stats
+	const trendTotal = data.stats.trends.reduce((s, t) => s + t.count, 0);
+	const trendAvg = trendTotal > 0 ? (trendTotal / 30).toFixed(1) : '0';
+	const trendPeak = data.stats.trends.reduce(
+		(best, t) => (t.count > (best?.count ?? 0) ? t : best),
+		data.stats.trends[0] ?? null
+	);
+	const last7 = data.stats.trends.slice(-7).reduce((s, t) => s + t.count, 0);
+	const prev7 = data.stats.trends.slice(-14, -7).reduce((s, t) => s + t.count, 0);
+	const trendUp = last7 >= prev7;
 
 	async function initCharts() {
 		const { Chart } = await import('chart.js/auto');
@@ -65,24 +77,55 @@
 		charts.forEach(c => c.destroy());
 		charts = [];
 
-		// 1. Trend Chart (Line)
+		// 1. Trend Chart (Line) — gradient fill
+		const trendCtx = trendChartCanvas.getContext('2d')!;
+		const grad = trendCtx.createLinearGradient(0, 0, 0, 220);
+		grad.addColorStop(0, 'rgba(128,0,32,0.18)');
+		grad.addColorStop(1, 'rgba(128,0,32,0.01)');
 		charts.push(new Chart(trendChartCanvas, {
 			type: 'line',
 			data: {
 				labels: data.stats.trends.map(t => formatDate(t.date).split(',')[0]),
 				datasets: [{
-					label: 'Jumlah Pengajuan',
+					label: 'Pengajuan',
 					data: data.stats.trends.map(t => t.count),
 					borderColor: '#800020',
-					backgroundColor: 'rgba(128, 0, 32, 0.1)',
+					borderWidth: 2.5,
+					backgroundColor: grad,
 					fill: true,
-					tension: 0.4
+					tension: 0.45,
+					pointRadius: 3,
+					pointBackgroundColor: '#800020',
+					pointBorderColor: '#fff',
+					pointBorderWidth: 1.5,
+					pointHoverRadius: 6
 				}]
 			},
 			options: {
 				responsive: true,
-				plugins: { legend: { display: false } },
-				scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+				maintainAspectRatio: false,
+				plugins: {
+					legend: { display: false },
+					tooltip: {
+						backgroundColor: '#111827',
+						titleColor: '#f9fafb',
+						bodyColor: '#d1d5db',
+						padding: 10,
+						cornerRadius: 8,
+						displayColors: false
+					}
+				},
+				scales: {
+					x: {
+						grid: { display: false },
+						ticks: { font: { size: 11 }, color: '#9ca3af', maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }
+					},
+					y: {
+						beginAtZero: true,
+						ticks: { stepSize: 1, font: { size: 11 }, color: '#9ca3af' },
+						grid: { color: 'rgba(0,0,0,0.05)' }
+					}
+				}
 			}
 		}));
 
@@ -109,50 +152,14 @@
 			},
 			options: {
 				responsive: true,
+				maintainAspectRatio: false,
 				cutout: '70%',
 				plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6, font: { size: 11 } } } }
 			}
 		}));
 
-		// 3. Popularity Chart (Bar)
-		charts.push(new Chart(popularityChartCanvas, {
-			type: 'bar',
-			data: {
-				labels: data.stats.popularity.map(p => p.name),
-				datasets: [{
-					label: 'Jumlah Pengajuan',
-					data: data.stats.popularity.map(p => p.count),
-					backgroundColor: '#800020',
-					borderRadius: 6
-				}]
-			},
-			options: {
-				indexAxis: 'y',
-				responsive: true,
-				plugins: { legend: { display: false } },
-				scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
-			}
-		}));
-
-		// 4. OPD Chart (Bar)
-		charts.push(new Chart(opdChartCanvas, {
-			type: 'bar',
-			data: {
-				labels: data.stats.topOpd.map(p => p.name),
-				datasets: [{
-					label: 'Jumlah Pengajuan',
-					data: data.stats.topOpd.map(p => p.count),
-					backgroundColor: '#14b8a6',
-					borderRadius: 6
-				}]
-			},
-			options: {
-				indexAxis: 'y',
-				responsive: true,
-				plugins: { legend: { display: false } },
-				scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
-			}
-		}));
+		// 3. Popularity Chart is now a ranked list (no canvas needed)
+		// 4. OPD Chart is now a ranked list (no canvas needed)
 	}
 
 	onMount(() => {
@@ -243,10 +250,51 @@
 		</div>
 	</div>
 
-	<!-- Analytics Grid -->
+	<!-- Analytics Grid: Trend + Status -->
 	<div class="analytics-grid">
 		<div class="chart-card trend-card">
-			<h3 class="section-title">Tren Pengajuan (30 Hari Terakhir)</h3>
+			<div class="trend-header">
+				<div class="trend-title-group">
+					<div class="trend-icon">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+					</div>
+					<div>
+						<h3 class="trend-title">Tren Pengajuan</h3>
+						<p class="trend-subtitle">30 hari terakhir · diperbarui hari ini</p>
+					</div>
+				</div>
+				<span class="trend-direction" class:up={trendUp} class:down={!trendUp}>
+					{#if trendUp}
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+						Naik
+					{:else}
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+						Turun
+					{/if}
+					<span class="trend-period">7 hari</span>
+				</span>
+			</div>
+			<div class="trend-metrics">
+				<div class="trend-metric">
+					<span class="tm-value">{trendTotal}</span>
+					<span class="tm-label">Total Pengajuan</span>
+				</div>
+				<div class="trend-metric-divider"></div>
+				<div class="trend-metric">
+					<span class="tm-value">{trendAvg}</span>
+					<span class="tm-label">Rata-rata/Hari</span>
+				</div>
+				<div class="trend-metric-divider"></div>
+				<div class="trend-metric">
+					<span class="tm-value">{trendPeak?.count ?? 0}</span>
+					<span class="tm-label">Puncak Harian</span>
+				</div>
+				<div class="trend-metric-divider"></div>
+				<div class="trend-metric">
+					<span class="tm-value">{last7}</span>
+					<span class="tm-label">7 Hari Terakhir</span>
+				</div>
+			</div>
 			<div class="chart-body">
 				<canvas bind:this={trendChartCanvas}></canvas>
 			</div>
@@ -257,17 +305,78 @@
 				<canvas bind:this={statusChartCanvas}></canvas>
 			</div>
 		</div>
-		<div class="chart-card popularity-card">
-			<h3 class="section-title">Layanan Terpopuler</h3>
-			<div class="chart-body">
-				<canvas bind:this={popularityChartCanvas}></canvas>
+	</div>
+
+	<!-- Ranked Lists: Layanan Terpopuler & OPD Pengaju -->
+	<div class="ranked-grid">
+		<!-- Layanan Terpopuler -->
+		<div class="chart-card ranked-card">
+			<div class="ranked-header">
+				<div class="ranked-title-group">
+					<div class="ranked-icon maroon">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+					</div>
+					<div>
+						<h3 class="ranked-title">Layanan Terpopuler</h3>
+						<p class="ranked-subtitle">Top 5 layanan berdasarkan jumlah pengajuan</p>
+					</div>
+				</div>
+				<span class="ranked-badge maroon">{data.stats.popularity.reduce((s,p)=>s+p.count,0)} total</span>
 			</div>
+			{#if data.stats.popularity.length === 0}
+				<div class="ranked-empty">Belum ada data pengajuan.</div>
+			{:else}
+				{@const maxPop = data.stats.popularity[0]?.count || 1}
+				<ol class="ranked-list">
+					{#each data.stats.popularity as item, i}
+						<li class="ranked-item">
+							<span class="rank-medal" style="background:{rankColors[i]}"></span>
+							<div class="rank-info">
+								<span class="rank-name">{item.name}</span>
+								<div class="rank-bar-wrap">
+									<div class="rank-bar maroon" style="width:{Math.round((item.count/maxPop)*100)}%"></div>
+								</div>
+							</div>
+							<span class="rank-count">{item.count}</span>
+						</li>
+					{/each}
+				</ol>
+			{/if}
 		</div>
-		<div class="chart-card opd-card">
-			<h3 class="section-title">OPD Pengaju Terbanyak</h3>
-			<div class="chart-body">
-				<canvas bind:this={opdChartCanvas}></canvas>
+
+		<!-- OPD Pengaju Terbanyak -->
+		<div class="chart-card ranked-card">
+			<div class="ranked-header">
+				<div class="ranked-title-group">
+					<div class="ranked-icon teal">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+					</div>
+					<div>
+						<h3 class="ranked-title">OPD Pengaju Terbanyak</h3>
+						<p class="ranked-subtitle">Top 5 OPD asal pengaju berdasarkan jumlah</p>
+					</div>
+				</div>
+				<span class="ranked-badge teal">{data.stats.topOpd.reduce((s,p)=>s+p.count,0)} total</span>
 			</div>
+			{#if data.stats.topOpd.length === 0}
+				<div class="ranked-empty">Belum ada data OPD pengaju.</div>
+			{:else}
+				{@const maxOpd = data.stats.topOpd[0]?.count || 1}
+				<ol class="ranked-list">
+					{#each data.stats.topOpd as item, i}
+						<li class="ranked-item">
+							<span class="rank-medal" style="background:{rankColors[i]}"></span>
+							<div class="rank-info">
+								<span class="rank-name">{item.name}</span>
+								<div class="rank-bar-wrap">
+									<div class="rank-bar teal" style="width:{Math.round((item.count/maxOpd)*100)}%"></div>
+								</div>
+							</div>
+							<span class="rank-count">{item.count}</span>
+						</li>
+					{/each}
+				</ol>
+			{/if}
 		</div>
 	</div>
 
