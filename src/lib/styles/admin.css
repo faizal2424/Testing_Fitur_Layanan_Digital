@@ -290,7 +290,7 @@
    ---------------------------------------------------------- */
 .analytics-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(6, 1fr);
 	gap: 1.25rem;
 	margin-bottom: 1.5rem;
 }
@@ -314,15 +314,19 @@
 }
 
 .trend-card {
-	grid-column: span 2;
+	grid-column: span 4;
 }
 .status-card {
-	grid-column: span 1;
+	grid-column: span 2;
 }
 .popularity-card {
 	grid-column: span 3;
 }
-.popularity-card .chart-body {
+.opd-card {
+	grid-column: span 3;
+}
+.popularity-card .chart-body,
+.opd-card .chart-body {
 	min-height: 200px;
 }
 

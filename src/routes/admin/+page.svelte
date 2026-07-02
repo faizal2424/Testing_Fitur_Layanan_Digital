@@ -55,6 +55,7 @@
 	let trendChartCanvas: HTMLCanvasElement;
 	let statusChartCanvas: HTMLCanvasElement;
 	let popularityChartCanvas: HTMLCanvasElement;
+	let opdChartCanvas: HTMLCanvasElement;
 	let charts: any[] = [];
 
 	async function initCharts() {
@@ -122,6 +123,26 @@
 					label: 'Jumlah Pengajuan',
 					data: data.stats.popularity.map(p => p.count),
 					backgroundColor: '#800020',
+					borderRadius: 6
+				}]
+			},
+			options: {
+				indexAxis: 'y',
+				responsive: true,
+				plugins: { legend: { display: false } },
+				scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+			}
+		}));
+
+		// 4. OPD Chart (Bar)
+		charts.push(new Chart(opdChartCanvas, {
+			type: 'bar',
+			data: {
+				labels: data.stats.topOpd.map(p => p.name),
+				datasets: [{
+					label: 'Jumlah Pengajuan',
+					data: data.stats.topOpd.map(p => p.count),
+					backgroundColor: '#14b8a6',
 					borderRadius: 6
 				}]
 			},
@@ -240,6 +261,12 @@
 			<h3 class="section-title">Layanan Terpopuler</h3>
 			<div class="chart-body">
 				<canvas bind:this={popularityChartCanvas}></canvas>
+			</div>
+		</div>
+		<div class="chart-card opd-card">
+			<h3 class="section-title">OPD Pengaju Terbanyak</h3>
+			<div class="chart-body">
+				<canvas bind:this={opdChartCanvas}></canvas>
 			</div>
 		</div>
 	</div>

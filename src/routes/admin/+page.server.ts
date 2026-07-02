@@ -75,6 +75,34 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		ORDER BY count DESC 
 		LIMIT 5
 	`;
+	let topOpdSql = `
+		SELECT 
+			JSON_UNQUOTE(
+				JSON_EXTRACT(
+					f.options,
+					CONCAT('$[', idx.n, '].label')
+				)
+			) AS name,
+			COUNT(*) AS count
+		FROM service_submission_values v
+		JOIN service_form_fields f ON v.field_id = f.id
+		JOIN (
+			SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+			UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9
+			UNION SELECT 10 UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14
+			UNION SELECT 15 UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19
+			UNION SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 UNION SELECT 24
+			UNION SELECT 25 UNION SELECT 26 UNION SELECT 27 UNION SELECT 28 UNION SELECT 29
+			UNION SELECT 30 UNION SELECT 31 UNION SELECT 32 UNION SELECT 33 UNION SELECT 34
+			UNION SELECT 35 UNION SELECT 36 UNION SELECT 37 UNION SELECT 38 UNION SELECT 39
+			UNION SELECT 40 UNION SELECT 41 UNION SELECT 42 UNION SELECT 43 UNION SELECT 44
+			UNION SELECT 45 UNION SELECT 46
+		) idx ON JSON_UNQUOTE(JSON_EXTRACT(f.options, CONCAT('$[', idx.n, '].value'))) = v.value
+		WHERE f.name = 'opd'
+		GROUP BY name
+		ORDER BY count DESC
+		LIMIT 5
+	`;
 
 	if (user?.role === 'admin' && user?.agency_id) {
 		trendSql = `
@@ -95,6 +123,37 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 			ORDER BY count DESC 
 			LIMIT 5
 		`;
+		topOpdSql = `
+			SELECT 
+				JSON_UNQUOTE(
+					JSON_EXTRACT(
+						f.options,
+						CONCAT('$[', idx.n, '].label')
+					)
+				) AS name,
+				COUNT(*) AS count
+			FROM service_submission_values v
+			JOIN service_form_fields f ON v.field_id = f.id
+			JOIN service_submissions sub ON v.submission_id = sub.id
+			JOIN services s ON sub.service_id = s.id
+			JOIN (
+				SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+				UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9
+				UNION SELECT 10 UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14
+				UNION SELECT 15 UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19
+				UNION SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 UNION SELECT 24
+				UNION SELECT 25 UNION SELECT 26 UNION SELECT 27 UNION SELECT 28 UNION SELECT 29
+				UNION SELECT 30 UNION SELECT 31 UNION SELECT 32 UNION SELECT 33 UNION SELECT 34
+				UNION SELECT 35 UNION SELECT 36 UNION SELECT 37 UNION SELECT 38 UNION SELECT 39
+				UNION SELECT 40 UNION SELECT 41 UNION SELECT 42 UNION SELECT 43 UNION SELECT 44
+				UNION SELECT 45 UNION SELECT 46
+			) idx ON JSON_UNQUOTE(JSON_EXTRACT(f.options, CONCAT('$[', idx.n, '].value'))) = v.value
+			WHERE f.name = 'opd'
+			  AND s.agency_id = ${user.agency_id}
+			GROUP BY name
+			ORDER BY count DESC
+			LIMIT 5
+		`;
 	}
 
 	// === Statistics & Analytics ===
@@ -106,7 +165,8 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		todayCount, 
 		statusCounts,
 		trendData,
-		popularityData
+		popularityData,
+		topOpdData
 	] = await Promise.all([
 		// Total layanan
 		db.services.count({ where: servicesWhere }),
@@ -149,7 +209,10 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 		db.$queryRawUnsafe<any[]>(trendSql),
 
 		// Popularity: By Service
-		db.$queryRawUnsafe<any[]>(popularitySql)
+		db.$queryRawUnsafe<any[]>(popularitySql),
+
+		// Top OPD: By Agency
+		db.$queryRawUnsafe<any[]>(topOpdSql)
 	]);
 
 	// === Submissions list with pagination ===
@@ -219,6 +282,10 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 			popularity: popularityData.map(p => ({
 				name: p.name,
 				count: Number(p.count)
+			})),
+			topOpd: topOpdData.map(o => ({
+				name: o.name,
+				count: Number(o.count)
 			}))
 		},
 		submissions: serializedSubmissions,
