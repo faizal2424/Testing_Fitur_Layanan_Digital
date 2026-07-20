@@ -5,22 +5,29 @@
   import type { PageData, ActionData } from './$types';
   import Footer from '$lib/components/Footer.svelte';
 
-  export let data: PageData;
-  export let form: ActionData;
+  let { data, form }: { data: PageData; form: ActionData | null } = $props();
 
-  let searchQuery = "";
-  let isSearching = false;
-  let selectedLayanan: any = null;
-  let activeAgencyName: string | null = null;
+  let searchQuery = $state("");
+  let isSearching = $state(false);
+  let selectedLayanan = $state<any>(null);
+  let activeAgencyName = $state<string | null>(null);
+  let showResultModal = $state(false);
+
+  $effect(() => {
+    if (form?.success && form.result) {
+      showResultModal = true;
+    }
+  });
 
   // Filter List Layanan dari database
-  $: filteredLayanan = data.listLayanan.filter((l: any) => 
-    l.name.toLowerCase().includes(searchQuery.toLowerCase())
+  let filteredLayanan = $derived(
+    data.listLayanan.filter((l: any) => 
+      l.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   );
 
   // Mengelompokkan berdasarkan instansi
-  let groupedLayanan: Record<string, any[]> = {};
-  $: {
+  let groupedLayanan: Record<string, any[]> = $derived.by(() => {
     const initGroups: Record<string, any[]> = {};
     if (searchQuery.trim() === '') {
       for (const a of data.allAgencies || []) {
@@ -28,7 +35,7 @@
       }
     }
 
-    groupedLayanan = filteredLayanan.reduce((groups: Record<string, any[]>, l: any) => {
+    return filteredLayanan.reduce((groups: Record<string, any[]>, l: any) => {
       const agencyName = l.agencies?.name || 'Layanan Umum (Semua Instansi)';
       if (!groups[agencyName]) {
         groups[agencyName] = [];
@@ -36,7 +43,7 @@
       groups[agencyName].push(l);
       return groups;
     }, initGroups);
-  }
+  });
 
   const STATUS_FLOW = [
     { key: 'baru', label: 'Diterima' },
@@ -144,14 +151,14 @@
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 -mt-10 relative z-20">
     
     <!-- Status Result Modal -->
-    {#if form?.success && form.result}
+    {#if showResultModal && form?.result}
       <div 
         role="button"
         tabindex="0"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" 
         transition:fade={{ duration: 200 }}
-        on:click|self={() => form = null}
-        on:keydown={(e) => e.key === 'Escape' && (form = null)}
+        onclick={(e) => { if (e.target === e.currentTarget) showResultModal = false; }}
+        onkeydown={(e) => { if (e.key === 'Escape') showResultModal = false; }}
       >
         <section 
             class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl p-8 relative max-h-[90vh] overflow-y-auto" 
@@ -161,7 +168,7 @@
             <button 
                 type="button"
                 aria-label="Tutup"
-                on:click={() => form = null}
+                onclick={() => showResultModal = false}
                 class="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-400 transition-colors z-10"
             >
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -304,7 +311,7 @@
               <p class="text-slate-500">Pilih instansi untuk melihat layanan yang tersedia</p>
             {:else}
               <button 
-                on:click={() => activeAgencyName = null} 
+                onclick={() => activeAgencyName = null} 
                 class="flex items-center gap-2 text-sm font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-full transition-colors mb-4"
               >
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
@@ -324,7 +331,7 @@
             </div>
             <input 
               bind:value={searchQuery}
-              on:input={() => {
+              oninput={() => {
                 // Return to all view if searching
                 if (searchQuery.trim().length > 0 && activeAgencyName !== null) {
                   activeAgencyName = null;
@@ -344,7 +351,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each Object.entries(groupedLayanan) as [agencyName, services]}
               <button 
-                on:click={() => activeAgencyName = agencyName}
+                onclick={() => activeAgencyName = agencyName}
                 class="group relative bg-white rounded-3xl p-8 border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-xl hover:border-red-100 hover:-translate-y-1 transition-all duration-300 text-left flex flex-col h-full overflow-hidden"
               >
                 <!-- Decorative accent line -->
@@ -377,7 +384,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
             {#each (activeAgencyName ? groupedLayanan[activeAgencyName] || [] : filteredLayanan) as lay (lay.id)}
               <button 
-                on:click={() => selectedLayanan = lay}
+                onclick={() => selectedLayanan = lay}
                 class="group relative bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:border-red-100 transition-all duration-300 text-left flex flex-col h-full overflow-hidden"
               >
                 <!-- Decorative gradient on hover -->
@@ -418,7 +425,7 @@
       {#if filteredLayanan.length === 0}
         <div class="text-center py-20 bg-slate-50 rounded-3xl border border-dashed border-slate-300">
             <p class="text-slate-500 font-medium">Layanan tidak ditemukan</p>
-            <button class="mt-4 text-red-600 text-sm hover:underline" on:click={() => searchQuery = ""}>Reset Pencarian</button>
+            <button class="mt-4 text-red-600 text-sm hover:underline" onclick={() => searchQuery = ""}>Reset Pencarian</button>
         </div>
       {/if}
     </section>
@@ -431,8 +438,8 @@
         tabindex="0"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" 
         transition:fade={{ duration: 200 }}
-        on:click|self={() => selectedLayanan = null}
-        on:keydown={(e) => e.key === 'Escape' && (selectedLayanan = null)}
+        onclick={(e) => { if (e.target === e.currentTarget) selectedLayanan = null; }}
+        onkeydown={(e) => { if (e.key === 'Escape') selectedLayanan = null; }}
     >
       <div 
         class="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto flex flex-col" 
@@ -442,7 +449,7 @@
         <button 
             type="button"
             aria-label="Tutup"
-            on:click={() => selectedLayanan = null}
+            onclick={() => selectedLayanan = null}
             class="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
         >
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -477,7 +484,7 @@
 
         <div class="pt-6 border-t border-slate-100 grid grid-cols-3 gap-4 mt-auto">
             <button 
-                on:click={() => selectedLayanan = null} 
+                onclick={() => selectedLayanan = null} 
                 class="col-span-1 py-3.5 px-4 rounded-xl font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors text-sm"
             >
                 Batal
