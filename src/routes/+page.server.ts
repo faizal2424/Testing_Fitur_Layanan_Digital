@@ -2,7 +2,7 @@ import { db } from '$lib/server/db';
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ url }) => {
     const listLayanan = await db.services.findMany({
         orderBy: {
             order: 'asc'
@@ -16,13 +16,59 @@ export const load: PageServerLoad = async () => {
         orderBy: { name: 'asc' }
     });
 
+    const code = url.searchParams.get('code')?.toString().trim();
+    let trackingResult = null;
+
+    if (code) {
+        try {
+            const pengajuan = await db.service_submissions.findUnique({
+                where: { tracking_code: code },
+                include: {
+                    services: true,
+                    users: true, // fetches the assigned user (PIC)
+                    submission_notes: {
+                        orderBy: { created_at: 'desc' },
+                        take: 1
+                    }
+                }
+            });
+
+            if (pengajuan) {
+                const statusLabels: Record<string, string> = {
+                    'baru': 'Diterima',
+                    'revisi': 'Perlu Revisi',
+                    'ditugaskan': 'Verifikasi',
+                    'diproses_pic': 'Proses',
+                    'diselesaikan_pic': 'Validasi',
+                    'selesai': 'Selesai',
+                    'ditolak_pengajuan': 'Pengajuan Ditangguhkan'
+                };
+
+                const result = {
+                    ...pengajuan,
+                    code: pengajuan.tracking_code,
+                    status_txt: statusLabels[pengajuan.status] || pengajuan.status,
+                    service_name: pengajuan.services.name,
+                    pic_phone: pengajuan.users?.phone || 'Menunggu Penugasan'
+                };
+
+                trackingResult = JSON.parse(JSON.stringify(result, (key, value) =>
+                    typeof value === 'bigint' ? value.toString() : value
+                ));
+            }
+        } catch (error) {
+            console.error('Error loading tracking code from URL:', error);
+        }
+    }
+
     return { 
         listLayanan: JSON.parse(JSON.stringify(listLayanan, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value
         )),
         allAgencies: JSON.parse(JSON.stringify(allAgencies, (key, value) =>
             typeof value === 'bigint' ? value.toString() : value
-        ))
+        )),
+        trackingResult
     };
 };
 

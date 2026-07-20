@@ -14,7 +14,7 @@
   let showResultModal = $state(false);
 
   $effect(() => {
-    if (form?.success && form.result) {
+    if ((form?.success && form.result) || data.trackingResult) {
       showResultModal = true;
     }
   });
@@ -151,7 +151,8 @@
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 -mt-10 relative z-20">
     
     <!-- Status Result Modal -->
-    {#if showResultModal && form?.result}
+    {#if showResultModal && (form?.result || data.trackingResult)}
+      {@const result = form?.result || data.trackingResult}
       <div 
         role="button"
         tabindex="0"
@@ -177,17 +178,17 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 pb-6 border-b border-slate-100 pr-12">
             <div>
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Kode Pengajuan</span>
-                <p class="text-3xl font-bold text-slate-800 tracking-tight">{form.result.code}</p>
+                <p class="text-3xl font-bold text-slate-800 tracking-tight">{result.code}</p>
             </div>
             <div class="mt-4 md:mt-0 flex items-center gap-3">
                 <span class="text-sm text-slate-500">Status Saat Ini:</span>
-                <span class={`px-5 py-2 rounded-full text-sm font-bold border ${form.result.status === 'revisi' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-                    {form.result.status_txt}
+                <span class={`px-5 py-2 rounded-full text-sm font-bold border ${result.status === 'revisi' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+                    {result.status_txt}
                 </span>
             </div>
             </div>
 
-            {#if form.result.status === 'revisi'}
+            {#if result.status === 'revisi'}
                 <div class="mb-8 p-6 bg-amber-50 border border-amber-100 rounded-3xl" transition:fade>
                     <div class="flex items-start gap-4">
                         <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 flex-shrink-0">
@@ -196,10 +197,10 @@
                         <div class="flex-1">
                             <h3 class="text-amber-800 font-bold mb-1">Catatan Revisi dari Admin</h3>
                             <p class="text-amber-700 text-sm leading-relaxed mb-4">
-                                {form.result.submission_notes?.[0]?.note || 'Mohon periksa kembali data Anda sesuai instruksi admin.'}
+                                {result.submission_notes?.[0]?.note || 'Mohon periksa kembali data Anda sesuai instruksi admin.'}
                             </p>
                             <a 
-                                href="/tracking/{form.result.code}/edit"
+                                href="/tracking/{result.code}/edit"
                                 class="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-amber-200"
                             >
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -208,7 +209,7 @@
                         </div>
                     </div>
                 </div>
-            {:else if form.result.status === 'ditolak_pengajuan'}
+            {:else if result.status === 'ditolak_pengajuan'}
                 <div class="mb-10 text-center" transition:fade>
                     <div class="relative inline-block mb-6">
                         <div class="absolute inset-0 bg-red-400 blur-2xl opacity-20 animate-pulse"></div>
@@ -230,7 +231,7 @@
                         <div class="relative z-10 text-left">
                             <span class="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 mb-3 block">Alasan Penolakan</span>
                             <blockquote class="text-lg font-medium text-slate-700 leading-relaxed italic border-l-4 border-red-500 pl-4 py-1">
-                                "{form.result.submission_notes?.[0]?.note || 'Informasi alasan penolakan belum tersedia.'}"
+                                "{result.submission_notes?.[0]?.note || 'Informasi alasan penolakan belum tersedia.'}"
                             </blockquote>
                         </div>
 
@@ -246,19 +247,19 @@
                 </div>
             {/if}
 
-            <div class="grid md:grid-cols-3 gap-12" class:opacity-50={form.result.status === 'ditolak_pengajuan'} class:pointer-events-none={form.result.status === 'ditolak_pengajuan'}>
-                {#if form.result.status !== 'ditolak_pengajuan'}
+            <div class="grid md:grid-cols-3 gap-12" class:opacity-50={result.status === 'ditolak_pengajuan'} class:pointer-events-none={result.status === 'ditolak_pengajuan'}>
+                {#if result.status !== 'ditolak_pengajuan'}
                     <div class="md:col-span-1 space-y-6">
                         <div class="group">
                             <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Layanan</span>
                             <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
-                                {form.result.service_name || 'Layanan Digital'}
+                                {result.service_name || 'Layanan Digital'}
                             </span>
                         </div>
                         <div class="group">
                             <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">PIC / Kontak</span>
                             <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
-                                {form.result.pic_phone || 'Menunggu Penugasan'}
+                                {result.pic_phone || 'Menunggu Penugasan'}
                             </span>
                         </div>
                     </div>
@@ -270,13 +271,13 @@
                                 <div class="flex items-start gap-4 relative pb-8 last:pb-0 group">
                                     <!-- Line Connector -->
                                     {#if i < STATUS_FLOW.length - 1}
-                                        <div class={`absolute left-[11px] top-7 bottom-0 w-[2px] ${i < getStepIndex(form.result.status) ? 'bg-red-600' : 'bg-slate-100'}`}></div>
+                                        <div class={`absolute left-[11px] top-7 bottom-0 w-[2px] ${i < getStepIndex(result.status) ? 'bg-red-600' : 'bg-slate-100'}`}></div>
                                     {/if}
                                     
                                     <!-- Status Circle -->
                                     <div class={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-500
-                                        ${i <= getStepIndex(form.result.status) ? 'bg-red-600 border-red-600 scale-110 shadow-lg shadow-red-200' : 'bg-white border-slate-200'}`}>
-                                        {#if i <= getStepIndex(form.result.status)}
+                                        ${i <= getStepIndex(result.status) ? 'bg-red-600 border-red-600 scale-110 shadow-lg shadow-red-200' : 'bg-white border-slate-200'}`}>
+                                        {#if i <= getStepIndex(result.status)}
                                             <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
                                         {/if}
                                     </div>
@@ -284,10 +285,10 @@
                                     <!-- Status Text -->
                                     <div class="pt-[2px]">
                                         <p class={`text-sm font-bold transition-colors 
-                                            ${i <= getStepIndex(form.result.status) ? 'text-slate-900' : 'text-slate-300'}`}>
+                                            ${i <= getStepIndex(result.status) ? 'text-slate-900' : 'text-slate-300'}`}>
                                             {step.label}
                                         </p>
-                                        {#if i === getStepIndex(form.result.status) && form.result.status !== 'selesai'}
+                                        {#if i === getStepIndex(result.status) && result.status !== 'selesai'}
                                             <p class="text-xs text-red-600 mt-1 font-medium animate-pulse">Sedang Berlangsung</p>
                                         {/if}
                                     </div>
