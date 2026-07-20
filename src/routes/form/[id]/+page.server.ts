@@ -1,5 +1,7 @@
 import { db } from '$lib/server/db';
 import { NotificationService } from '$lib/server/notifications';
+import { sendMail } from '$lib/server/mailer';
+import { submissionReceivedTemplate } from '$lib/server/email-templates';
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { writeFile, mkdir } from 'fs/promises';
@@ -173,6 +175,25 @@ export const actions: Actions = {
                 type: 'info',
                 link: `/admin/pengajuan/${submission.id}`
             });
+
+            // Kirim email konfirmasi ke user jika email tersedia
+            if (applicantEmail) {
+                try {
+                    await sendMail({
+                        to: applicantEmail,
+                        subject: `✅ Permohonan Diterima — ${service.name}`,
+                        html: submissionReceivedTemplate({
+                            name: applicantName || 'Pemohon',
+                            serviceName: service.name,
+                            submissionId: trackingCode,
+                            trackingUrl: `${new URL(request.url).origin}/tracking?code=${trackingCode}`
+                        })
+                    });
+                } catch (emailErr) {
+                    // Gagal kirim email tidak membatalkan pengajuan
+                    console.error('[Mailer] Gagal kirim email konfirmasi ke user:', emailErr);
+                }
+            }
 
             // PIC assignment and notifications will be sent later after Admin verification.
 
