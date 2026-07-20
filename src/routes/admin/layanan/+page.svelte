@@ -328,6 +328,7 @@
 		agencyId={createAgencyId}
 		agencyName={localAgencies.find(a => a.agency.id === createAgencyId)?.agency.name ?? ''}
 		{commonIcons}
+		picUsers={data.picUsers}
 		onClose={() => { showCreateModal = false; }}
 	/>
 {/if}
@@ -338,6 +339,7 @@
 		isSuper={data.isSuper}
 		allAgencies={data.allAgencies}
 		{commonIcons}
+		picUsers={data.picUsers}
 		onClose={() => { editingService = null; }}
 	/>
 {/if}

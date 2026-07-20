@@ -49,6 +49,9 @@ export const actions: Actions = {
             include: {
                 service_form_fields: {
                     orderBy: { order: 'asc' }
+                },
+                pic: {
+                    select: { id: true, name: true }
                 }
             }
         });
@@ -107,6 +110,10 @@ export const actions: Actions = {
         try {
             const trackingCode = generateTrackingCode();
 
+            // Set initial status to 'baru' for Admin verification. PIC assignment will be done after verification.
+            const initialStatus = 'baru';
+            const assignedPicId = null;
+
             // Create the submission
             const submission = await db.service_submissions.create({
                 data: {
@@ -114,7 +121,8 @@ export const actions: Actions = {
                     agency_id: service.agency_id,
                     applicant_name: applicantName,
                     applicant_email: applicantEmail,
-                    status: 'baru',
+                    status: initialStatus,
+                    assigned_to: assignedPicId,
                     tracking_code: trackingCode,
                     created_at: new Date(),
                     updated_at: new Date()
@@ -158,13 +166,15 @@ export const actions: Actions = {
                 }
             }
 
-            // Send notification
+            // Send notification to admins
             await NotificationService.send({
                 title: 'Pengajuan Baru',
                 message: `Ada pengajuan baru untuk layanan "${service.name}" dari ${applicantName || 'Anonim'} (${trackingCode}).`,
                 type: 'info',
                 link: `/admin/pengajuan/${submission.id}`
             });
+
+            // PIC assignment and notifications will be sent later after Admin verification.
 
             throw redirect(303, `/form/${params.id}/success?code=${trackingCode}`);
         } catch (err) {

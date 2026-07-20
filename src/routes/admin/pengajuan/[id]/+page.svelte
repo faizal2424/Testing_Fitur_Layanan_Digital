@@ -8,10 +8,9 @@
 
 	let showProcessModal = $state(false);
 	let newNote = $state('');
-	
+
 	// Local state for modal fields, initialized from props
 	let selectedStatus = $state(data.submission?.status || '');
-	let selectedPic = $state(data.submission?.assigned_to || '');
 	let statusError = $state('');
 	let showToast = $state(false);
 	let toastMessage = $state('');
@@ -37,35 +36,29 @@
 	// Reset local state if data props change (Svelte 5 recommendation for copy-state)
 	$effect(() => {
 		selectedStatus = data.submission?.status || '';
-		selectedPic = data.submission?.assigned_to || '';
 		isPriority = data.submission?.is_priority || false;
-	});
-
-	$effect(() => {
-		if (selectedStatus !== 'ditugaskan') {
-			selectedPic = data.submission?.assigned_to || '';
-		}
 	});
 
 	let teamSearch = $state('');
 	let showTeamDropdown = $state(false);
-	let selectedTeamIds = $state<string[]>((data.teamMembers || []).map(tm => tm.id));
+	let selectedTeamIds = $state<string[]>((data.teamMembers || []).map((tm) => tm.id));
 
 	$effect(() => {
-		selectedTeamIds = (data.teamMembers || []).map(tm => tm.id);
+		selectedTeamIds = (data.teamMembers || []).map((tm) => tm.id);
 	});
 
 	let filteredAssistantPICs = $derived(
-		(data.assistantPICs || []).filter(u => 
-			u.id !== selectedPic && 
-			(u.name.toLowerCase().includes(teamSearch.toLowerCase()) || 
-			 u.email.toLowerCase().includes(teamSearch.toLowerCase()))
+		(data.assistantPICs || []).filter(
+			(u) =>
+				u.id !== data.submission?.assigned_to &&
+				(u.name.toLowerCase().includes(teamSearch.toLowerCase()) ||
+				u.email.toLowerCase().includes(teamSearch.toLowerCase()))
 		)
 	);
 
 	function toggleTeamMember(id: string) {
 		if (selectedTeamIds.includes(id)) {
-			selectedTeamIds = selectedTeamIds.filter(i => i !== id);
+			selectedTeamIds = selectedTeamIds.filter((i) => i !== id);
 		} else {
 			selectedTeamIds = [...selectedTeamIds, id];
 		}
@@ -84,7 +77,7 @@
 
 	let canEditPriority = $derived(
 		(data.userRole === 'admin' || data.userRole === 'superadmin') &&
-		data.submission?.status === 'baru'
+			(data.submission?.status === 'baru' || data.submission?.status === 'ditugaskan')
 	);
 
 	function formatDate(d: string | null) {
@@ -154,7 +147,7 @@
 	}
 
 	function getFileExtension(filename: string): string {
-		return filename.slice(((filename.lastIndexOf(".") - 1) >>> 0) + 2);
+		return filename.slice(((filename.lastIndexOf('.') - 1) >>> 0) + 2);
 	}
 </script>
 
@@ -171,7 +164,23 @@
 					<code class="tracking-code">{data.submission.tracking_code}</code>
 					{#if data.submission.is_priority}
 						<span class="priority-badge">
-							<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="12"
+								height="12"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="3"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line
+									x1="12"
+									y1="16"
+									x2="12.01"
+									y2="16"
+								/></svg
+							>
 							Prioritas Tinggi
 						</span>
 					{/if}
@@ -244,7 +253,7 @@
 								<div class="value-item">
 									<span class="value-label">{val.label}</span>
 									{#if isFileField(val.type) && val.file_path}
-										<a href="{val.file_path}" target="_blank" class="file-link">
+										<a href={val.file_path} target="_blank" class="file-link">
 											<svg
 												xmlns="http://www.w3.org/2000/svg"
 												width="14"
@@ -363,9 +372,9 @@
 			}}
 			role="presentation"
 		>
-			<div 
-				class="modal" 
-				onclick={(e) => e.stopPropagation()} 
+			<div
+				class="modal"
+				onclick={(e) => e.stopPropagation()}
 				onkeydown={(e) => e.stopPropagation()}
 				role="dialog"
 				tabindex="-1"
@@ -385,7 +394,8 @@
 					enctype="multipart/form-data"
 					use:enhance={({ cancel }) => {
 						if (!statusChanged) {
-							statusError = 'Status pengajuan harus diubah terlebih dahulu sebelum menyimpan. Silakan pilih status baru dari dropdown di atas.';
+							statusError =
+								'Status pengajuan harus diubah terlebih dahulu sebelum menyimpan. Silakan pilih status baru dari dropdown di atas.';
 							cancel();
 							return;
 						}
@@ -454,44 +464,80 @@
 						</div>
 
 						{#if data.userRole !== 'pic'}
-							<div
-								class="form-group"
-								style={selectedStatus !== 'ditugaskan' ? 'opacity: 0.6;' : ''}
-							>
-								<label for="pic-select">Penugasan PIC Utama</label>
-								{#if data.picUsers.length === 0}
-									<div class="no-pic-warning">
-										<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-										<span>
-											Tidak ada PIC terdaftar untuk <strong>{data.submission.agency_name || 'instansi ini'}</strong>.
-											Silakan tambahkan personel PIC di OPD terkait terlebih dahulu.
-										</span>
-									</div>
-									<select id="pic-select" name="pic_id" disabled class="disabled-select">
-										<option value="">— Tidak ada PIC —</option>
-									</select>
-								{:else}
-									<select
-										id="pic-select"
-										name="pic_id"
-										bind:value={selectedPic}
-										disabled={selectedStatus !== 'ditugaskan'}
-										required={selectedStatus === 'ditugaskan'}
-									>
-										<option value="">— Pilih PIC Utama —</option>
-										{#each data.picUsers as u}
-											<option value={u.id}>{u.name} ({u.email})</option>
-										{/each}
-									</select>
-								{/if}
-								<small class="help-text">
-									{#if selectedStatus === 'ditugaskan'}
-										Pilih PIC dari {data.submission.agency_name || 'instansi terkait'} yang akan ditugaskan.
+							{#if data.submission.status === 'baru' || data.submission.status === 'ditolak_pic'}
+								{#if selectedStatus === 'ditugaskan'}
+									{#if data.submission.service_pic_id}
+										<div class="pic-info-box" style="margin-top: 0.5rem; background: #f0fdf4; border-color: #bbf7d0; color: #16a34a;">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="15"
+												height="15"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												style="color: #16a34a;"
+												><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle
+													cx="12"
+													cy="7"
+													r="4"
+												/></svg
+											>
+											<div>
+												<span class="pic-info-label" style="color: #15803d;">PIC "{data.submission.service_name}"</span>
+												<span class="pic-info-value" style="color: #166534;">{data.submission.service_pic_name}</span>
+											</div>
+										</div>
 									{:else}
-										Penugasan PIC hanya dapat diubah pada status "Ditugaskan".
+										<div class="form-group" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+											<label for="assigned_pic_id">
+												Pilih PIC Penerima
+												<span class="required-badge">Wajib diisi</span>
+											</label>
+											<select
+												id="assigned_pic_id"
+												name="assigned_pic_id"
+												required
+												class="status-select"
+											>
+												<option value="">-- Pilih PIC --</option>
+												{#each data.picUsers as pic}
+													<option value={pic.id}>{pic.name} ({pic.email})</option>
+												{:else}
+													<option value="" disabled>Tidak ada PIC yang tersedia untuk OPD ini</option>
+												{/each}
+											</select>
+										</div>
 									{/if}
-								</small>
-							</div>
+								{/if}
+							{:else}
+								<div class="pic-info-box">
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="15"
+										height="15"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle
+											cx="12"
+											cy="7"
+											r="4"
+										/></svg
+									>
+									<div>
+										<span class="pic-info-label">PIC Tertugaskan</span>
+										<span class="pic-info-value"
+											>{data.submission?.assigned_to_name || 'Belum ditugaskan'}</span
+										>
+									</div>
+								</div>
+							{/if}
 						{/if}
 
 						{#if data.userRole === 'pic'}
@@ -500,9 +546,9 @@
 								<div class="form-group">
 									<label for="team-search">Anggota Tim (Bantuan PIC)</label>
 									<div class="custom-multi-select" bind:this={teamContainer}>
-										<div 
-											class="select-trigger" 
-											onclick={() => showTeamDropdown = !showTeamDropdown}
+										<div
+											class="select-trigger"
+											onclick={() => (showTeamDropdown = !showTeamDropdown)}
 											onkeydown={(e) => e.key === 'Enter' && (showTeamDropdown = !showTeamDropdown)}
 											role="button"
 											tabindex="0"
@@ -510,11 +556,17 @@
 											{#if selectedTeamIds.length > 0}
 												<div class="selected-tags">
 													{#each selectedTeamIds as id}
-														{@const pic = data.assistantPICs.find(u => u.id === id)}
+														{@const pic = data.assistantPICs.find((u) => u.id === id)}
 														{#if pic}
 															<span class="tag">
 																{pic.name}
-																<button type="button" onclick={(e) => { e.stopPropagation(); toggleTeamMember(id); }}>✕</button>
+																<button
+																	type="button"
+																	onclick={(e) => {
+																		e.stopPropagation();
+																		toggleTeamMember(id);
+																	}}>✕</button
+																>
 															</span>
 														{/if}
 													{/each}
@@ -526,12 +578,17 @@
 										</div>
 
 										{#if showTeamDropdown}
-											<div class="select-dropdown" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="presentation">
+											<div
+												class="select-dropdown"
+												onclick={(e) => e.stopPropagation()}
+												onkeydown={(e) => e.stopPropagation()}
+												role="presentation"
+											>
 												<div class="search-box">
-													<input 
-														type="text" 
+													<input
+														type="text"
 														id="team-search"
-														placeholder="Cari PIC..." 
+														placeholder="Cari PIC..."
 														bind:value={teamSearch}
 														autocomplete="off"
 														onkeydown={(e) => {
@@ -545,8 +602,8 @@
 												<div class="options-list">
 													{#each filteredAssistantPICs as u}
 														<label class="option-item">
-															<input 
-																type="checkbox" 
+															<input
+																type="checkbox"
 																checked={selectedTeamIds.includes(u.id)}
 																onchange={() => toggleTeamMember(u.id)}
 															/>
@@ -560,10 +617,10 @@
 													{/each}
 												</div>
 												<div class="dropdown-footer">
-													<button 
-														type="button" 
+													<button
+														type="button"
 														class="btn btn-sm btn-primary"
-														onclick={() => showTeamDropdown = false}
+														onclick={() => (showTeamDropdown = false)}
 													>
 														Selesai
 													</button>
@@ -571,7 +628,9 @@
 											</div>
 										{/if}
 									</div>
-									<small class="help-text">Klik untuk mencari dan memilih beberapa anggota tim pembantu.</small>
+									<small class="help-text"
+										>Klik untuk mencari dan memilih beberapa anggota tim pembantu.</small
+									>
 								</div>
 							{:else}
 								<!-- Locked for PIC after diproses_pic or if Assistant -->
@@ -604,7 +663,8 @@
 										<span class="empty-text">Belum ada anggota tim</span>
 									{/if}
 								</div>
-								<small class="help-text">Hanya PIC yang dapat mengelola anggota tim pembantu.</small>
+								<small class="help-text">Hanya PIC yang dapat mengelola anggota tim pembantu.</small
+								>
 							</div>
 						{/if}
 
@@ -628,24 +688,36 @@
 								<label for="evidence-upload">Unggah Bukti Pengerjaan (Wajib)</label>
 								<div class="file-upload-wrapper">
 									<div class="file-dropzone" class:hidden={selectedEvidenceFile !== null}>
-										<input 
-											type="file" 
-											id="evidence-upload" 
-											name="evidence" 
-											accept="image/*" 
+										<input
+											type="file"
+											id="evidence-upload"
+											name="evidence"
+											accept="image/*"
 											required
 											bind:this={fileInput}
 											onchange={handleFileChange}
 										/>
 										<div class="dropzone-content">
 											<div class="dropzone-icon">
-												<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-													<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-													<polyline points="17 8 12 3 7 8"/>
-													<line x1="12" y1="3" x2="12" y2="15"/>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="32"
+													height="32"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+													<polyline points="17 8 12 3 7 8" />
+													<line x1="12" y1="3" x2="12" y2="15" />
 												</svg>
 											</div>
-											<p class="help-text">Klik atau tarik gambar bukti progres ke sini (.jpg, .png)</p>
+											<p class="help-text">
+												Klik atau tarik gambar bukti progres ke sini (.jpg, .png)
+											</p>
 										</div>
 									</div>
 
@@ -657,21 +729,50 @@
 												</div>
 											{:else}
 												<div class="preview-icon-wrapper">
-													<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-														<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-														<path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+													<svg
+														xmlns="http://www.w3.org/2000/svg"
+														width="32"
+														height="32"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="1.5"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													>
+														<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+														<path d="M14 2v4a2 2 0 0 0 2 2h4" />
 													</svg>
 												</div>
 											{/if}
 											<div class="preview-details">
 												<div class="file-info-header">
-													<span class="file-name" title={selectedEvidenceFile.name}>{selectedEvidenceFile.name}</span>
-													<span class="file-type-badge">{getFileExtension(selectedEvidenceFile.name).toUpperCase()}</span>
+													<span class="file-name" title={selectedEvidenceFile.name}
+														>{selectedEvidenceFile.name}</span
+													>
+													<span class="file-type-badge"
+														>{getFileExtension(selectedEvidenceFile.name).toUpperCase()}</span
+													>
 												</div>
 												<span class="file-size">{formatSize(selectedEvidenceFile.size)}</span>
 											</div>
-											<button type="button" class="btn-remove-file" onclick={clearSelectedFile} aria-label="Hapus file">
-												<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+											<button
+												type="button"
+												class="btn-remove-file"
+												onclick={clearSelectedFile}
+												aria-label="Hapus file"
+											>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="16"
+													height="16"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
 													<line x1="18" y1="6" x2="6" y2="18"></line>
 													<line x1="6" y1="6" x2="18" y2="18"></line>
 												</svg>
@@ -690,7 +791,12 @@
 								showProcessModal = false;
 							}}>Batal</button
 						>
-						<div class="save-btn-wrapper" title={!statusChanged ? 'Ubah status pengajuan terlebih dahulu untuk dapat menyimpan' : ''}>
+						<div
+							class="save-btn-wrapper"
+							title={!statusChanged
+								? 'Ubah status pengajuan terlebih dahulu untuk dapat menyimpan'
+								: ''}
+						>
 							<button
 								type="submit"
 								class="btn btn-primary"
@@ -811,7 +917,9 @@
 	}
 
 	.status-select {
-		transition: border-color 0.2s, box-shadow 0.2s;
+		transition:
+			border-color 0.2s,
+			box-shadow 0.2s;
 	}
 	.status-select.changed {
 		border-color: #16a34a !important;
@@ -829,28 +937,35 @@
 		filter: grayscale(30%);
 	}
 
-	.no-pic-warning {
+	.pic-info-box {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.6rem;
-		padding: 0.75rem;
-		background: #fffbeb;
-		border: 1px solid #fde68a;
+		gap: 0.65rem;
+		padding: 0.75rem 1rem;
+		background: #f0f9ff;
+		border: 1px solid #bae6fd;
 		border-radius: 10px;
-		color: #92400e;
-		font-size: 0.8rem;
-		line-height: 1.4;
+		color: #0c4a6e;
+		font-size: 0.85rem;
 		margin-bottom: 0.5rem;
 	}
-	.no-pic-warning svg {
+	.pic-info-box svg {
 		flex-shrink: 0;
-		margin-top: 0.1rem;
-		color: #d97706;
+		margin-top: 0.2rem;
+		color: #0284c7;
 	}
-	.disabled-select {
-		opacity: 0.6;
-		cursor: not-allowed;
-		background: #f3f4f6 !important;
+	.pic-info-label {
+		display: block;
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #0369a1;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		margin-bottom: 0.15rem;
+	}
+	.pic-info-value {
+		font-weight: 600;
+		color: #0c4a6e;
 	}
 
 	.detail-grid {
@@ -1018,10 +1133,16 @@
 	}
 
 	/* Shared styles moved to admin.css */
-	
-	.page { max-width: 1000px; }
-	
-	.badge-urgent { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+	.page {
+		max-width: 1000px;
+	}
+
+	.badge-urgent {
+		background: #fef2f2;
+		color: #dc2626;
+		border: 1px solid #fecaca;
+	}
 
 	/* Section titles with status */
 	.section-header {
@@ -1116,9 +1237,16 @@
 		z-index: 1;
 	}
 
-	.timeline-marker.active { background: #800020; box-shadow: 0 0 0 4px rgba(128, 0, 32, 0.1); }
-	.timeline-marker.success { background: #16a34a; }
-	.timeline-marker.error { background: #dc2626; }
+	.timeline-marker.active {
+		background: #800020;
+		box-shadow: 0 0 0 4px rgba(128, 0, 32, 0.1);
+	}
+	.timeline-marker.success {
+		background: #16a34a;
+	}
+	.timeline-marker.error {
+		background: #dc2626;
+	}
 
 	.timeline-content {
 		background: #f9fafb;
@@ -1208,7 +1336,9 @@
 	}
 
 	@media (max-width: 768px) {
-		.info-grid { grid-template-columns: 1fr; }
+		.info-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	/* Modal */
@@ -1362,7 +1492,6 @@
 		margin-top: 0.2rem;
 	}
 
-
 	.read-only-box {
 		padding: 0.75rem;
 		background: #f9fafb;
@@ -1405,7 +1534,7 @@
 	.select-trigger:focus {
 		outline: none;
 		border-color: #800020;
-		box-shadow: 0 0 0 3px rgba(128,0,32,0.1);
+		box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
 	}
 
 	.select-trigger .arrow {
@@ -1525,7 +1654,7 @@
 		background: #f9fafb;
 	}
 
-	.option-item input[type="checkbox"] {
+	.option-item input[type='checkbox'] {
 		width: 16px;
 		height: 16px;
 		accent-color: #800020;
@@ -1570,7 +1699,9 @@
 		padding: 1rem 1.5rem;
 		background: white;
 		border-radius: 12px;
-		box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+		box-shadow:
+			0 10px 25px -5px rgba(0, 0, 0, 0.1),
+			0 8px 10px -6px rgba(0, 0, 0, 0.1);
 		min-width: 300px;
 		border-left: 4px solid #10b981;
 	}
@@ -1657,7 +1788,7 @@
 		border-color: #800020;
 		background: #fdf2f8;
 	}
-	.file-dropzone input[type="file"] {
+	.file-dropzone input[type='file'] {
 		position: absolute;
 		top: 0;
 		left: 0;
@@ -1788,7 +1919,7 @@
 		justify-content: center;
 		cursor: pointer;
 		transition: all 0.2s;
-		box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 		flex-shrink: 0;
 	}
 
@@ -1798,4 +1929,4 @@
 		background: #fef2f2;
 		transform: scale(1.05);
 	}
-	</style>
+</style>

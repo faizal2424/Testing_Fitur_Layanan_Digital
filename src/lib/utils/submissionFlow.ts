@@ -37,14 +37,19 @@ export function getAllowedStatuses(currentStatus: string, role: string): string[
 
 	if (role === 'admin') {
 		switch (currentStatus) {
+			// Pengajuan baru diterima Admin untuk verifikasi data dan penugasan PIC
 			case 'baru':
+				return ['ditugaskan', 'revisi', 'ditolak_pengajuan'];
+			// Setelah ditugaskan, penanganan selanjutnya menjadi tanggung jawab PIC
+			case 'ditugaskan':
+				return [];
+			// Pengajuan yang ditolak PIC dapat ditugaskan ulang oleh Admin
 			case 'ditolak_pic':
-				return ['revisi', 'ditugaskan', 'ditolak_pengajuan'];
+				return ['ditugaskan', 'revisi', 'ditolak_pengajuan'];
 			case 'revisi':
-				return ['ditugaskan', 'ditolak_pengajuan'];
+				return ['ditolak_pengajuan'];
 			case 'diselesaikan_pic':
 				return ['selesai'];
-			// Optionally allow reverting back if they notice a mistake
 			default:
 				return [];
 		}

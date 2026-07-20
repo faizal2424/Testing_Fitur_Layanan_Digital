@@ -14,6 +14,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		orderBy: { order: 'asc' },
 		include: {
 			agencies: true,
+			pic: {
+				select: { id: true, name: true }
+			},
 			_count: {
 				select: {
 					service_form_fields: true,
@@ -49,7 +52,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			submissionCount: s._count.service_submissions,
 			created_at: s.created_at?.toISOString() || null,
 			agency_id: s.agency_id?.toString() || null,
-			agency_name: s.agencies?.name || 'Semua Instansi'
+			agency_name: s.agencies?.name || 'Semua Instansi',
+			pic_id: s.pic_id?.toString() || null,
+			pic_name: s.pic?.name || null
 		};
 	}
 
@@ -127,11 +132,25 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const opdMaster = await db.opd.findMany({ orderBy: { order: 'asc' }, select: { id: true, name: true } });
 	const opdList = opdMaster.map((o) => o.name);
 
+	// Fetch users with role PIC for service PIC assignment
+	const picUsersRaw = await db.users.findMany({
+		where: { user_roles: { some: { roles: { name: 'pic' } } } },
+		select: { id: true, name: true, email: true, agency_id: true },
+		orderBy: { name: 'asc' }
+	});
+	const picUsers = picUsersRaw.map((u) => ({
+		id: u.id.toString(),
+		name: u.name,
+		email: u.email,
+		agency_id: u.agency_id?.toString() || null
+	}));
+
 	return {
 		agenciesWithServices,
 		isSuper,
 		allAgencies,
-		opdList
+		opdList,
+		picUsers
 	};
 };
 
@@ -272,6 +291,8 @@ export const actions: Actions = {
 		const name = formData.get('name')?.toString()?.trim();
 		const icon = formData.get('icon')?.toString()?.trim() || null;
 		const requirementsRaw = formData.get('requirements')?.toString()?.trim() || null;
+		const picIdStr = formData.get('pic_id')?.toString();
+		const pic_id = picIdStr ? BigInt(picIdStr) : null;
 
 		let agency_id = user?.agency_id ? BigInt(user.agency_id) : null;
 		if (user?.role === 'superadmin') {
@@ -302,6 +323,7 @@ export const actions: Actions = {
 				requirements,
 				order: newOrder,
 				agency_id,
+				pic_id,
 				created_at: new Date(),
 				updated_at: new Date()
 			}
@@ -381,6 +403,8 @@ export const actions: Actions = {
 		const name = formData.get('name')?.toString()?.trim();
 		const icon = formData.get('icon')?.toString()?.trim() || null;
 		const requirementsRaw = formData.get('requirements')?.toString()?.trim() || null;
+		const picIdStr = formData.get('pic_id')?.toString();
+		const pic_id = picIdStr ? BigInt(picIdStr) : null;
 
 		let agency_id = undefined;
 		if (user?.role === 'superadmin') {
@@ -406,6 +430,7 @@ export const actions: Actions = {
 				name,
 				icon,
 				requirements,
+				pic_id,
 				...(agency_id !== undefined && { agency_id }),
 				updated_at: new Date()
 			}

@@ -1,17 +1,33 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 
+	interface PicUser {
+		id: string;
+		name: string;
+		email: string;
+		agency_id: string | null;
+	}
+
 	interface Props {
 		service: any;
 		isSuper: boolean;
 		allAgencies: any[];
 		commonIcons: string[];
+		picUsers: PicUser[];
 		onClose: () => void;
 	}
 
-	let { service, isSuper, allAgencies, commonIcons, onClose }: Props = $props();
+	let { service, isSuper, allAgencies, commonIcons, picUsers, onClose }: Props = $props();
 
 	let selectedIcon = $state(service.icon || '📄');
+	let currentAgencyId = $state(service.agency_id || '');
+
+	// Filter PICs by the currently selected agency
+	let filteredPics = $derived(
+		currentAgencyId
+			? picUsers.filter((u) => u.agency_id === currentAgencyId)
+			: picUsers
+	);
 </script>
 
 <div class="modal-overlay" onclick={onClose} role="presentation">
@@ -30,8 +46,7 @@
 				{#if isSuper}
 					<div class="form-group">
 						<label for="edit-agency">Instansi / OPD</label>
-						<select id="edit-agency" name="agency_id" class="form-control"
-							value={allAgencies.find(a => a.id === service.agency_id)?.id || ''}>
+						<select id="edit-agency" name="agency_id" class="form-control" bind:value={currentAgencyId}>
 							<option value="">Pilih Instansi...</option>
 							{#each allAgencies as agency}
 								<option value={agency.id}>{agency.name}</option>
@@ -63,6 +78,25 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- PIC Utama -->
+				<div class="form-group">
+					<label for="edit-pic">PIC Utama Layanan</label>
+					{#if filteredPics.length === 0}
+						<div class="pic-warning">
+							<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+							<span>Tidak ada PIC di instansi ini. Tambahkan pengguna dengan peran PIC terlebih dahulu.</span>
+						</div>
+					{/if}
+					<select id="edit-pic" name="pic_id" value={service.pic_id || ''}>
+						<option value="">— Tidak Ada / Pilih Nanti —</option>
+						{#each filteredPics as pic}
+							<option value={pic.id}>{pic.name} ({pic.email})</option>
+						{/each}
+					</select>
+					<small class="help-text">PIC yang dipilih akan otomatis tertugaskan saat ada pengajuan baru masuk.</small>
+				</div>
+
 				<div class="form-group">
 					<label for="edit-requirements">Persyaratan</label>
 					<textarea id="edit-requirements" name="requirements" rows="4">{service.requirements || ''}</textarea>
@@ -75,3 +109,19 @@
 		</form>
 	</div>
 </div>
+
+<style>
+	.pic-warning {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.4rem;
+		padding: 0.5rem 0.75rem;
+		background: #fffbeb;
+		color: #92400e;
+		border: 1px solid #fde68a;
+		border-radius: 6px;
+		font-size: 0.82rem;
+		margin-bottom: 0.5rem;
+	}
+	.pic-warning svg { flex-shrink: 0; margin-top: 1px; }
+</style>

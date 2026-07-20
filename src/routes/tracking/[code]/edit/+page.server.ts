@@ -117,11 +117,12 @@ export const actions: Actions = {
         }
 
         try {
-            // Update submission status back to 'baru'
+            // Update submission status back to 'baru' and reset PIC assignment for Admin re-verification
             await db.service_submissions.update({
                 where: { id: submission.id },
                 data: {
                     status: 'baru',
+                    assigned_to: null,
                     updated_at: new Date()
                 }
             });

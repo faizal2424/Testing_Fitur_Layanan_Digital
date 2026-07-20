@@ -19,6 +19,8 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 					name: true, 
 					icon: true, 
 					agency_id: true,
+					pic_id: true,
+					pic: { select: { name: true } },
 					agencies: { select: { name: true } }
 				} 
 			},
@@ -95,6 +97,8 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 			service_id: submission.services.id.toString(),
 			service_name: submission.services.name,
 			service_icon: submission.services.icon,
+			service_pic_id: submission.services.pic_id?.toString() || null,
+			service_pic_name: submission.services.pic?.name || null,
 			agency_name: submission.agencies?.name || submission.services.agencies?.name || null,
 			created_at: submission.created_at?.toISOString() || null,
 			updated_at: submission.updated_at?.toISOString() || null
@@ -153,9 +157,8 @@ export const actions: Actions = {
 	process: async ({ request, params, locals }) => {
 		const formData = await request.formData();
 		const newStatus = formData.get('status')?.toString();
-		const picIdStr = formData.get('pic_id')?.toString();
 		const teamMemberIds = formData.getAll('team_members').map((id) => id.toString());
-		const isPriorityStr = formData.get('is_priority')?.toString(); // 'true' or 'false' or undefined
+		const isPriorityStr = formData.get('is_priority')?.toString();
 		const note = formData.get('note')?.toString()?.trim() || null;
 		const evidence = formData.get('evidence') as File | null;
 		
@@ -170,6 +173,13 @@ export const actions: Actions = {
 				is_priority: true, 
 				assigned_to: true,
 				tracking_code: true,
+				service_id: true,
+				services: {
+					select: {
+						pic_id: true,
+						name: true
+					}
+				},
 				submission_team_members: {
 					select: { user_id: true }
 				}
@@ -200,18 +210,8 @@ export const actions: Actions = {
 			}
 		}
 
-		// Fetch PIC users for dynamic messaging
-		const picUsers = await db.users.findMany({
-			where: {
-				user_roles: { some: { roles: { name: 'pic' } } }
-			},
-			select: { id: true, name: true }
-		});
-
-		const newPicId = picIdStr ? BigInt(picIdStr) : null;
-		
-		// Priority locking logic: only admin/superadmin can change it, and only when current status is 'baru'
-		const canChangePriority = (userRole === 'admin' || userRole === 'superadmin') && submission.status === 'baru';
+		// Priority locking logic: only admin/superadmin can change it, and only when current status is 'baru' or 'ditugaskan'
+		const canChangePriority = (userRole === 'admin' || userRole === 'superadmin') && (submission.status === 'baru' || submission.status === 'ditugaskan');
 		const newIsPriority = canChangePriority
 			? (isPriorityStr === 'on' || isPriorityStr === 'true')
 			: submission.is_priority;
@@ -240,10 +240,6 @@ export const actions: Actions = {
 			return fail(400, { error: 'Bukti gambar laporan wajib diunggah untuk menyelesaikan pengajuan.' });
 		}
 
-		// Validation: if status is ditugaskan, there must be a PIC
-		if (newStatus === 'ditugaskan' && !newPicId) {
-			return fail(400, { error: 'PIC wajib ditempatkan ketika status adalah ditugaskan.' });
-		}
 
 		// Handle file upload if present
 		let evidencePath: string | null = null;
@@ -259,26 +255,70 @@ export const actions: Actions = {
 			evidencePath = `/uploads/evidence/${submission.tracking_code}/${fileName}`;
 		}
 
-		// Perform updates sequentially to isolate errors
-		// 1. Update matching status
+		// Prepare database update details
+		const updateData: any = {
+			status: newStatus,
+			is_priority: canChangePriority ? newIsPriority : submission.is_priority,
+			updated_at: new Date()
+		};
+
+		let assignedPicName = '';
+		let targetPicId: bigint | null = null;
+
+		const isAssigningToPic = newStatus === 'ditugaskan' && (oldStatus === 'baru' || oldStatus === 'ditolak_pic');
+		if (isAssigningToPic) {
+			const servicePicId = submission.services.pic_id;
+			if (servicePicId) {
+				targetPicId = servicePicId;
+				const picUser = await db.users.findUnique({
+					where: { id: targetPicId },
+					select: { name: true }
+				});
+				assignedPicName = picUser?.name || 'PIC';
+			} else {
+				const assignedPicIdStr = formData.get('assigned_pic_id')?.toString();
+				if (!assignedPicIdStr) {
+					return fail(400, { error: 'PIC harus dipilih untuk menugaskan pengajuan ini.' });
+				}
+				targetPicId = BigInt(assignedPicIdStr);
+				const picUser = await db.users.findUnique({
+					where: { id: targetPicId },
+					select: { name: true }
+				});
+				assignedPicName = picUser?.name || 'PIC';
+			}
+			updateData.assigned_to = targetPicId;
+		}
+
+		// 1. Update status & PIC assignment
 		await db.service_submissions.update({
 			where: { id: submissionId },
-			data: { 
-				status: newStatus, 
-				assigned_to: newStatus === 'ditugaskan' ? newPicId : submission.assigned_to,
-				is_priority: canChangePriority ? newIsPriority : submission.is_priority,
-				updated_at: new Date() 
-			}
+			data: updateData
 		});
 
-		// 2. Create note
+		// 2. Format note text
+		const customNote = note || '';
+		let finalNote = customNote;
+		if (isAssigningToPic && assignedPicName) {
+			const isReassign = oldStatus === 'ditolak_pic';
+			const assignmentMessage = isReassign
+				? `Pengajuan ditugaskan ulang kepada PIC: ${assignedPicName}`
+				: (submission.services.pic_id 
+					? `Pengajuan otomatis ditugaskan kepada PIC: ${assignedPicName}`
+					: `Pengajuan ditugaskan kepada PIC: ${assignedPicName}`);
+			finalNote = customNote 
+				? `${assignmentMessage}. Catatan: ${customNote}`
+				: assignmentMessage;
+		}
+
+		// Create note
 		await db.submission_notes.create({
 			data: {
 				submission_id: submissionId,
 				user_id: locals.user?.id || null,
 				status_from: oldStatus,
 				status_to: newStatus !== oldStatus ? newStatus : null,
-				note,
+				note: finalNote || null,
 				file_path: evidencePath,
 				created_at: new Date(),
 				updated_at: new Date()
@@ -301,24 +341,20 @@ export const actions: Actions = {
 			}
 		}
 
-		// Send notification for status change or assignment
-		let notifTitle = 'Update Status Pengajuan';
-		let notifMessage = `Pengajuan ${submission.tracking_code} telah diubah statusnya menjadi "${newStatus.replace('_', ' ').toUpperCase()}".`;
-		let adminNotifMessage = `Pengajuan ${submission.tracking_code} telah diubah statusnya menjadi "${newStatus.replace('_', ' ').toUpperCase()}" oleh ${user.name}.`;
+		// Send notification for status change
+		const notifTitle = 'Update Status Pengajuan';
+		const notifMessage = `Pengajuan ${submission.tracking_code} telah diubah statusnya menjadi "${newStatus.replace(/_/g, ' ').toUpperCase()}".`;
+		const adminNotifMessage = `Pengajuan ${submission.tracking_code} telah diubah statusnya menjadi "${newStatus.replace(/_/g, ' ').toUpperCase()}" oleh ${user.name}.`;
+		
 		let targetUserId: bigint | undefined = undefined;
-
-		if (newStatus === 'ditugaskan' && newPicId) {
-			const assignedPic = picUsers.find((u) => u.id === newPicId);
-			const picName = assignedPic?.name || 'PIC';
-			
-			notifTitle = 'Penugasan Pengajuan Baru';
-			notifMessage = `Anda telah ditugaskan untuk memproses pengajuan ${submission.tracking_code}.`;
-			adminNotifMessage = `${picName} telah ditugaskan untuk memproses pengajuan ${submission.tracking_code}.`;
-			targetUserId = newPicId;
+		if (targetPicId) {
+			targetUserId = targetPicId;
 		} else if (submission.assigned_to) {
-			if (submission.assigned_to !== BigInt(user.id)) {
-				targetUserId = submission.assigned_to;
-			}
+			targetUserId = submission.assigned_to;
+		}
+
+		if (targetUserId && targetUserId === BigInt(user.id)) {
+			targetUserId = undefined;
 		}
 
 		await NotificationService.send({

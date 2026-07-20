@@ -148,11 +148,14 @@ model services {
   created_at          DateTime?             @db.Timestamp(0)
   updated_at          DateTime?             @db.Timestamp(0)
   agency_id           BigInt?               @db.UnsignedBigInt
+  pic_id              BigInt?               @db.UnsignedBigInt
   service_form_fields service_form_fields[]
   service_submissions service_submissions[]
   agencies            agencies?             @relation(fields: [agency_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  pic                 users?                @relation("service_pic", fields: [pic_id], references: [id], onDelete: SetNull, onUpdate: Restrict)
 
   @@index([agency_id], map: "fk_services_agency_id")
+  @@index([pic_id], map: "fk_services_pic_id")
 }
 
 model sessions {
@@ -216,6 +219,7 @@ model users {
   submission_team_members    submission_team_members[]
   user_roles                 user_roles[]
   agencies                   agencies?                    @relation(fields: [agency_id], references: [id], onUpdate: Restrict)
+  services_as_pic            services[]                   @relation("service_pic")
 
   @@index([agency_id], map: "fk_users_agency_id")
 }
