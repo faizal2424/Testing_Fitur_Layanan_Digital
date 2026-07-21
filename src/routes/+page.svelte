@@ -45,25 +45,48 @@
     }, initGroups);
   });
 
+  // ─── Sumber kebenaran tunggal: mapping status backend → tampilan ───────────
+  const STATUS_MAP: Record<string, { pillLabel: string; pillClass: string; stepIndex: number }> = {
+    // Happy path
+    baru:               { pillLabel: 'Menunggu Verifikasi',   pillClass: 'bg-red-50 text-red-700 border-red-100',     stepIndex: 1 },
+    ditugaskan:         { pillLabel: 'Menunggu Verifikasi',   pillClass: 'bg-red-50 text-red-700 border-red-100',     stepIndex: 1 },
+    diproses_pic:       { pillLabel: 'Diproses',              pillClass: 'bg-red-50 text-red-700 border-red-100',     stepIndex: 2 },
+    diselesaikan_pic:   { pillLabel: 'Menunggu Validasi',     pillClass: 'bg-red-50 text-red-700 border-red-100',     stepIndex: 3 },
+    selesai:            { pillLabel: 'Selesai',               pillClass: 'bg-red-50 text-red-700 border-red-100',     stepIndex: 4 },
+    // Pengecualian
+    revisi:             { pillLabel: 'Perlu Perbaikan Data',  pillClass: 'bg-amber-50 text-amber-700 border-amber-100', stepIndex: 1 },
+    ditolak_pic:        { pillLabel: 'Ditolak',               pillClass: 'bg-red-100 text-red-800 border-red-200',    stepIndex: -1 },
+    ditolak_pengajuan:  { pillLabel: 'Ditolak',               pillClass: 'bg-red-100 text-red-800 border-red-200',    stepIndex: -1 },
+  };
+
+  // 5-node happy path (tanpa Perlu Revisi)
   const STATUS_FLOW = [
-    { key: 'baru', label: 'Diterima' },
-    { key: 'revisi', label: 'Perlu Revisi' },
-    { key: 'ditugaskan', label: 'Verifikasi' },
-    { key: 'diproses_pic', label: 'Proses' },
-    { key: 'diselesaikan_pic', label: 'Validasi' },
-    { key: 'selesai', label: 'Selesai' }
+    { label: 'Diajukan' },
+    { label: 'Menunggu verifikasi' },
+    { label: 'Sedang dikerjakan petugas' },
+    { label: 'Menunggu validasi akhir' },
+    { label: 'Selesai' },
   ];
 
-  function getStepIndex(status: string) {
-    if (status === 'ditolak_pengajuan') return -1;
-    const map: Record<string, number> = { 
-      'baru': 0, 'revisi': 1, 'ditugaskan': 2, 'diproses_pic': 3, 'diselesaikan_pic': 4, 'selesai': 5 
-    };
-    return map[status] ?? 0;
+  function getStatusInfo(status: string) {
+    return STATUS_MAP[status] ?? { pillLabel: status, pillClass: 'bg-slate-100 text-slate-600 border-slate-200', stepIndex: 0 };
+  }
+
+  function isRejected(status: string) {
+    return status === 'ditolak_pic' || status === 'ditolak_pengajuan';
+  }
+
+  // Untuk tolak: stepIndex adalah node terakhir yang dicapai sebelum ditolak
+  // Di sini kita set ke 1 (Menunggu verifikasi) karena penolakan biasanya terjadi setelah verifikasi
+  // Jika nanti diketahui lebih detail, fungsi ini bisa diperluas
+  function getRejectedAtStep(result: any): number {
+    // Baca dari log catatan jika ada, fallback ke 1
+    return 1;
   }
 </script>
 
 <div class="min-h-screen bg-white font-sans text-slate-900">
+
   
   <!-- Hero Section with Abstract Background -->
   <header class="relative pt-24 pb-32 px-4 overflow-hidden">
@@ -153,6 +176,11 @@
     <!-- Status Result Modal -->
     {#if showResultModal && (form?.result || data.trackingResult)}
       {@const result = form?.result || data.trackingResult}
+      {@const statusInfo = getStatusInfo(result.status)}
+      {@const rejected = isRejected(result.status)}
+      {@const isRevisi = result.status === 'revisi'}
+      {@const rejectedAtStep = getRejectedAtStep(result)}
+
       <div 
         role="button"
         tabindex="0"
@@ -175,132 +203,138 @@
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
 
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 pb-6 border-b border-slate-100 pr-12">
-            <div>
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Kode Pengajuan</span>
-                <p class="text-3xl font-bold text-slate-800 tracking-tight">{result.code}</p>
-            </div>
-            <div class="mt-4 md:mt-0 flex items-center gap-3">
-                <span class="text-sm text-slate-500">Status Saat Ini:</span>
-                <span class={`px-5 py-2 rounded-full text-sm font-bold border ${result.status === 'revisi' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-                    {result.status_txt}
-                </span>
-            </div>
-            </div>
-
-            {#if result.status === 'revisi'}
-                <div class="mb-8 p-6 bg-amber-50 border border-amber-100 rounded-3xl" transition:fade>
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 flex-shrink-0">
-                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-amber-800 font-bold mb-1">Catatan Revisi dari Admin</h3>
-                            <p class="text-amber-700 text-sm leading-relaxed mb-4">
-                                {result.submission_notes?.[0]?.note || 'Mohon periksa kembali data Anda sesuai instruksi admin.'}
-                            </p>
-                            <a 
-                                href="/tracking/{result.code}/edit"
-                                class="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-amber-200"
-                            >
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                Perbaiki Data Sekarang
-                            </a>
-                        </div>
-                    </div>
+            <!-- Header: Kode + Pill -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-6 border-b border-slate-100 pr-12">
+                <div>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Kode Pengajuan</span>
+                    <p class="text-3xl font-bold text-slate-800 tracking-tight">{result.code}</p>
                 </div>
-            {:else if result.status === 'ditolak_pengajuan'}
-                <div class="mb-10 text-center" transition:fade>
-                    <div class="relative inline-block mb-6">
-                        <div class="absolute inset-0 bg-red-400 blur-2xl opacity-20 animate-pulse"></div>
-                        <div class="relative w-24 h-24 bg-gradient-to-br from-red-500 to-red-700 rounded-3xl flex items-center justify-center shadow-xl shadow-red-500/30 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-                            <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </div>
+                <div class="mt-4 md:mt-0 flex items-center gap-3">
+                    <span class="text-sm text-slate-500">Status Saat Ini:</span>
+                    <span class={`px-5 py-2 rounded-full text-sm font-bold border ${statusInfo.pillClass}`}>
+                        {statusInfo.pillLabel}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Banner: Revisi -->
+            {#if isRevisi}
+                <div class="mb-6 p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-4" transition:fade>
+                    <div class="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 flex-shrink-0 mt-0.5">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                     </div>
-                    
-                    <h2 class="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">Pengajuan Ditolak</h2>
-                    <p class="text-slate-400 font-medium mb-8">Maaf, permohonan Anda tidak dapat dilanjutkan.</p>
-
-                    <div class="max-w-xl mx-auto bg-white border border-red-100 rounded-3xl p-8 shadow-2xl shadow-red-500/5 relative overflow-hidden group">
-                        <div class="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
-                            <svg class="w-32 h-32 text-red-900" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                        </div>
-                        
-                        <div class="relative z-10 text-left">
-                            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 mb-3 block">Alasan Penolakan</span>
-                            <blockquote class="text-lg font-medium text-slate-700 leading-relaxed italic border-l-4 border-red-500 pl-4 py-1">
-                                "{result.submission_notes?.[0]?.note || 'Informasi alasan penolakan belum tersedia.'}"
-                            </blockquote>
-                        </div>
-
-                        <div class="mt-8 pt-6 border-t border-slate-50 flex flex-col sm:flex-row gap-3 justify-center">
-                            <a href="/" class="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all shadow-lg hover:shadow-red-500/20 text-center">
-                                Buat Pengajuan Baru
-                            </a>
-                            <a href="https://wa.me/6281123456789" target="_blank" class="px-6 py-3 bg-white text-slate-600 border border-slate-200 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all text-center">
-                                Hubungi Kami
-                            </a>
-                        </div>
+                    <div class="flex-1">
+                        <p class="text-amber-800 font-bold text-sm mb-1">Perlu perbaikan data — mohon lengkapi kembali dokumen Anda.</p>
+                        {#if result.submission_notes?.[0]?.note}
+                            <p class="text-amber-700 text-sm">{result.submission_notes[0].note}</p>
+                        {/if}
+                        <a 
+                            href="/tracking/{result.code}/edit"
+                            class="inline-flex items-center gap-2 mt-3 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-xl font-bold text-sm transition-all shadow shadow-amber-200"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                            Perbaiki Data Sekarang
+                        </a>
                     </div>
                 </div>
             {/if}
 
-            <div class="grid md:grid-cols-3 gap-12" class:opacity-50={result.status === 'ditolak_pengajuan'} class:pointer-events-none={result.status === 'ditolak_pengajuan'}>
-                {#if result.status !== 'ditolak_pengajuan'}
-                    <div class="md:col-span-1 space-y-6">
-                        <div class="group">
-                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Layanan</span>
-                            <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
-                                {result.service_name || 'Layanan Digital'}
-                            </span>
-                        </div>
-                        <div class="group">
-                            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">PIC / Kontak</span>
-                            <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
-                                {result.pic_phone || 'Menunggu Penugasan'}
-                            </span>
-                        </div>
+            <!-- Banner: Ditolak -->
+            {#if rejected}
+                <div class="mb-6 p-5 bg-red-50 border border-red-200 rounded-2xl" transition:fade>
+                    <p class="text-red-800 font-bold text-sm mb-1">Permohonan ini tidak dapat dilanjutkan.</p>
+                    {#if result.submission_notes?.[0]?.note}
+                        <blockquote class="text-red-700 text-sm border-l-4 border-red-400 pl-3 mt-2 italic">
+                            "{result.submission_notes[0].note}"
+                        </blockquote>
+                    {/if}
+                    <div class="flex gap-3 mt-4">
+                        <a href="/" class="px-5 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all text-center">Buat Pengajuan Baru</a>
+                        <a href="https://wa.me/6281123456789" target="_blank" class="px-5 py-2 bg-white text-slate-600 border border-slate-200 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all text-center">Hubungi Kami</a>
                     </div>
+                </div>
+            {/if}
 
-                    <!-- Timeline -->
-                    <div class="md:col-span-2 relative pl-4 md:pl-0">
-                        <div class="space-y-0">
-                            {#each STATUS_FLOW as step, i}
-                                <div class="flex items-start gap-4 relative pb-8 last:pb-0 group">
-                                    <!-- Line Connector -->
-                                    {#if i < STATUS_FLOW.length - 1}
-                                        <div class={`absolute left-[11px] top-7 bottom-0 w-[2px] ${i < getStepIndex(result.status) ? 'bg-red-600' : 'bg-slate-100'}`}></div>
+            <!-- Body: Info + Stepper -->
+            <div class="grid md:grid-cols-3 gap-12">
+                <!-- Kolom kiri: info -->
+                <div class="md:col-span-1 space-y-6">
+                    <div class="group">
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Layanan</span>
+                        <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
+                            {result.service_name || 'Layanan Digital'}
+                        </span>
+                    </div>
+                    <div class="group">
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">PIC / Kontak</span>
+                        <span class="font-semibold text-slate-800 text-lg group-hover:text-red-700 transition-colors">
+                            {result.pic_phone || 'Menunggu Penugasan'}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Kolom kanan: 5-node stepper -->
+                <div class="md:col-span-2 relative pl-4 md:pl-0">
+                    <div class="space-y-0">
+                        {#each STATUS_FLOW as step, i}
+                            {@const activeStep = statusInfo.stepIndex}
+                            {@const isPast    = !rejected && i < activeStep}
+                            {@const isActive  = !rejected && i === activeStep}
+                            {@const isRejectedNode = rejected && i === rejectedAtStep}
+                            {@const lineActive = !rejected && i < activeStep}
+
+                            <div class="flex items-start gap-4 relative pb-8 last:pb-0">
+                                <!-- Garis vertikal -->
+                                {#if i < STATUS_FLOW.length - 1}
+                                    <div class={`absolute left-[11px] top-7 bottom-0 w-[2px] ${lineActive ? 'bg-red-600' : 'bg-slate-100'}`}></div>
+                                {/if}
+
+                                <!-- Lingkaran status -->
+                                {#if isRejectedNode}
+                                    <!-- Merah + X: node tempat ditolak -->
+                                    <div class="relative z-10 w-6 h-6 rounded-full border-2 bg-red-600 border-red-600 flex items-center justify-center scale-110 shadow-lg shadow-red-200 transition-all duration-500">
+                                        <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </div>
+                                {:else if isActive && isRevisi}
+                                    <!-- Amber: node aktif saat status revisi -->
+                                    <div class="relative z-10 w-6 h-6 rounded-full border-2 bg-amber-500 border-amber-500 flex items-center justify-center scale-110 shadow-lg shadow-amber-200 transition-all duration-500">
+                                        <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01" /></svg>
+                                    </div>
+                                {:else if isPast || (isActive && !isRevisi)}
+                                    <!-- Merah + centang: sudah lewat atau aktif normal -->
+                                    <div class="relative z-10 w-6 h-6 rounded-full border-2 bg-red-600 border-red-600 flex items-center justify-center scale-110 shadow-lg shadow-red-200 transition-all duration-500">
+                                        <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                                    </div>
+                                {:else}
+                                    <!-- Abu-abu: belum tercapai -->
+                                    <div class="relative z-10 w-6 h-6 rounded-full border-2 bg-white border-slate-200 flex items-center justify-center transition-all duration-500">
+                                    </div>
+                                {/if}
+
+                                <!-- Teks -->
+                                <div class="pt-[2px]">
+                                    <p class={`text-sm font-bold transition-colors
+                                        ${isRejectedNode ? 'text-red-700' :
+                                          (isPast || isActive) ? 'text-slate-900' : 'text-slate-300'}`}>
+                                        {step.label}
+                                    </p>
+                                    {#if isActive && !isRevisi && result.status !== 'selesai' && !rejected}
+                                        <p class="text-xs text-red-600 mt-1 font-medium animate-pulse">Sedang Berlangsung</p>
+                                    {:else if isActive && isRevisi}
+                                        <p class="text-xs text-amber-600 mt-1 font-medium animate-pulse">Menunggu Perbaikan Data</p>
+                                    {:else if isRejectedNode}
+                                        <p class="text-xs text-red-500 mt-1 font-medium">Permohonan Ditolak</p>
                                     {/if}
-                                    
-                                    <!-- Status Circle -->
-                                    <div class={`relative z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-500
-                                        ${i <= getStepIndex(result.status) ? 'bg-red-600 border-red-600 scale-110 shadow-lg shadow-red-200' : 'bg-white border-slate-200'}`}>
-                                        {#if i <= getStepIndex(result.status)}
-                                            <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                                        {/if}
-                                    </div>
-
-                                    <!-- Status Text -->
-                                    <div class="pt-[2px]">
-                                        <p class={`text-sm font-bold transition-colors 
-                                            ${i <= getStepIndex(result.status) ? 'text-slate-900' : 'text-slate-300'}`}>
-                                            {step.label}
-                                        </p>
-                                        {#if i === getStepIndex(result.status) && result.status !== 'selesai'}
-                                            <p class="text-xs text-red-600 mt-1 font-medium animate-pulse">Sedang Berlangsung</p>
-                                        {/if}
-                                    </div>
                                 </div>
-                            {/each}
-                        </div>
+                            </div>
+                        {/each}
                     </div>
-                {/if}
+                </div>
             </div>
       </section>
       </div>
     {/if}
+
 
     <!-- Service Catalog -->
     <section>
