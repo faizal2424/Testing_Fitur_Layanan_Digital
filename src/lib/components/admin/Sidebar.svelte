@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	interface Props {
 		user: {
@@ -72,11 +73,13 @@
 	}
 
 	async function handleLogout() {
-		const form = document.createElement('form');
-		form.method = 'POST';
-		form.action = '/api/auth/logout';
-		document.body.appendChild(form);
-		form.submit();
+		try {
+			await fetch('/api/auth/logout', { method: 'POST' });
+		} catch (_) {
+			// Abaikan error jaringan — sesi tetap dihapus di sisi server
+		} finally {
+			goto('/mlebet');
+		}
 	}
 </script>
 
