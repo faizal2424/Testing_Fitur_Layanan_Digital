@@ -8,7 +8,7 @@ import { join } from 'path';
 // Handle ESM/CJS interop for pdfkit
 const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, locals, url }) => {
     const { code } = params;
 
     try {
@@ -29,6 +29,40 @@ export const GET: RequestHandler = async ({ params }) => {
             throw error(404, 'Pengajuan tidak ditemukan');
         }
 
+        // ── Access protection ─────────────────────────────────
+        // 1) Authenticated staff (admin/superadmin/PIC) can download.
+        // 2) Applicant (via success page) can download by passing
+        //    `?code={trackingCode}` that matches the submission.
+        const user = locals.user;
+        const isStaff = !!user && ['admin', 'superadmin', 'pic'].includes(user.role);
+
+        let allowed = isStaff;
+
+        if (isStaff && user.role === 'pic') {
+            // PIC can only access submissions they own or are team on.
+            const assigned = submission.assigned_to;
+            const isPrimary = assigned ? assigned.toString() === user.id.toString() : false;
+            if (!isPrimary) {
+                const teamMember = await db.submission_team_members.findFirst({
+                    where: {
+                        submission_id: submission.id,
+                        user_id: BigInt(user.id)
+                    }
+                });
+                if (!teamMember) allowed = false;
+            }
+        }
+
+        if (!allowed) {
+            // Applicant fallback: `?code={trackingCode}` must match.
+            const queryCode = url.searchParams.get('code');
+            allowed = !!queryCode && queryCode === code;
+        }
+
+        if (!allowed) {
+            throw error(403, 'Akses ditolak. Tidak berwenang mengunduh surat bukti ini.');
+        }
+
         const pdfBuffer = await generateSuratBukti(submission);
 
         return new Response(new Uint8Array(pdfBuffer), {
@@ -36,7 +70,9 @@ export const GET: RequestHandler = async ({ params }) => {
             headers: {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': `attachment; filename="surat-bukti-pengajuan-${code}.pdf"`,
-                'Content-Length': pdfBuffer.length.toString()
+                'Content-Length': pdfBuffer.length.toString(),
+                'Cache-Control': 'private, no-store',
+                'X-Content-Type-Options': 'nosniff'
             }
         });
     } catch (err: any) {

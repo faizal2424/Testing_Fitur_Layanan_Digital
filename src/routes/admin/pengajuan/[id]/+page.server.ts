@@ -3,9 +3,8 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { NotificationService } from '$lib/server/notifications';
 import { getAllowedStatuses } from '$lib/utils/submissionFlow';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import { checkOwnership } from '$lib/server/auth';
+import { putFile, evidenceKey, toPublicUrl } from '$lib/server/storage';
 
 export const load: PageServerLoad = async (event) => {
 	const { params, locals } = event;
@@ -266,15 +265,12 @@ export const actions: Actions = {
 		// Handle file upload if present
 		let evidencePath: string | null = null;
 		if (evidence && evidence.size > 0) {
-			const uploadDir = join(process.cwd(), 'static', 'uploads', 'evidence', submission.tracking_code);
-			await mkdir(uploadDir, { recursive: true });
-
 			const fileName = `evidence_${Date.now()}_${evidence.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-			const fullPath = join(uploadDir, fileName);
+			const key = evidenceKey(submission.tracking_code, fileName);
 
 			const arrayBuffer = await evidence.arrayBuffer();
-			await writeFile(fullPath, Buffer.from(arrayBuffer));
-			evidencePath = `/uploads/evidence/${submission.tracking_code}/${fileName}`;
+			await putFile(key, Buffer.from(arrayBuffer), evidence.type || undefined);
+			evidencePath = toPublicUrl(key);
 		}
 
 		// Prepare database update details

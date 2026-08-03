@@ -4,8 +4,7 @@ import { sendMail } from '$lib/server/mailer';
 import { submissionReceivedTemplate } from '$lib/server/email-templates';
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { putFile, submissionKey, toPublicUrl } from '$lib/server/storage';
 
 export const load: PageServerLoad = async ({ params }) => {
     const serviceId = BigInt(params.id);
@@ -136,21 +135,18 @@ export const actions: Actions = {
                 const rawValue = formData.get(`field_${field.id}`);
 
                 if (field.type === 'file' && rawValue instanceof File && rawValue.size > 0) {
-                    // Handle file upload
-                    const uploadDir = join(process.cwd(), 'static', 'uploads', trackingCode);
-                    await mkdir(uploadDir, { recursive: true });
-
+                    // Handle file upload via storage abstraction (S3/MinIO or local volume)
                     const safeFileName = `${field.name}_${Date.now()}_${rawValue.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-                    const filePath = join(uploadDir, safeFileName);
+                    const key = submissionKey(trackingCode, safeFileName);
 
                     const arrayBuffer = await rawValue.arrayBuffer();
-                    await writeFile(filePath, Buffer.from(arrayBuffer));
+                    await putFile(key, Buffer.from(arrayBuffer), rawValue.type || undefined);
 
                     await db.service_submission_values.create({
                         data: {
                             submission_id: submission.id,
                             field_id: field.id,
-                            file_path: `/uploads/${trackingCode}/${safeFileName}`,
+                            file_path: toPublicUrl(key),
                             created_at: new Date(),
                             updated_at: new Date()
                         }

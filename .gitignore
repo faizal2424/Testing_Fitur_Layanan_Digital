@@ -1,5 +1,8 @@
 node_modules
 
+# Uploads — disimpan di object storage/volume, bukan di repo
+/static/uploads/
+
 # Output
 .output
 .vercel

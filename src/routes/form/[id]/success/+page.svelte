@@ -24,7 +24,7 @@
         isDownloading = true;
 
         try {
-            const response = await fetch(`/api/surat-bukti/${code}`);
+            const response = await fetch(`/api/surat-bukti/${code}?code=${encodeURIComponent(code)}`);
             if (!response.ok) {
                 throw new Error('Gagal mengunduh surat bukti');
             }
