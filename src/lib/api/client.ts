@@ -3,14 +3,15 @@
  *
  * Wrapper fetch yang:
  * - Otomatis mengirim cookie (credentials: 'include')
- * - Di dev mode: hit /api/* → Vite proxy → backend:3001
- * - Di prod mode: hit URL backend langsung (dari env VITE_API_URL)
+ * - Semua /api/* di-handle oleh SvelteKit server routes sendiri
+ * - URL konfigurasi via env VITE_API_URL (opsional)
  */
 
-// URL base backend — di dev proxy handle ini, di prod set VITE_API_URL
+// URL base API — default relatif (/api/* di-handle SvelteKit server routes)
+// Set VITE_API_URL hanya jika API di-hosting terpisah
 const API_BASE =
   typeof window !== 'undefined'
-    ? (import.meta.env.VITE_API_URL || '') // kosong = relative (lewat Vite proxy)
+    ? (import.meta.env.VITE_API_URL || '')
     : ''; // SSR: tidak digunakan saat frontend sudah fully client-side
 
 interface ApiResponse<T = any> {
