@@ -53,6 +53,25 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
             }
         }
 
+        if (isStaff && !allowed) {
+            // Admin OPD: hanya boleh akses pengajuan milik OPD-nya sendiri.
+            if (!submission.agency_id) {
+                // Pengajuan tanpa OPD — hanya superadmin/PIC yang berwenang.
+                allowed = user.role === 'superadmin';
+            } else if (user.role === 'admin') {
+                const adminAgencyId = await db.users.findUnique({
+                    where: { id: BigInt(user.id) },
+                    select: { agency_id: true }
+                });
+                if (
+                    !adminAgencyId?.agency_id ||
+                    adminAgencyId.agency_id.toString() !== submission.agency_id.toString()
+                ) {
+                    allowed = false;
+                }
+            }
+        }
+
         if (!allowed) {
             // Applicant fallback: `?code={trackingCode}` must match.
             const queryCode = url.searchParams.get('code');

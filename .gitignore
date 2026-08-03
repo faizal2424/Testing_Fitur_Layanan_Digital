@@ -3,6 +3,11 @@ node_modules
 # Uploads — disimpan di object storage/volume, bukan di repo
 /static/uploads/
 
+# Volume penyimpanan lokal (bukan untuk di-commit)
+# `/storage/*` meng-ignore isi volume, namun tetap mengizinkan .gitkeep
+/storage/*
+!/storage/.gitkeep
+
 # Output
 .output
 .vercel

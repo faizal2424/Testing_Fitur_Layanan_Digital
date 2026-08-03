@@ -130,6 +130,37 @@ export type StoredFile = {
 	contentLength: number | null;
 };
 
+export const LEGACY_UPLOADS_PREFIX = '/static/uploads/';
+
+/**
+ * Resolve a stored `file_path` (new key or legacy `/static/uploads/...`)
+ * into a protected `/api/files/...` URL.
+ */
+export function resolveFileUrl(filePath: string | null | undefined): string | null {
+	if (!filePath) return null;
+
+	if (filePath.startsWith('/api/files/')) return filePath;
+
+	if (filePath.startsWith(LEGACY_UPLOADS_PREFIX)) {
+		const legacyPath = filePath.slice(LEGACY_UPLOADS_PREFIX.length);
+		switch (true) {
+			case legacyPath.startsWith('evidence/'):
+				return toPublicUrl(evidenceKeyFromLegacy(legacyPath));
+			case legacyPath.startsWith('SVC-'):
+				return toPublicUrl(`submissions/${legacyPath}`);
+			default:
+				return null;
+		}
+	}
+
+	return toPublicUrl(filePath);
+}
+
+function evidenceKeyFromLegacy(legacyPath: string): string {
+	// evidence/BSX1TAGYRY/file.png  ->  evidence/BSX1TAGYRY/file.png
+	return legacyPath;
+}
+
 // ── Write ────────────────────────────────────────────────────
 export async function putFile(
 	key: string,

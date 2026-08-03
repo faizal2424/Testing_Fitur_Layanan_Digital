@@ -4,7 +4,7 @@ import { db } from '$lib/server/db';
 import { NotificationService } from '$lib/server/notifications';
 import { getAllowedStatuses } from '$lib/utils/submissionFlow';
 import { checkOwnership } from '$lib/server/auth';
-import { putFile, evidenceKey, toPublicUrl } from '$lib/server/storage';
+import { putFile, evidenceKey, toPublicUrl, resolveFileUrl } from '$lib/server/storage';
 
 export const load: PageServerLoad = async (event) => {
 	const { params, locals } = event;
@@ -128,7 +128,7 @@ export const load: PageServerLoad = async (event) => {
 				name: v.service_form_fields.name,
 				type: v.service_form_fields.type,
 				value: displayValue,
-				file_path: v.file_path
+				file_path: resolveFileUrl(v.file_path)
 			};
 		}),
 		notes: submission.submission_notes.map((n: any) => ({
@@ -136,7 +136,7 @@ export const load: PageServerLoad = async (event) => {
 			status_from: n.status_from,
 			status_to: n.status_to,
 			note: n.note,
-			file_path: n.file_path,
+			file_path: resolveFileUrl(n.file_path),
 			user_name: n.users?.name || 'Sistem',
 			created_at: n.created_at?.toISOString() || null
 		})),
