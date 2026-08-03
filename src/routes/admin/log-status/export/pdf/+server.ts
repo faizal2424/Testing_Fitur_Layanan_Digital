@@ -1,10 +1,19 @@
 import { db } from '$lib/server/db';
+import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import PDFDocumentModule from 'pdfkit';
 
 const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
 
-export const GET: RequestHandler = async ({ url, locals }) => {
+export const GET: RequestHandler = async (event) => {
+	const { url, locals } = event;
+	const user = locals.user;
+
+	// Authentication guard — log-status export is available to PIC & admin (own logs only)
+	if (!user) {
+		throw error(401, 'Unauthorized');
+	}
+
 	const serviceFilter = url.searchParams.get('layanan') || '';
 	const statusFilter = url.searchParams.get('status') || '';
 	const search = url.searchParams.get('cari') || '';

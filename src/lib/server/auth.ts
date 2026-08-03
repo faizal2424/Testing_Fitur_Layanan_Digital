@@ -120,10 +120,53 @@ export async function getSessionUser(cookies: Cookies) {
 		return null;
 	}
 }
-export function requireAdmin(event: any) {
+import type { RequestEvent } from '@sveltejs/kit';
+
+export function requireAdmin(event: RequestEvent) {
   const user = event.locals.user;
   if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
     throw redirect(302, '/mlebet');
+  }
+}
+
+export function requireSuperAdmin(event: RequestEvent) {
+  const user = event.locals.user;
+  if (!user || user.role !== 'superadmin') {
+    throw redirect(302, '/mlebet');
+  }
+}
+
+/**
+ * Check if user owns the resource (for admin/OPD users).
+ * Superadmin bypasses this check.
+ * @param event - SvelteKit event (has locals.user)
+ * @param resourceAgencyId - The agency_id of the resource (BigInt or string)
+ * @returns true if user owns the resource or is superadmin
+ */
+export function checkOwnership(event: RequestEvent, resourceAgencyId: bigint | string | null | undefined): boolean {
+  const user = event.locals.user;
+  if (!user) return false;
+  
+  // Superadmin can access everything
+  if (user.role === 'superadmin') return true;
+  
+  // Admin must have agency_id and it must match
+  if (user.role === 'admin' && user.agency_id) {
+    const userAgencyId = BigInt(user.agency_id);
+    const resourceId = resourceAgencyId ? BigInt(resourceAgencyId) : null;
+    return resourceId !== null && userAgencyId === resourceId;
+  }
+  
+  return false;
+}
+
+/**
+ * Guard that throws 403 if user doesn't own the resource.
+ * Use in actions where ownership is required.
+ */
+export function requireOwnership(event: RequestEvent, resourceAgencyId: bigint | string | null | undefined) {
+  if (!checkOwnership(event, resourceAgencyId)) {
+    throw redirect(302, '/mlebet'); // or throw error(403, 'Forbidden')
   }
 }
 

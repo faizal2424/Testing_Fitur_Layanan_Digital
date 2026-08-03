@@ -7,7 +7,15 @@ import { statusLabels, getStatusLabel } from '$lib/utils/submissionFlow';
 // Handle ESM/CJS interop for pdfkit
 const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
 
-export const GET: RequestHandler = async ({ url, locals }) => {
+export const GET: RequestHandler = async (event) => {
+	const { url, locals } = event;
+	const user = locals.user;
+
+	// Authentication guard — this is an admin-area export endpoint
+	if (!user) {
+		throw error(401, 'Unauthorized');
+	}
+
 	const serviceFilter = url.searchParams.get('layanan') || '';
 	const statusFilter = url.searchParams.get('status') || '';
 	const q = url.searchParams.get('q') || '';
@@ -15,14 +23,19 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	const dateTo = url.searchParams.get('sampai') || '';
 
 	const where: any = {};
-	const user = (locals as any).user;
 
-	if (user?.role === 'pic') {
+	if (user.role === 'pic') {
 		where.OR = [
 			{ assigned_to: BigInt(user.id) },
 			{ submission_team_members: { some: { user_id: BigInt(user.id) } } }
 		];
+	} else if (user.role === 'admin' && user.agency_id) {
+		// Per-OPD ownership: admin only sees submissions from their own agency's services
+		where.services = {
+			agency_id: BigInt(user.agency_id)
+		};
 	}
+	// superadmin: no filter — sees everything
 
 	if (serviceFilter) where.service_id = BigInt(serviceFilter);
 	if (statusFilter) where.status = statusFilter;

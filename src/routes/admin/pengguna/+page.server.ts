@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
-import { requireAdmin } from '$lib/server/auth';
+import { requireAdmin, checkOwnership } from '$lib/server/auth';
 import { error, redirect, fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async (event) => {
@@ -126,6 +126,18 @@ export const actions: Actions = {
 		// Prevent self-deletion
 		if (id === event.locals.user?.id.toString()) {
 			return fail(400, { message: 'Anda tidak dapat menghapus akun Anda sendiri' });
+		}
+
+		// Ownership check: admin (OPD) can only delete users in their own agency
+		const targetUser = await db.users.findUnique({
+			where: { id: BigInt(id) },
+			select: { agency_id: true }
+		});
+		if (!targetUser) {
+			return fail(404, { message: 'Pengguna tidak ditemukan' });
+		}
+		if (event.locals.user?.role === 'admin' && !checkOwnership(event, targetUser.agency_id)) {
+			return fail(403, { message: 'Tidak diizinkan menghapus pengguna dari instansi lain.' });
 		}
 
 		try {

@@ -11,6 +11,8 @@ declare global {
 				email: string;
 				phone: string | null;
 				role: string; // 'superadmin' | 'admin' | 'pic'
+				agency_id: string | null;
+				agency_name: string | null;
 			} | null;
 		}
 		// interface PageData {}

@@ -1,10 +1,11 @@
-import { fail } from '@sveltejs/kit';
+import { fail, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
+import { requireAdmin, checkOwnership } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
-	const serviceId = BigInt(params.id);
-
+async function loadServiceWithOwnership(event: any) {
+	requireAdmin(event);
+	const serviceId = BigInt(event.params.id);
 	const service = await db.services.findUnique({
 		where: { id: serviceId },
 		include: {
@@ -18,13 +19,27 @@ export const load: PageServerLoad = async ({ params }) => {
 		return { service: null, fields: [] };
 	}
 
+	// Ownership check: admin can only manage fields for their own agency's services
+	if (!checkOwnership(event, service.agency_id)) {
+		throw error(403, 'Tidak diizinkan mengelola layanan instansi lain.');
+	}
+
+	return { service, serviceId };
+}
+
+export const load: PageServerLoad = async (event) => {
+	const result = await loadServiceWithOwnership(event);
+	if (!result.service) {
+		return { service: null, fields: [] };
+	}
+
 	return {
 		service: {
-			id: service.id.toString(),
-			name: service.name,
-			icon: service.icon
+			id: result.service.id.toString(),
+			name: result.service.name,
+			icon: result.service.icon
 		},
-		fields: service.service_form_fields.map((f) => ({
+		fields: result.service.service_form_fields.map((f: any) => ({
 			id: f.id.toString(),
 			label: f.label,
 			name: f.name,
@@ -41,9 +56,10 @@ export const load: PageServerLoad = async ({ params }) => {
 
 export const actions: Actions = {
 	// Create new field
-	create: async ({ request, params }) => {
-		const serviceId = BigInt(params.id);
-		const formData = await request.formData();
+	create: async (event) => {
+		await loadServiceWithOwnership(event);
+		const serviceId = BigInt(event.params.id);
+		const formData = await event.request.formData();
 
 		const label = formData.get('label')?.toString()?.trim();
 		const name = formData.get('name')?.toString()?.trim();
@@ -104,8 +120,9 @@ export const actions: Actions = {
 	},
 
 	// Update field
-	update: async ({ request }) => {
-		const formData = await request.formData();
+	update: async (event) => {
+		await loadServiceWithOwnership(event);
+		const formData = await event.request.formData();
 		const id = formData.get('id')?.toString();
 		const label = formData.get('label')?.toString()?.trim();
 		const name = formData.get('name')?.toString()?.trim();
@@ -165,8 +182,9 @@ export const actions: Actions = {
 	},
 
 	// Delete field
-	delete: async ({ request }) => {
-		const formData = await request.formData();
+	delete: async (event) => {
+		await loadServiceWithOwnership(event);
+		const formData = await event.request.formData();
 		const id = formData.get('id')?.toString();
 
 		if (!id) {
@@ -181,8 +199,9 @@ export const actions: Actions = {
 	},
 
 	// Reorder fields
-	reorder: async ({ request }) => {
-		const formData = await request.formData();
+	reorder: async (event) => {
+		await loadServiceWithOwnership(event);
+		const formData = await event.request.formData();
 		const orderData = formData.get('order')?.toString();
 
 		if (!orderData) {

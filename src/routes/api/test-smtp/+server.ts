@@ -5,10 +5,13 @@
  */
 import { json } from '@sveltejs/kit';
 import { sendMail, verifySmtpConnection } from '$lib/server/mailer';
+import { requireSuperAdmin } from '$lib/server/auth';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ url }) => {
-	const targetEmail = url.searchParams.get('to') ?? 'test@example.com';
+export const GET: RequestHandler = async (event) => {
+	// Infrastructure/debug endpoint — only superadmin may trigger SMTP test emails
+	requireSuperAdmin(event);
+	const targetEmail = event.url.searchParams.get('to') ?? 'test@example.com';
 
 	// 1. Verifikasi koneksi SMTP terlebih dahulu
 	const connection = await verifySmtpConnection();

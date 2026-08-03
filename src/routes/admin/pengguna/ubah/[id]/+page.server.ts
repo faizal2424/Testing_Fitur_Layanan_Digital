@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
-import { requireAdmin, hashPassword } from '$lib/server/auth';
+import { requireAdmin, hashPassword, checkOwnership } from '$lib/server/auth';
 import { error, redirect, fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async (event) => {
@@ -36,6 +36,11 @@ export const load: PageServerLoad = async (event) => {
 		throw error(404, 'Pengguna tidak ditemukan');
 	}
 
+	// Ownership check: admin (OPD) can only view/edit users in their own agency
+	if (userRole === 'admin' && !checkOwnership(event, user.agency_id)) {
+		throw error(403, 'Anda tidak memiliki akses ke pengguna dari instansi lain.');
+	}
+
 	return {
 		editUser: {
 			id: user.id.toString(),
@@ -67,6 +72,18 @@ export const actions: Actions = {
 		const selectedRoleIds = formData.getAll('roles').map(id => BigInt(id.toString()));
 		const currentUser = event.locals.user as any;
 		const userRole = currentUser?.role;
+
+		// Ownership check: admin (OPD) can only modify users in their own agency
+		const targetUser = await db.users.findUnique({
+			where: { id: BigInt(id) },
+			select: { agency_id: true }
+		});
+		if (!targetUser) {
+			return fail(404, { message: 'Pengguna tidak ditemukan', success: false });
+		}
+		if (userRole === 'admin' && !checkOwnership(event, targetUser.agency_id)) {
+			return fail(403, { message: 'Tidak diizinkan mengubah pengguna dari instansi lain.', success: false });
+		}
 
 		let agency_id: bigint | null | undefined = undefined;
 		if (userRole === 'superadmin') {

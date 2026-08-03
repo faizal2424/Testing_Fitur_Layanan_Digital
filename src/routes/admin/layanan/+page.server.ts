@@ -1,9 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
+import { requireAdmin, requireSuperAdmin } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ locals }) => {
-	const authUser = (locals as any).user;
+export const load: PageServerLoad = async (event) => {
+	requireAdmin(event);
+	const authUser = event.locals.user;
 	const isSuper = authUser?.role === 'superadmin';
 
 	const whereClause =
@@ -155,10 +157,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	// Create new agency
-	create_agency: async ({ request }) => {
+	// Create new agency (superadmin only)
+	create_agency: async (event) => {
+		requireSuperAdmin(event);
 		try {
-			const formData = await request.formData();
+			const formData = await event.request.formData();
 			const name = formData.get('name')?.toString()?.trim();
 			const address = formData.get('address')?.toString()?.trim() || null;
 			const phone = formData.get('phone')?.toString()?.trim() || null;
@@ -199,10 +202,11 @@ export const actions: Actions = {
 		}
 	},
 
-	// Update agency
-	update_agency: async ({ request }) => {
+	// Update agency (superadmin only, or admin for their own agency)
+	update_agency: async (event) => {
+		requireSuperAdmin(event);
 		try {
-			const formData = await request.formData();
+			const formData = await event.request.formData();
 			const id = formData.get('id')?.toString();
 			const name = formData.get('name')?.toString()?.trim();
 			const address = formData.get('address')?.toString()?.trim() || null;
@@ -247,10 +251,11 @@ export const actions: Actions = {
 		}
 	},
 
-	// Delete agency
-	delete_agency: async ({ request }) => {
+	// Delete agency (superadmin only)
+	delete_agency: async (event) => {
+		requireSuperAdmin(event);
 		try {
-			const formData = await request.formData();
+			const formData = await event.request.formData();
 			const id = formData.get('id')?.toString();
 
 			if (!id) {
@@ -285,9 +290,10 @@ export const actions: Actions = {
 	},
 
 	// Create new service
-	create: async ({ request, locals }) => {
-		const user = (locals as any).user;
-		const formData = await request.formData();
+	create: async (event) => {
+		requireAdmin(event);
+		const user = event.locals.user;
+		const formData = await event.request.formData();
 		const name = formData.get('name')?.toString()?.trim();
 		const icon = formData.get('icon')?.toString()?.trim() || null;
 		const requirementsRaw = formData.get('requirements')?.toString()?.trim() || null;
@@ -300,6 +306,11 @@ export const actions: Actions = {
 			if (formAgencyId) {
 				agency_id = BigInt(formAgencyId);
 			}
+		}
+
+		// Ownership check: admin can only create services for their own agency
+		if (user?.role === 'admin' && agency_id && user.agency_id && BigInt(user.agency_id) !== agency_id) {
+			return fail(403, { error: 'Tidak diizinkan membuat layanan untuk instansi lain.', action: 'create' });
 		}
 
 		let requirements = null;
@@ -396,9 +407,10 @@ export const actions: Actions = {
 	},
 
 	// Update existing service
-	update: async ({ request, locals }) => {
-		const user = (locals as any).user;
-		const formData = await request.formData();
+	update: async (event) => {
+		requireAdmin(event);
+		const user = event.locals.user;
+		const formData = await event.request.formData();
 		const id = formData.get('id')?.toString();
 		const name = formData.get('name')?.toString()?.trim();
 		const icon = formData.get('icon')?.toString()?.trim() || null;
@@ -424,6 +436,20 @@ export const actions: Actions = {
 			return fail(400, { error: 'Data tidak lengkap.', action: 'update' });
 		}
 
+		// Ownership check: admin can only update services in their own agency
+		const existingService = await db.services.findUnique({
+			where: { id: BigInt(id) },
+			select: { agency_id: true }
+		});
+
+		if (!existingService) {
+			return fail(404, { error: 'Layanan tidak ditemukan.', action: 'update' });
+		}
+
+		if (user?.role === 'admin' && user.agency_id && existingService.agency_id && BigInt(user.agency_id) !== existingService.agency_id) {
+			return fail(403, { error: 'Tidak diizinkan memperbarui layanan instansi lain.', action: 'update' });
+		}
+
 		await db.services.update({
 			where: { id: BigInt(id) },
 			data: {
@@ -440,12 +466,28 @@ export const actions: Actions = {
 	},
 
 	// Delete service
-	delete: async ({ request }) => {
-		const formData = await request.formData();
+	delete: async (event) => {
+		requireAdmin(event);
+		const user = event.locals.user;
+		const formData = await event.request.formData();
 		const id = formData.get('id')?.toString();
 
 		if (!id) {
 			return fail(400, { error: 'ID tidak valid.' });
+		}
+
+		// Ownership check: admin can only delete services in their own agency
+		const existingService = await db.services.findUnique({
+			where: { id: BigInt(id) },
+			select: { agency_id: true }
+		});
+
+		if (!existingService) {
+			return fail(404, { error: 'Layanan tidak ditemukan.' });
+		}
+
+		if (user?.role === 'admin' && user.agency_id && existingService.agency_id && BigInt(user.agency_id) !== existingService.agency_id) {
+			return fail(403, { error: 'Tidak diizinkan menghapus layanan instansi lain.' });
 		}
 
 		// Check if service has submissions
@@ -467,8 +509,10 @@ export const actions: Actions = {
 	},
 
 	// Update order (drag and drop)
-	reorder: async ({ request }) => {
-		const formData = await request.formData();
+	reorder: async (event) => {
+		requireAdmin(event);
+		const user = event.locals.user;
+		const formData = await event.request.formData();
 		const orderData = formData.get('order')?.toString();
 
 		if (!orderData) {
@@ -477,6 +521,20 @@ export const actions: Actions = {
 
 		try {
 			const items: { id: string; order: number }[] = JSON.parse(orderData);
+
+			// Ownership check: admin can only reorder services in their own agency
+			if (user?.role === 'admin' && user?.agency_id) {
+				const serviceIds = items.map((i) => BigInt(i.id));
+				const ownedServices = await db.services.findMany({
+					where: { id: { in: serviceIds } },
+					select: { id: true, agency_id: true }
+				});
+				const userAgencyId = BigInt(user.agency_id);
+				const allOwned = ownedServices.every((s) => s.agency_id && s.agency_id === userAgencyId);
+				if (ownedServices.length !== serviceIds.length || !allOwned) {
+					return fail(403, { error: 'Tidak diizinkan mengubah urutan layanan instansi lain.' });
+				}
+			}
 
 			await Promise.all(
 				items.map((item) =>

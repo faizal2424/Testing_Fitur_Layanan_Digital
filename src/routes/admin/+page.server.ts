@@ -1,17 +1,19 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
+import { requireAdmin } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ url, parent }) => {
-	const parentData = await parent();
+export const load: PageServerLoad = async (event) => {
+	requireAdmin(event);
+	const parentData = await event.parent();
 	const user = parentData.user;
 
 	// Parse filter params
-	const serviceFilter = url.searchParams.get('layanan') || '';
-	const statusFilter = url.searchParams.get('status') || '';
-	const dateFrom = url.searchParams.get('dari') || '';
-	const dateTo = url.searchParams.get('sampai') || '';
-	const searchKeyword = url.searchParams.get('q') || '';
-	const page = parseInt(url.searchParams.get('halaman') || '1');
+	const serviceFilter = event.url.searchParams.get('layanan') || '';
+	const statusFilter = event.url.searchParams.get('status') || '';
+	const dateFrom = event.url.searchParams.get('dari') || '';
+	const dateTo = event.url.searchParams.get('sampai') || '';
+	const searchKeyword = event.url.searchParams.get('q') || '';
+	const page = parseInt(event.url.searchParams.get('halaman') || '1');
 	const perPage = 10;
 
 	// Build where clause for submissions

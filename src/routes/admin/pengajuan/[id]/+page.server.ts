@@ -5,9 +5,10 @@ import { NotificationService } from '$lib/server/notifications';
 import { getAllowedStatuses } from '$lib/utils/submissionFlow';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
+import { checkOwnership } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params, parent, locals }) => {
-	const parentData = await parent();
+export const load: PageServerLoad = async (event) => {
+	const { params, locals } = event;
 	const submissionId = BigInt(params.id);
 
 	const submission = await db.service_submissions.findUnique({
@@ -47,6 +48,14 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 	// PIC Access Control: only allow if Primary PIC or Team Member
 	const user = locals.user;
 	if (!user) throw error(401, 'Unauthorized');
+
+	// Admin Ownership Check: admin (OPD) can only access submissions for their own agency
+	if (user.role === 'admin') {
+		const targetAgencyId = submission.agency_id || submission.services.agency_id;
+		if (!checkOwnership(event, targetAgencyId)) {
+			throw error(403, 'Anda tidak memiliki akses ke pengajuan ini.');
+		}
+	}
 	
 	const isPrimaryPic = user.role === 'pic' && submission.assigned_to === BigInt(user.id);
 	const isTeamMember = submission.submission_team_members.some(
@@ -154,7 +163,8 @@ export const load: PageServerLoad = async ({ params, parent, locals }) => {
 
 export const actions: Actions = {
 	// Process all changes in one form
-	process: async ({ request, params, locals }) => {
+	process: async (event) => {
+		const { request, params, locals } = event;
 		const formData = await request.formData();
 		const newStatus = formData.get('status')?.toString();
 		const teamMemberIds = formData.getAll('team_members').map((id) => id.toString());
@@ -187,6 +197,18 @@ export const actions: Actions = {
 		});
 
 		if (!submission) return fail(404, { error: 'Pengajuan tidak ditemukan.' });
+
+		// Admin Ownership Check: admin (OPD) can only process submissions for their own agency
+		const submittingAgencyId = locals.user?.role === 'admin'
+			? await db.service_submissions.findUnique({
+					where: { id: submissionId },
+					select: { agency_id: true, services: { select: { agency_id: true } } }
+			  })
+			: null;
+		const targetAgency = submittingAgencyId?.agency_id || submittingAgencyId?.services?.agency_id || null;
+		if (locals.user?.role === 'admin' && !checkOwnership(event, targetAgency)) {
+			return fail(403, { error: 'Tidak diizinkan memproses pengajuan instansi lain.' });
+		}
 
 		try {
 			const oldStatus = submission.status;
