@@ -4,6 +4,7 @@ import type { RequestHandler } from './$types';
 import PDFDocumentModule from 'pdfkit';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { canAccessSubmission } from '$lib/server/auth';
 
 // Handle ESM/CJS interop for pdfkit
 const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
@@ -17,6 +18,9 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
             include: {
                 agencies: true,
                 services: true,
+                submission_team_members: {
+                    select: { user_id: true }
+                },
                 service_submission_values: {
                     include: {
                         service_form_fields: true
@@ -31,46 +35,15 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 
         // ── Access protection ─────────────────────────────────
         // 1) Authenticated staff (admin/superadmin/PIC) can download.
+        //    - superadmin: always allowed
+        //    - admin (OPD): only submissions from their own agency
+        //    - pic: only submissions they are assigned to or are team on
         // 2) Applicant (via success page) can download by passing
         //    `?code={trackingCode}` that matches the submission.
         const user = locals.user;
         const isStaff = !!user && ['admin', 'superadmin', 'pic'].includes(user.role);
 
-        let allowed = isStaff;
-
-        if (isStaff && user.role === 'pic') {
-            // PIC can only access submissions they own or are team on.
-            const assigned = submission.assigned_to;
-            const isPrimary = assigned ? assigned.toString() === user.id.toString() : false;
-            if (!isPrimary) {
-                const teamMember = await db.submission_team_members.findFirst({
-                    where: {
-                        submission_id: submission.id,
-                        user_id: BigInt(user.id)
-                    }
-                });
-                if (!teamMember) allowed = false;
-            }
-        }
-
-        if (isStaff && !allowed) {
-            // Admin OPD: hanya boleh akses pengajuan milik OPD-nya sendiri.
-            if (!submission.agency_id) {
-                // Pengajuan tanpa OPD — hanya superadmin/PIC yang berwenang.
-                allowed = user.role === 'superadmin';
-            } else if (user.role === 'admin') {
-                const adminAgencyId = await db.users.findUnique({
-                    where: { id: BigInt(user.id) },
-                    select: { agency_id: true }
-                });
-                if (
-                    !adminAgencyId?.agency_id ||
-                    adminAgencyId.agency_id.toString() !== submission.agency_id.toString()
-                ) {
-                    allowed = false;
-                }
-            }
-        }
+        let allowed = isStaff && canAccessSubmission(user, submission);
 
         if (!allowed) {
             // Applicant fallback: `?code={trackingCode}` must match.

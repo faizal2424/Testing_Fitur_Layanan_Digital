@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db';
+import { buildSubmissionViewFilter } from '$lib/server/auth';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const serviceFilter = url.searchParams.get('layanan') || '';
@@ -17,24 +18,26 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const where: any = {};
 	const user = (locals as any).user;
 
-	if (user?.role === 'pic') {
-		where.OR = [
-			{ assigned_to: BigInt(user.id) },
-			{ submission_team_members: { some: { user_id: BigInt(user.id) } } }
-		];
-	} else if (user?.role === 'admin' && user?.agency_id) {
-		where.services = { agency_id: BigInt(user.agency_id) };
-	}
+	// Role-based scope: PIC sees assigned/team submissions, admin sees own agency's submissions
+	const scopeFilter = buildSubmissionViewFilter(user);
 
 	if (serviceFilter) where.service_id = BigInt(serviceFilter);
 	if (statusFilter) where.status = statusFilter;
 
 	if (search) {
-		where.OR = [
+		const searchOr = [
 			{ applicant_name: { contains: search } },
 			{ applicant_email: { contains: search } },
 			{ tracking_code: { contains: search } }
 		];
+		if (scopeFilter.OR || scopeFilter.services) {
+			// Combine role-scope with search (AND) so scope is never lost
+			where.AND = [{ ...scopeFilter }, { OR: searchOr }];
+		} else {
+			where.OR = searchOr;
+		}
+	} else {
+		Object.assign(where, scopeFilter);
 	}
 
 	if (dateFrom || dateTo) {

@@ -1,7 +1,11 @@
 import { db } from '$lib/server/db';
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
-import { getPublicStatusLabel } from '$lib/constants/status';
+import {
+	getTrackingSubmission,
+	toPublicTrackingResult,
+	serializeForClient
+} from '$lib/server/tracking';
 
 export const load: PageServerLoad = async ({ url }) => {
     const listLayanan = await db.services.findMany({
@@ -22,43 +26,18 @@ export const load: PageServerLoad = async ({ url }) => {
 
     if (code) {
         try {
-            const pengajuan = await db.service_submissions.findUnique({
-                where: { tracking_code: code },
-                include: {
-                    services: true,
-                    users: true, // fetches the assigned user (PIC)
-                    submission_notes: {
-                        orderBy: { created_at: 'desc' },
-                        take: 1
-                    }
-                }
-            });
-
+            const pengajuan = await getTrackingSubmission(code);
             if (pengajuan) {
-                const result = {
-                    ...pengajuan,
-                    code: pengajuan.tracking_code,
-                    status_txt: getPublicStatusLabel(pengajuan.status),
-                    service_name: pengajuan.services.name,
-                    pic_phone: pengajuan.users?.phone || 'Menunggu Penugasan'
-                };
-
-                trackingResult = JSON.parse(JSON.stringify(result, (key, value) =>
-                    typeof value === 'bigint' ? value.toString() : value
-                ));
+                trackingResult = serializeForClient(toPublicTrackingResult(pengajuan));
             }
         } catch (error) {
             console.error('Error loading tracking code from URL:', error);
         }
     }
 
-    return { 
-        listLayanan: JSON.parse(JSON.stringify(listLayanan, (key, value) =>
-            typeof value === 'bigint' ? value.toString() : value
-        )),
-        allAgencies: JSON.parse(JSON.stringify(allAgencies, (key, value) =>
-            typeof value === 'bigint' ? value.toString() : value
-        )),
+    return {
+        listLayanan: serializeForClient(listLayanan),
+        allAgencies: serializeForClient(allAgencies),
         trackingResult
     };
 };
@@ -74,36 +53,16 @@ export const actions: Actions = {
         }
 
         try {
-            const pengajuan = await db.service_submissions.findUnique({
-                where: { tracking_code: code },
-                include: {
-                    services: true,
-                    users: true, // fetches the assigned user (PIC)
-                    submission_notes: {
-                        orderBy: { created_at: 'desc' },
-                        take: 1
-                    }
-                }
-            });
+            const pengajuan = await getTrackingSubmission(code);
 
             if (!pengajuan) {
                 return fail(404, { message: 'Data tidak ditemukan. Pastikan kode benar.' });
             }
 
-            const result = {
-                ...pengajuan,
-                code: pengajuan.tracking_code,
-                status_txt: getPublicStatusLabel(pengajuan.status),
-                service_name: pengajuan.services.name,
-                pic_phone: pengajuan.users?.phone || 'Menunggu Penugasan'
-            };
-
             // Return safe data (BigInt handled)
             return {
                 success: true,
-                result: JSON.parse(JSON.stringify(result, (key, value) =>
-                    typeof value === 'bigint' ? value.toString() : value
-                ))
+                result: serializeForClient(toPublicTrackingResult(pengajuan))
             };
         } catch (error) {
             console.error(error);

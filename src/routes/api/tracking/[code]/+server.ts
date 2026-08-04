@@ -1,6 +1,6 @@
 import { ok, badRequest, notFound, serverError } from '$lib/server/api-response';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
+import { getTrackingSubmission } from '$lib/server/tracking';
 import { getPublicStatusLabel } from '$lib/constants/status';
 
 // GET /api/tracking/:code — endpoint publik
@@ -12,24 +12,7 @@ export const GET: RequestHandler = async ({ params }) => {
 	}
 
 	try {
-		const pengajuan = await db.service_submissions.findUnique({
-			where: { tracking_code: code },
-			include: {
-				services: { select: { name: true, icon: true } },
-				users: { select: { name: true, phone: true } },
-				agencies: { select: { name: true } },
-				submission_notes: {
-					orderBy: { created_at: 'desc' },
-					take: 1,
-					select: {
-						note: true,
-						status_from: true,
-						status_to: true,
-						created_at: true
-					}
-				}
-			}
-		});
+		const pengajuan = await getTrackingSubmission(code);
 
 		if (!pengajuan) {
 			return notFound('Data tidak ditemukan. Pastikan kode tracking benar.');

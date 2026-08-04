@@ -2,8 +2,9 @@ import { db } from './db';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import type { Cookies } from '@sveltejs/kit';
-import { redirect } from '@sveltejs/kit';
+import { redirect, error } from '@sveltejs/kit';
 import { dev } from '$app/environment';
+import type { Prisma } from '@prisma/client';
 
 const SESSION_COOKIE = 'session_id';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days maximum session life
@@ -174,6 +175,108 @@ export function checkOwnership(event: RequestEvent, resourceAgencyId: bigint | s
 export function requireOwnership(event: RequestEvent, resourceAgencyId: bigint | string | null | undefined) {
   if (!checkOwnership(event, resourceAgencyId)) {
     throw redirect(302, '/mlebet'); // or throw error(403, 'Forbidden')
+  }
+}
+
+// ============================================================
+// Submission Access Control (PIC / Admin / Superadmin)
+// ============================================================
+
+/**
+ * Build the Prisma `where` filter that scopes service_submissions
+ * to what the current user is allowed to see.
+ *
+ * - superadmin: no filter (sees everything) → returns {}
+ * - admin (OPD): only submissions from their own agency's services
+ * - pic: only submissions they are assigned to OR are a team member of
+ *
+ * @param user - The authenticated user (from locals.user)
+ * @returns A Prisma where-clause fragment (empty object = no restriction)
+ */
+export function buildSubmissionViewFilter(user: { id: bigint | string; role: string; agency_id?: string | null } | null | undefined): Prisma.service_submissionsWhereInput {
+  if (!user) return {};
+
+  if (user.role === 'pic') {
+    const userId = BigInt(user.id);
+    return {
+      OR: [
+        { assigned_to: userId },
+        { submission_team_members: { some: { user_id: userId } } }
+      ]
+    };
+  }
+
+  if (user.role === 'admin' && user.agency_id) {
+    return {
+      services: { agency_id: BigInt(user.agency_id) }
+    };
+  }
+
+  // superadmin (or unknown role) — no restriction
+  return {};
+}
+
+/**
+ * Check whether a user can access a given submission.
+ * - superadmin → always allowed
+ * - admin (OPD) → allowed if the submission belongs to their agency
+ * - pic → allowed if they are the primary PIC or a team member
+ *
+ * @param user - The authenticated user (from locals.user)
+ * @param submission - The submission with `assigned_to`, `agency_id`, `services.agency_id`, and `submission_team_members`
+ * @returns true if the user may access the submission
+ */
+export function canAccessSubmission(
+  user: { id: bigint | string; role: string; agency_id?: string | null } | null | undefined,
+  submission: {
+    assigned_to?: bigint | string | null;
+    agency_id?: bigint | string | null;
+    services?: { agency_id?: bigint | string | null } | null;
+    submission_team_members?: Array<{ user_id: bigint | string }> | null;
+  }
+): boolean {
+  if (!user) return false;
+
+  // superadmin bypasses all checks
+  if (user.role === 'superadmin') return true;
+
+  const userId = BigInt(user.id);
+
+  // PIC: must be primary PIC or team member
+  if (user.role === 'pic') {
+    const isPrimary = submission.assigned_to ? BigInt(submission.assigned_to) === userId : false;
+    const isTeamMember = submission.submission_team_members?.some(
+      (tm) => BigInt(tm.user_id) === userId
+    ) ?? false;
+    return isPrimary || isTeamMember;
+  }
+
+  // Admin (OPD): submission must belong to their agency
+  if (user.role === 'admin') {
+    if (!user.agency_id) return false;
+    const targetAgencyId = submission.agency_id || submission.services?.agency_id || null;
+    if (!targetAgencyId) return false;
+    return BigInt(user.agency_id) === BigInt(targetAgencyId);
+  }
+
+  return false;
+}
+
+/**
+ * Guard that throws 403 if the user cannot access the submission.
+ * Use in load functions and actions where submission access is required.
+ */
+export function requireSubmissionAccess(
+  event: RequestEvent,
+  submission: {
+    assigned_to?: bigint | string | null;
+    agency_id?: bigint | string | null;
+    services?: { agency_id?: bigint | string | null } | null;
+    submission_team_members?: Array<{ user_id: bigint | string }> | null;
+  }
+) {
+  if (!canAccessSubmission(event.locals.user, submission)) {
+    throw error(403, 'Anda tidak memiliki akses ke pengajuan ini.');
   }
 }
 

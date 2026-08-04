@@ -175,7 +175,7 @@
     
     <!-- Status Result Modal -->
     {#if showResultModal && (form?.result || data.trackingResult)}
-      {@const result = form?.result || data.trackingResult}
+      {@const result = (form?.result || data.trackingResult)!}
       {@const statusInfo = getStatusInfo(result.status)}
       {@const rejected = isRejected(result.status)}
       {@const isRevisi = result.status === 'revisi'}

@@ -3,7 +3,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { getAllowedStatuses } from '$lib/utils/submissionFlow';
 import { enqueueNotification } from '$lib/server/jobs';
-import { checkOwnership } from '$lib/server/auth';
+import { requireSubmissionAccess, canAccessSubmission } from '$lib/server/auth';
 import { putFile, evidenceKey, toPublicUrl, resolveFileUrl } from '$lib/server/storage';
 
 export const load: PageServerLoad = async (event) => {
@@ -44,26 +44,17 @@ export const load: PageServerLoad = async (event) => {
 		return { submission: null, picUsers: [], values: [], notes: [] };
 	}
 
-	// PIC Access Control: only allow if Primary PIC or Team Member
+	// Access Control: superadmin bypasses, admin (OPD) must own the agency,
+	// PIC must be primary PIC or team member.
 	const user = locals.user;
 	if (!user) throw error(401, 'Unauthorized');
 
-	// Admin Ownership Check: admin (OPD) can only access submissions for their own agency
-	if (user.role === 'admin') {
-		const targetAgencyId = submission.agency_id || submission.services.agency_id;
-		if (!checkOwnership(event, targetAgencyId)) {
-			throw error(403, 'Anda tidak memiliki akses ke pengajuan ini.');
-		}
-	}
-	
+	requireSubmissionAccess(event, submission);
+
 	const isPrimaryPic = user.role === 'pic' && submission.assigned_to === BigInt(user.id);
 	const isTeamMember = submission.submission_team_members.some(
 		(tm) => tm.user_id === BigInt(user.id)
 	);
-
-	if (user.role === 'pic' && !isPrimaryPic && !isTeamMember) {
-		throw error(403, 'Anda tidak memiliki akses ke pengajuan ini.');
-	}
 
 	const isAssistantOnly = user?.role === 'pic' && !isPrimaryPic && isTeamMember;
 
@@ -183,8 +174,10 @@ export const actions: Actions = {
 				assigned_to: true,
 				tracking_code: true,
 				service_id: true,
+				agency_id: true,
 				services: {
 					select: {
+						agency_id: true,
 						pic_id: true,
 						name: true
 					}
@@ -197,18 +190,6 @@ export const actions: Actions = {
 
 		if (!submission) return fail(404, { error: 'Pengajuan tidak ditemukan.' });
 
-		// Admin Ownership Check: admin (OPD) can only process submissions for their own agency
-		const submittingAgencyId = locals.user?.role === 'admin'
-			? await db.service_submissions.findUnique({
-					where: { id: submissionId },
-					select: { agency_id: true, services: { select: { agency_id: true } } }
-			  })
-			: null;
-		const targetAgency = submittingAgencyId?.agency_id || submittingAgencyId?.services?.agency_id || null;
-		if (locals.user?.role === 'admin' && !checkOwnership(event, targetAgency)) {
-			return fail(403, { error: 'Tidak diizinkan memproses pengajuan instansi lain.' });
-		}
-
 		try {
 			const oldStatus = submission.status;
 		const user = locals.user;
@@ -216,19 +197,23 @@ export const actions: Actions = {
 		
 		const userRole = user.role || '';
 		
-		// Access Check for PIC
-		const isPrimaryPic = userRole === 'pic' && submission.assigned_to === BigInt(user.id);
-		const isTeamMember = submission.submission_team_members.some(
-			(tm) => tm.user_id === BigInt(user.id)
-		);
-
+		// Access Check for processing:
+		// - superadmin: allowed
+		// - admin (OPD): must own the submission's agency
+		// - pic: must be the primary PIC (team members cannot process)
 		if (userRole === 'pic') {
-			if (!isPrimaryPic && !isTeamMember) {
-				return fail(403, { error: 'Akses ditolak.' });
-			}
-			if (!isPrimaryPic && isTeamMember) {
+			const isPrimaryPic = submission.assigned_to === BigInt(user.id);
+			if (!isPrimaryPic) {
+				const isTeamMember = submission.submission_team_members.some(
+					(tm) => tm.user_id === BigInt(user.id)
+				);
+				if (!isTeamMember) {
+					return fail(403, { error: 'Akses ditolak.' });
+				}
 				return fail(403, { error: 'Anggota tim (asisten) tidak dapat melakukan aksi pemrosesan.' });
 			}
+		} else if (userRole === 'admin' && !canAccessSubmission(user, submission)) {
+			return fail(403, { error: 'Tidak diizinkan memproses pengajuan instansi lain.' });
 		}
 
 		// Priority locking logic: only admin/superadmin can change it, and only when current status is 'baru' or 'ditugaskan'

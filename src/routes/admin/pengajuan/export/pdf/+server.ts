@@ -3,6 +3,7 @@ import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import PDFDocumentModule from 'pdfkit';
 import { getInternalStatusLabel } from '$lib/constants/status';
+import { buildSubmissionViewFilter } from '$lib/server/auth';
 
 // Handle ESM/CJS interop for pdfkit
 const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
@@ -24,41 +25,27 @@ export const GET: RequestHandler = async (event) => {
 
 	const where: any = {};
 
-	if (user.role === 'pic') {
-		where.OR = [
-			{ assigned_to: BigInt(user.id) },
-			{ submission_team_members: { some: { user_id: BigInt(user.id) } } }
-		];
-	} else if (user.role === 'admin' && user.agency_id) {
-		// Per-OPD ownership: admin only sees submissions from their own agency's services
-		where.services = {
-			agency_id: BigInt(user.agency_id)
-		};
-	}
-	// superadmin: no filter — sees everything
+	// Role-based scope: PIC sees assigned/team submissions, admin sees own agency's submissions
+	const scopeFilter = buildSubmissionViewFilter(user);
 
 	if (serviceFilter) where.service_id = BigInt(serviceFilter);
 	if (statusFilter) where.status = statusFilter;
 
 	if (q) {
 		const searchObj = { contains: q };
-		if (where.OR) {
-			where.AND = [
-				{ OR: where.OR },
-				{ OR: [
-					{ applicant_name: searchObj },
-					{ applicant_email: searchObj },
-					{ tracking_code: searchObj }
-				]}
-			];
-			delete where.OR;
+		const searchOr = [
+			{ applicant_name: searchObj },
+			{ applicant_email: searchObj },
+			{ tracking_code: searchObj }
+		];
+		if (scopeFilter.OR || scopeFilter.services) {
+			// Combine role-scope with search (AND) so scope is never lost
+			where.AND = [{ ...scopeFilter }, { OR: searchOr }];
 		} else {
-			where.OR = [
-				{ applicant_name: searchObj },
-				{ applicant_email: searchObj },
-				{ tracking_code: searchObj }
-			];
+			where.OR = searchOr;
 		}
+	} else {
+		Object.assign(where, scopeFilter);
 	}
 
 	if (dateFrom || dateTo) {

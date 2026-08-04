@@ -179,7 +179,7 @@ export const actions: Actions = {
                         name: applicantName || 'Pemohon',
                         serviceName: service.name,
                         submissionId: trackingCode,
-                        trackingUrl: `${new URL(request.url).origin}/tracking?code=${trackingCode}`
+                        trackingUrl: `${new URL(request.url).origin}/?code=${trackingCode}`
                     })
                 });
             }
