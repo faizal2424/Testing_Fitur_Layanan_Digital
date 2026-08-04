@@ -156,9 +156,82 @@ async function handleEmail(data) {
 	);
 }
 
-/** Proses notifikasi: insert ke tabel notifications untuk user + semua admin. */
+/**
+ * Cek idempotency di email_logs SEBELUM sendMail (anti-duplikasi saat retry).
+ * UNIQUE (submission_id, event_type, recipient_role, recipient_email).
+ */
+async function isEmailAlreadySent(meta) {
+	const rows = await pool.query(
+		`SELECT id FROM email_logs
+		 WHERE submission_id = ? AND event_type = ? AND recipient_role = ? AND recipient_email = ?
+		 LIMIT 1`,
+		[String(meta.submissionId), meta.eventType, meta.recipientRole, meta.recipientEmail]
+	);
+	return rows.length > 0;
+}
+
+/** Catat hasil pengiriman ke email_logs. status: 'sent' | 'failed'. */
+async function logEmailResult(meta, subject, status) {
+	try {
+		await pool.query(
+			`INSERT INTO email_logs
+			 (submission_id, event_type, recipient_email, recipient_role, subject, status, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+			[
+				String(meta.submissionId),
+				meta.eventType,
+				meta.recipientEmail,
+				meta.recipientRole,
+				subject,
+				status
+			]
+		);
+	} catch (err) {
+		// Duplicate key (race condition) — abaikan, email sudah dikirim job lain
+		console.warn(`[Worker] Gagal catat email_logs (mungkin duplikat): ${String(err)}`);
+	}
+}
+
+/** Proses job email event (E1..E9) dengan idempotency check + logging. */
+async function handleEventEmail(data) {
+	const { meta, mailOptions } = data;
+
+	// Idempotency check ulang sebelum sendMail (anti-race condition)
+	if (await isEmailAlreadySent(meta)) {
+		console.log(
+			`[Worker] Skip email ${meta.eventType} → ${meta.recipientEmail} (sudah dikirim)`
+		);
+		return;
+	}
+
+	try {
+		await handleEmail(mailOptions);
+		await logEmailResult(meta, mailOptions.subject, 'sent');
+	} catch (error) {
+		// Catat failed, lalu rethrow agar retry backoff berjalan
+		await logEmailResult(meta, mailOptions.subject, 'failed');
+		throw error;
+	}
+}
+
+/**
+ * Proses notifikasi: insert ke tabel notifications sesuai routing penerima.
+ *
+ * `recipients` (opsional, default 'both'):
+ * - 'admins'    → hanya semua admin/superadmin
+ * - 'user_only' → hanya user spesifik (userId)
+ * - 'both'      → user spesifik + semua admin (perilaku lama)
+ */
 async function handleNotification(data) {
-	const { userId, title, message, adminMessage, type = 'info', link } = data;
+	const {
+		userId,
+		title,
+		message,
+		adminMessage,
+		type = 'info',
+		link,
+		recipients = 'both'
+	} = data;
 
 	// 1. Ambil semua admin/superadmin
 	const admins = await pool.query(
@@ -174,8 +247,18 @@ async function handleNotification(data) {
 	// 2. User spesifik (jika ada)
 	if (userId != null) targetIds.add(String(userId));
 
-	// 3. Semua admin menerima semua notifikasi
-	adminIds.forEach((id) => targetIds.add(id));
+	// 3. Routing penerima
+	if (recipients === 'admins') {
+		// Hanya admin — buang user spesifik
+		targetIds.clear();
+		adminIds.forEach((id) => targetIds.add(id));
+	} else if (recipients === 'user_only') {
+		// Hanya user spesifik — tanpa admin
+		// targetIds sudah berisi userId saja
+	} else {
+		// 'both' (default): user + semua admin
+		adminIds.forEach((id) => targetIds.add(id));
+	}
 
 	if (targetIds.size === 0) return;
 
@@ -197,8 +280,13 @@ async function handleJob(job) {
 
 	switch (job.queue) {
 		case QUEUE_EMAIL:
-			if (name !== 'send-email') throw new Error(`Unknown email job: ${name}`);
-			await handleEmail(data);
+			if (name === 'send-email') {
+				await handleEmail(data);
+			} else if (name === 'send-event-email') {
+				await handleEventEmail(data);
+			} else {
+				throw new Error(`Unknown email job: ${name}`);
+			}
 			break;
 		case QUEUE_NOTIFICATION:
 			if (name !== 'send-notification') throw new Error(`Unknown notification job: ${name}`);

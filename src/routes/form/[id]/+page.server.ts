@@ -1,6 +1,10 @@
 import { db } from '$lib/server/db';
-import { submissionReceivedTemplate } from '$lib/server/email-templates';
-import { enqueueEmail, enqueueNotification } from '$lib/server/jobs';
+import {
+	submissionReceivedTemplate,
+	adminVerificationTemplate
+} from '$lib/server/email-templates';
+import { enqueueEventEmail, enqueueNotification } from '$lib/server/jobs';
+import { getNotificationPolicy } from '$lib/server/notification-policy';
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { putFile, submissionKey, toPublicUrl } from '$lib/server/storage';
@@ -163,25 +167,76 @@ export const actions: Actions = {
                 }
             }
 
-            // Enqueue notifikasi & email ke queue async (diproses worker)
-            await enqueueNotification({
-                title: 'Pengajuan Baru',
-                message: `Ada pengajuan baru untuk layanan "${service.name}" dari ${applicantName || 'Anonim'} (${trackingCode}).`,
-                type: 'info',
-                link: `/admin/pengajuan/${submission.id}`
-            });
+            // ── E1: Pengajuan baru (submit) — email real-time + in-app ──
+            const policy = getNotificationPolicy('submit', 'baru');
+            const origin = new URL(request.url).origin;
 
-            if (applicantEmail) {
-                await enqueueEmail({
-                    to: applicantEmail,
-                    subject: `✅ Permohonan Diterima — ${service.name}`,
-                    html: submissionReceivedTemplate({
-                        name: applicantName || 'Pemohon',
-                        serviceName: service.name,
-                        submissionId: trackingCode,
-                        trackingUrl: `${new URL(request.url).origin}/?code=${trackingCode}`
-                    })
+            if (policy) {
+                // In-app: Pengaju + Admin
+                await enqueueNotification({
+                    title: policy.inappTitle,
+                    message: `Pengajuan Anda untuk layanan "${service.name}" telah diterima (${trackingCode}).`,
+                    adminMessage: `Ada pengajuan baru untuk layanan "${service.name}" dari ${applicantName || 'Anonim'} (${trackingCode}).`,
+                    type: policy.inappType,
+                    link: `/admin/pengajuan/${submission.id}`,
+                    recipients: 'both'
                 });
+
+                // Email real-time: Pengaju (E1a)
+                if (policy.email.includes('pengaju') && applicantEmail) {
+                    await enqueueEventEmail({
+                        submissionId: submission.id,
+                        eventType: policy.eventKey,
+                        recipientRole: 'pengaju',
+                        recipientEmail: applicantEmail,
+                        mailOptions: {
+                            to: applicantEmail,
+                            subject: `Permohonan Diterima — ${service.name} (${trackingCode})`,
+                            html: submissionReceivedTemplate({
+                                name: applicantName || 'Pemohon',
+                                serviceName: service.name,
+                                submissionId: trackingCode,
+                                trackingUrl: `${origin}/?code=${trackingCode}`
+                            })
+                        }
+                    });
+                }
+
+                // Email real-time: Admin (E1b) — kirim ke semua admin
+                if (policy.email.includes('admin')) {
+                    const admins = await db.users.findMany({
+                        where: {
+                            user_roles: {
+                                some: {
+                                    roles: {
+                                        name: { in: ['admin', 'superadmin', 'Admin', 'Superadmin'] }
+                                    }
+                                }
+                            }
+                        },
+                        select: { email: true }
+                    });
+
+                    for (const admin of admins) {
+                        if (!admin.email) continue;
+                        await enqueueEventEmail({
+                            submissionId: submission.id,
+                            eventType: policy.eventKey,
+                            recipientRole: 'admin',
+                            recipientEmail: admin.email,
+                            mailOptions: {
+                                to: admin.email,
+                                subject: `[Verifikasi] Pengajuan Baru — ${service.name} oleh ${applicantName || 'Pemohon'} (${trackingCode})`,
+                                html: adminVerificationTemplate({
+                                    serviceName: service.name,
+                                    applicantName,
+                                    trackingCode,
+                                    adminUrl: `${origin}/admin/pengajuan/${submission.id}`
+                                })
+                            }
+                        });
+                    }
+                }
             }
 
             // PIC assignment and notifications will be sent later after Admin verification.

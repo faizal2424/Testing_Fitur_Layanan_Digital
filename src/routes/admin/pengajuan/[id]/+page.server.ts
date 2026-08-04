@@ -2,7 +2,16 @@ import { fail, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
 import { getAllowedStatuses } from '$lib/utils/submissionFlow';
-import { enqueueNotification } from '$lib/server/jobs';
+import { enqueueNotification, enqueueEventEmail } from '$lib/server/jobs';
+import { getNotificationPolicy } from '$lib/server/notification-policy';
+import {
+	picTaskTemplate,
+	adminValidationTemplate,
+	submissionCompletedTemplate,
+	revisionRequestedTemplate,
+	picRejectedTemplate,
+	submissionRejectedTemplate
+} from '$lib/server/email-templates';
 import { requireSubmissionAccess, canAccessSubmission } from '$lib/server/auth';
 import { putFile, evidenceKey, toPublicUrl, resolveFileUrl } from '$lib/server/storage';
 
@@ -175,6 +184,8 @@ export const actions: Actions = {
 				tracking_code: true,
 				service_id: true,
 				agency_id: true,
+				applicant_name: true,
+				applicant_email: true,
 				services: {
 					select: {
 						agency_id: true,
@@ -344,30 +355,189 @@ export const actions: Actions = {
 			}
 		}
 
-		// Send notification for status change
-		const notifTitle = 'Update Status Pengajuan';
-		const notifMessage = `Pengajuan ${submission.tracking_code} telah diubah statusnya menjadi "${newStatus.replace(/_/g, ' ').toUpperCase()}".`;
-		const adminNotifMessage = `Pengajuan ${submission.tracking_code} telah diubah statusnya menjadi "${newStatus.replace(/_/g, ' ').toUpperCase()}" oleh ${user.name}.`;
-		
-		let targetUserId: bigint | undefined = undefined;
-		if (targetPicId) {
-			targetUserId = targetPicId;
-		} else if (submission.assigned_to) {
-			targetUserId = submission.assigned_to;
-		}
+		// ── Policy-driven notifikasi & email (E2..E8) ──
+		const policy = getNotificationPolicy(oldStatus, newStatus);
+		if (policy) {
+			const origin = event.url.origin;
+			const serviceName = submission.services.name;
+			const trackingCode = submission.tracking_code;
+			const applicantName = submission.applicant_name || null;
+			const applicantEmail = submission.applicant_email || null;
+			const picUserId = targetPicId ?? submission.assigned_to ?? undefined;
 
-		if (targetUserId && targetUserId === BigInt(user.id)) {
-			targetUserId = undefined;
-		}
+			const notifMessage = `Pengajuan ${trackingCode} telah diubah statusnya menjadi "${newStatus.replace(/_/g, ' ').toUpperCase()}".`;
+			const adminNotifMessage = `Pengajuan ${trackingCode} telah diubah statusnya menjadi "${newStatus.replace(/_/g, ' ').toUpperCase()}" oleh ${user.name}.`;
 
-		await enqueueNotification({
-			userId: targetUserId,
-			title: notifTitle,
-			message: notifMessage,
-			adminMessage: adminNotifMessage,
-			type: 'info',
-			link: `/admin/pengajuan/${submissionId}`
-		});
+			// In-app per policy:
+			// - policy.inapp includes 'pic' → kirim ke Admin + PIC (both)
+			// - policy.inapp hanya admin → kirim ke semua Admin (admins)
+			// - policy.inapp 'pengaju' ditiadakan di in-app (pengaju eksternal tanpa akun sistem)
+			if (policy.inapp.length > 0) {
+				if (policy.inapp.includes('pic') && picUserId) {
+					await enqueueNotification({
+						userId: picUserId,
+						title: policy.inappTitle,
+						message: notifMessage,
+						adminMessage: adminNotifMessage,
+						type: policy.inappType,
+						link: `/admin/pengajuan/${submissionId}`,
+						recipients: 'both'
+					});
+				} else if (policy.inapp.includes('admin')) {
+					await enqueueNotification({
+						title: policy.inappTitle,
+						message: notifMessage,
+						adminMessage: adminNotifMessage,
+						type: policy.inappType,
+						link: `/admin/pengajuan/${submissionId}`,
+						recipients: 'admins'
+					});
+				}
+			}
+
+			// ── Email real-time: PIC (E2) ──
+			if (policy.email.includes('pic') && targetPicId) {
+				const picUser = await db.users.findUnique({
+					where: { id: targetPicId },
+					select: { email: true }
+				});
+				if (picUser?.email) {
+					await enqueueEventEmail({
+						submissionId,
+						eventType: policy.eventKey,
+						recipientRole: 'pic',
+						recipientEmail: picUser.email,
+						mailOptions: {
+							to: picUser.email,
+							subject: `[Tugas Baru] ${serviceName} — ${trackingCode}`,
+							html: picTaskTemplate({
+								picName: assignedPicName || null,
+								serviceName,
+								trackingCode,
+								note: finalNote || null,
+								detailUrl: `${origin}/admin/pengajuan/${submissionId}`
+							})
+						}
+					});
+				}
+			}
+
+			// ── Email real-time: Admin (E4 & E7) ──
+			if (policy.email.includes('admin')) {
+				const admins = await db.users.findMany({
+					where: {
+						user_roles: {
+							some: {
+								roles: {
+									name: { in: ['admin', 'superadmin', 'Admin', 'Superadmin'] }
+								}
+							}
+						}
+					},
+					select: { email: true }
+				});
+
+				for (const admin of admins) {
+					if (!admin.email) continue;
+
+					let subject: string;
+					let html: string;
+
+					if (newStatus === 'diselesaikan_pic') {
+						// E4 — PIC selesai → Admin validasi
+						subject = `[Validasi] PIC Menyelesaikan — ${serviceName} (${trackingCode})`;
+						html = adminValidationTemplate({
+							serviceName,
+							applicantName,
+							trackingCode,
+							note: finalNote || null,
+							adminUrl: `${origin}/admin/pengajuan/${submissionId}`
+						});
+					} else if (newStatus === 'ditolak_pic') {
+						// E7 — Ditolak PIC → Admin tindak lanjut
+						subject = `[Perlu Tindakan] Pengajuan Ditolak PIC — ${serviceName} (${trackingCode})`;
+						html = picRejectedTemplate({
+							serviceName,
+							applicantName,
+							trackingCode,
+							note: finalNote || null,
+							adminUrl: `${origin}/admin/pengajuan/${submissionId}`
+						});
+					} else {
+						subject = `[Notifikasi] ${policy.inappTitle} — ${serviceName} (${trackingCode})`;
+						html = adminValidationTemplate({
+							serviceName,
+							applicantName,
+							trackingCode,
+							note: finalNote || null,
+							adminUrl: `${origin}/admin/pengajuan/${submissionId}`
+						});
+					}
+
+					await enqueueEventEmail({
+						submissionId,
+						eventType: policy.eventKey,
+						recipientRole: 'admin',
+						recipientEmail: admin.email,
+						mailOptions: { to: admin.email, subject, html }
+					});
+				}
+			}
+
+			// ── Email real-time: Pengaju (E5, E6, E8) ──
+			if (policy.email.includes('pengaju') && applicantEmail) {
+				let subject: string;
+				let html: string;
+
+				if (newStatus === 'selesai') {
+					// E5 — Selesai final
+					subject = `Permohonan Selesai — ${serviceName} (${trackingCode})`;
+					html = submissionCompletedTemplate({
+						name: applicantName || 'Pemohon',
+						serviceName,
+						trackingCode,
+						trackingUrl: `${origin}/?code=${trackingCode}`,
+						suratBuktiUrl: `${origin}/api/surat-bukti/${trackingCode}`
+					});
+				} else if (newStatus === 'revisi') {
+					// E6 — Revisi diminta
+					subject = `[Perlu Tindakan] Permohonan Perlu Revisi — ${serviceName} (${trackingCode})`;
+					html = revisionRequestedTemplate({
+						name: applicantName || 'Pemohon',
+						serviceName,
+						trackingCode,
+						note: finalNote || null,
+						trackingUrl: `${origin}/form/${submission.service_id}?code=${trackingCode}`
+					});
+				} else if (newStatus === 'ditolak_pengajuan') {
+					// E8 — Ditolak final
+					subject = `Keputusan Permohonan — ${serviceName} (${trackingCode})`;
+					html = submissionRejectedTemplate({
+						name: applicantName || 'Pemohon',
+						serviceName,
+						trackingCode,
+						note: finalNote || null,
+						trackingUrl: `${origin}/?code=${trackingCode}`
+					});
+				} else {
+					subject = `[Notifikasi] ${policy.inappTitle} — ${serviceName} (${trackingCode})`;
+					html = submissionCompletedTemplate({
+						name: applicantName || 'Pemohon',
+						serviceName,
+						trackingCode,
+						trackingUrl: `${origin}/?code=${trackingCode}`
+					});
+				}
+
+				await enqueueEventEmail({
+					submissionId,
+					eventType: policy.eventKey,
+					recipientRole: 'pengaju',
+					recipientEmail: applicantEmail,
+					mailOptions: { to: applicantEmail, subject, html }
+				});
+			}
+		}
 
 		return { success: true, message: 'Pengajuan berhasil diproses dan diperbarui.' };
 		} catch (err: any) {

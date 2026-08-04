@@ -133,6 +133,7 @@ model service_submissions {
   services                   services                     @relation(fields: [service_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "service_submissions_service_id_foreign")
   submission_notes           submission_notes[]
   submission_team_members    submission_team_members[]
+  email_logs                 email_logs[]
 
   @@index([assigned_to], map: "fk_service_submissions_assigned_to")
   @@index([service_id], map: "service_submissions_service_id_foreign")
@@ -272,6 +273,23 @@ model notifications {
   users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "notifications_user_id_foreign")
 
   @@index([user_id, is_read], map: "notifications_user_id_is_read_index")
+}
+
+model email_logs {
+  id              BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  submission_id   BigInt?    @db.UnsignedBigInt
+  event_type      String     @db.VarChar(50)
+  recipient_email String     @db.VarChar(255)
+  recipient_role  String     @default("applicant") @db.VarChar(20)
+  subject         String     @db.VarChar(255)
+  status          String     @default("sent") @db.VarChar(16)
+  created_at      DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?  @default(now()) @db.Timestamp(0)
+  service_submissions service_submissions? @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "email_logs_submission_id_foreign")
+
+  @@unique([submission_id, event_type, recipient_role, recipient_email], map: "uq_email_logs_dedup")
+  @@index([recipient_email, created_at], map: "email_logs_recipient_email_created_at_index")
+  @@index([submission_id], map: "email_logs_submission_id_foreign")
 }
 
 model opd {

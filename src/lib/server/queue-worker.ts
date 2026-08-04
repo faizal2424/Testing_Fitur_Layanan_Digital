@@ -6,6 +6,7 @@
 import { db } from './db';
 import { sendMail } from './mailer';
 import { NotificationService } from './notifications';
+import type { EventEmailMeta } from './jobs';
 import {
 	QUEUE_EMAIL,
 	QUEUE_NOTIFICATION,
@@ -23,6 +24,48 @@ function backoffSeconds(attempt: number): number {
 	return [30, 120, 600][Math.min(attempt - 1, 2)] ?? 600;
 }
 
+/**
+ * Cek idempotency di email_logs SEBELUM sendMail.
+ * Jika sudah ada log untuk (submission_id, event_type, recipient_role, recipient_email),
+ * job dianggap sudah diproses → skip (anti-duplikasi saat retry).
+ */
+async function isEmailAlreadySent(meta: EventEmailMeta): Promise<boolean> {
+	const subId = BigInt(String(meta.submissionId));
+	const existing = await db.email_logs.findFirst({
+		where: {
+			submission_id: subId,
+			event_type: meta.eventType,
+			recipient_role: meta.recipientRole,
+			recipient_email: meta.recipientEmail
+		},
+		select: { id: true }
+	});
+	return existing != null;
+}
+
+/**
+ * Catat hasil pengiriman ke email_logs.
+ * status: 'sent' | 'failed'
+ */
+async function logEmailResult(meta: EventEmailMeta, subject: string, status: 'sent' | 'failed') {
+	const subId = BigInt(String(meta.submissionId));
+	try {
+		await db.email_logs.create({
+			data: {
+				submission_id: subId,
+				event_type: meta.eventType,
+				recipient_email: meta.recipientEmail,
+				recipient_role: meta.recipientRole,
+				subject,
+				status
+			}
+		});
+	} catch (error) {
+		// Duplicate key (race condition) — abaikan, email sudah dikirim oleh job lain
+		console.warn(`[Worker] Gagal catat email_logs (mungkin duplikat): ${String(error)}`);
+	}
+}
+
 async function handleJob(job: JobRecord): Promise<void> {
 	const payload = job.payload as JobPayload;
 	const { name, data } = payload;
@@ -31,6 +74,29 @@ async function handleJob(job: JobRecord): Promise<void> {
 		case QUEUE_EMAIL:
 			if (name === 'send-email') {
 				await sendMail(data as unknown as Parameters<typeof sendMail>[0]);
+			} else if (name === 'send-event-email') {
+				// Event email dengan idempotency check + logging
+				const { meta, mailOptions } = data as unknown as {
+					meta: EventEmailMeta;
+					mailOptions: Parameters<typeof sendMail>[0];
+				};
+
+				// Idempotency check ulang sebelum sendMail (anti-race condition)
+				if (await isEmailAlreadySent(meta)) {
+					console.log(
+						`[Worker] Skip email ${meta.eventType} → ${meta.recipientEmail} (sudah dikirim)`
+					);
+					return;
+				}
+
+				try {
+					await sendMail(mailOptions);
+					await logEmailResult(meta, mailOptions.subject, 'sent');
+				} catch (error) {
+					// Catat failed, lalu rethrow agar retry backoff berjalan
+					await logEmailResult(meta, mailOptions.subject, 'failed');
+					throw error;
+				}
 			} else {
 				throw new Error(`Unknown email job: ${name}`);
 			}

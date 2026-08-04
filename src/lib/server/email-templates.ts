@@ -4,6 +4,18 @@
  * Tanpa emoji berlebihan, tipografi bersih, warna subtle.
  */
 
+// ─── Utility ──────────────────────────────────────────────────────────────────
+/** Escape nilai user-input agar aman di dalam HTML email. */
+function esc(value: string | number | null | undefined): string {
+	if (value == null) return '';
+	return String(value)
+		.replace(/&/g, '\u0026amp;')
+		.replace(/</g, '\u003C')
+		.replace(/>/g, '\u003E')
+		.replace(/"/g, '\u0022')
+		.replace(/'/g, '\u0027');
+}
+
 // ─── Status mapping ───────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
 	pending:    { color: '#b45309', label: 'Menunggu' },
@@ -15,7 +27,10 @@ const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
 	approved:   { color: '#15803d', label: 'Approved' },
 	rejected:   { color: '#b91c1c', label: 'Rejected' },
 	processing: { color: '#1d4ed8', label: 'Processing' },
-	completed:  { color: '#6d28d9', label: 'Completed' }
+	completed:  { color: '#6d28d9', label: 'Completed' },
+	revisi:     { color: '#b45309', label: 'Perlu Revisi' },
+	ditugaskan: { color: '#4338ca', label: 'Ditugaskan' },
+	ditolak_pic: { color: '#c2410c', label: 'Ditolak PIC' }
 };
 
 // ─── Shared Layout ────────────────────────────────────────────────────────────
@@ -122,7 +137,7 @@ function wrapLayout(accentColor: string, body: string): string {
 </html>`;
 }
 
-// ─── Template 1: Permohonan Diterima ─────────────────────────────────────────
+// ─── Template 1: Permohonan Diterima (E1a — Pengaju) ─────────────────────────
 export function submissionReceivedTemplate(data: {
 	name: string;
 	serviceName: string;
@@ -133,11 +148,11 @@ export function submissionReceivedTemplate(data: {
 		'#1d4ed8',
 		`
     <p class="greeting">Permohonan diterima.</p>
-    <p class="text">Halo <strong>${data.name}</strong>, permohonan Anda untuk layanan <strong>${data.serviceName}</strong> telah berhasil kami terima dan sedang dalam antrian verifikasi.</p>
+    <p class="text">Halo <strong>${esc(data.name)}</strong>, permohonan Anda untuk layanan <strong>${esc(data.serviceName)}</strong> telah berhasil kami terima dan sedang dalam antrian verifikasi.</p>
 
     <div class="info-block">
       <p class="info-label">Kode Pelacakan</p>
-      <p class="info-code">${data.submissionId}</p>
+      <p class="info-code">${esc(data.submissionId)}</p>
     </div>
 
     <hr class="divider">
@@ -171,17 +186,17 @@ export function statusUpdateTemplate(data: {
 		config.color,
 		`
     <p class="greeting">Pembaruan status permohonan.</p>
-    <p class="text">Halo <strong>${data.name}</strong>, terdapat pembaruan pada permohonan Anda untuk layanan <strong>${data.serviceName}</strong>${data.submissionId ? ` dengan kode <strong>${data.submissionId}</strong>` : ''}.</p>
+    <p class="text">Halo <strong>${esc(data.name)}</strong>, terdapat pembaruan pada permohonan Anda untuk layanan <strong>${esc(data.serviceName)}</strong>${data.submissionId ? ` dengan kode <strong>${esc(data.submissionId)}</strong>` : ''}.</p>
 
     <div class="status-block">
-      <span class="status-text">${config.label}</span>
+      <span class="status-text">${esc(config.label)}</span>
     </div>
 
     ${
 			data.notes
 				? `<div class="notes-box">
             <p class="notes-label">Catatan</p>
-            <p class="notes-text">${data.notes}</p>
+            <p class="notes-text">${esc(data.notes)}</p>
           </div>`
 				: ''
 		}
@@ -204,8 +219,8 @@ export function welcomeTemplate(data: { name: string; email: string }): string {
 	return wrapLayout(
 		'#15803d',
 		`
-    <p class="greeting">Selamat datang, ${data.name}.</p>
-    <p class="text">Akun Anda dengan alamat email <strong>${data.email}</strong> telah berhasil terdaftar di Sistem Layanan Digital.</p>
+    <p class="greeting">Selamat datang, ${esc(data.name)}.</p>
+    <p class="text">Akun Anda dengan alamat email <strong>${esc(data.email)}</strong> telah berhasil terdaftar di Sistem Layanan Digital.</p>
 
     <hr class="divider">
 
@@ -216,19 +231,20 @@ export function welcomeTemplate(data: { name: string; email: string }): string {
 	);
 }
 
-// ─── Template 4: Dokumen Kurang ───────────────────────────────────────────────
+// ─── Template 4: Dokumen Kurang (E9 — Pengaju) ────────────────────────────────
 export function documentReminderTemplate(data: {
 	name: string;
 	serviceName: string;
 	missingDocs: string[];
 	submissionId?: string | number;
+	trackingUrl?: string;
 }): string {
 	const docItems = data.missingDocs
 		.map(
 			(d) => `
       <li>
         <span class="doc-bullet"></span>
-        ${d}
+        ${esc(d)}
       </li>`
 		)
 		.join('');
@@ -237,7 +253,7 @@ export function documentReminderTemplate(data: {
 		'#b45309',
 		`
     <p class="greeting">Dokumen belum lengkap.</p>
-    <p class="text">Halo <strong>${data.name}</strong>, permohonan Anda untuk layanan <strong>${data.serviceName}</strong>${data.submissionId ? ` (kode: <strong>${data.submissionId}</strong>)` : ''} memerlukan kelengkapan dokumen berikut:</p>
+    <p class="text">Halo <strong>${esc(data.name)}</strong>, permohonan Anda untuk layanan <strong>${esc(data.serviceName)}</strong>${data.submissionId ? ` (kode: <strong>${esc(data.submissionId)}</strong>)` : ''} memerlukan kelengkapan dokumen berikut:</p>
 
     <ul class="doc-list">
       ${docItems}
@@ -246,6 +262,211 @@ export function documentReminderTemplate(data: {
     <hr class="divider">
 
     <p class="text-sm">Mohon segera melengkapi dokumen yang diperlukan agar proses permohonan dapat dilanjutkan. Hubungi kantor kami jika membutuhkan bantuan.</p>
+
+    ${
+			data.trackingUrl
+				? `<div class="btn-wrapper"><a href="${data.trackingUrl}" class="btn">Perbaiki Pengajuan</a></div>`
+				: ''
+		}
+    `
+	);
+}
+
+// ─── Template E1b: Pengajuan Baru → Admin (verifikasi) ───────────────────────
+export function adminVerificationTemplate(data: {
+	serviceName: string;
+	applicantName?: string | null;
+	trackingCode: string;
+	adminUrl?: string;
+	note?: string | null;
+}): string {
+	return wrapLayout(
+		'#1d4ed8',
+		`
+    <p class="greeting">Pengajuan baru menunggu verifikasi.</p>
+    <p class="text">Terdapat pengajuan baru untuk layanan <strong>${esc(data.serviceName)}</strong> dari <strong>${esc(data.applicantName || 'Pemohon')}</strong>.</p>
+
+    <div class="info-block">
+      <p class="info-label">Kode Pelacakan</p>
+      <p class="info-code">${esc(data.trackingCode)}</p>
+    </div>
+
+    ${data.note ? `<div class="notes-box"><p class="notes-label">Catatan</p><p class="notes-text">${esc(data.note)}</p></div>` : ''}
+
+    <hr class="divider">
+
+    <p class="text">Silakan verifikasi kelengkapan data pengajuan dan tugaskan ke PIC yang sesuai.</p>
+
+    ${data.adminUrl ? `<div class="btn-wrapper"><a href="${data.adminUrl}" class="btn">Verifikasi & Tugaskan</a></div>` : ''}
+    `
+	);
+}
+
+// ─── Template E2: Tugas Baru → PIC ────────────────────────────────────────────
+export function picTaskTemplate(data: {
+	picName?: string | null;
+	serviceName: string;
+	trackingCode: string;
+	note?: string | null;
+	detailUrl?: string;
+}): string {
+	return wrapLayout(
+		'#4338ca',
+		`
+    <p class="greeting">Tugas baru untuk Anda.</p>
+    <p class="text">Halo <strong>${esc(data.picName || 'PIC')}</strong>, Anda ditugaskan untuk memproses pengajuan layanan <strong>${esc(data.serviceName)}</strong>.</p>
+
+    <div class="info-block">
+      <p class="info-label">Kode Pelacakan</p>
+      <p class="info-code">${esc(data.trackingCode)}</p>
+    </div>
+
+    ${data.note ? `<div class="notes-box"><p class="notes-label">Catatan Admin</p><p class="notes-text">${esc(data.note)}</p></div>` : ''}
+
+    <hr class="divider">
+
+    <p class="text">Mohon segera memproses pengajuan ini sesuai ketentuan yang berlaku.</p>
+
+    ${data.detailUrl ? `<div class="btn-wrapper"><a href="${data.detailUrl}" class="btn">Lihat & Proses</a></div>` : ''}
+    `
+	);
+}
+
+// ─── Template E4: PIC Menyelesaikan → Admin (validasi) ────────────────────────
+export function adminValidationTemplate(data: {
+	serviceName: string;
+	applicantName?: string | null;
+	trackingCode: string;
+	note?: string | null;
+	adminUrl?: string;
+}): string {
+	return wrapLayout(
+		'#0d9488',
+		`
+    <p class="greeting">PIC telah menyelesaikan pengajuan.</p>
+    <p class="text">Pengajuan layanan <strong>${esc(data.serviceName)}</strong> atas nama <strong>${esc(data.applicantName || 'Pemohon')}</strong> telah diselesaikan oleh PIC dan menunggu validasi Anda.</p>
+
+    <div class="info-block">
+      <p class="info-label">Kode Pelacakan</p>
+      <p class="info-code">${esc(data.trackingCode)}</p>
+    </div>
+
+    ${data.note ? `<div class="notes-box"><p class="notes-label">Catatan PIC</p><p class="notes-text">${esc(data.note)}</p></div>` : ''}
+
+    <hr class="divider">
+
+    <p class="text">Silakan periksa hasil pekerjaan PIC. Jika sudah sesuai, selesaikan pengajuan ini.</p>
+
+    ${data.adminUrl ? `<div class="btn-wrapper"><a href="${data.adminUrl}" class="btn">Validasi & Selesaikan</a></div>` : ''}
+    `
+	);
+}
+
+// ─── Template E5: Pengajuan Selesai → Pengaju ─────────────────────────────────
+export function submissionCompletedTemplate(data: {
+	name: string;
+	serviceName: string;
+	trackingCode: string;
+	trackingUrl?: string;
+	suratBuktiUrl?: string;
+}): string {
+	return wrapLayout(
+		'#15803d',
+		`
+    <p class="greeting">Permohonan Anda telah selesai.</p>
+    <p class="text">Halo <strong>${esc(data.name)}</strong>, permohonan Anda untuk layanan <strong>${esc(data.serviceName)}</strong> telah dinyatakan <strong>selesai</strong>.</p>
+
+    <div class="info-block">
+      <p class="info-label">Kode Pelacakan</p>
+      <p class="info-code">${esc(data.trackingCode)}</p>
+    </div>
+
+    <hr class="divider">
+
+    <p class="text">Anda dapat mengunduh Surat Bukti layanan melalui tombol di bawah ini.</p>
+
+    ${data.suratBuktiUrl ? `<div class="btn-wrapper"><a href="${data.suratBuktiUrl}" class="btn">Unduh Surat Bukti</a></div>` : ''}
+    ${data.trackingUrl ? `<p class="text-sm" style="margin-top:12px;">Atau lacak status permohonan Anda <a href="${data.trackingUrl}" style="color:#15803d;">di sini</a>.</p>` : ''}
+    `
+	);
+}
+
+// ─── Template E6: Perlu Revisi → Pengaju ──────────────────────────────────────
+export function revisionRequestedTemplate(data: {
+	name: string;
+	serviceName: string;
+	trackingCode: string;
+	note?: string | null;
+	trackingUrl?: string;
+}): string {
+	return wrapLayout(
+		'#b45309',
+		`
+    <p class="greeting">Permohonan Anda memerlukan revisi.</p>
+    <p class="text">Halo <strong>${esc(data.name)}</strong>, permohonan Anda untuk layanan <strong>${esc(data.serviceName)}</strong> (kode: <strong>${esc(data.trackingCode)}</strong>) perlu diperbaiki sebelum dapat dilanjutkan.</p>
+
+    ${data.note ? `<div class="notes-box"><p class="notes-label">Catatan Revisi</p><p class="notes-text">${esc(data.note)}</p></div>` : ''}
+
+    <hr class="divider">
+
+    <p class="text">Mohon lakukan perbaikan sesuai catatan di atas agar permohonan dapat diproses kembali.</p>
+
+    ${data.trackingUrl ? `<div class="btn-wrapper"><a href="${data.trackingUrl}" class="btn">Perbaiki Pengajuan</a></div>` : ''}
+    `
+	);
+}
+
+// ─── Template E7: Ditolak PIC → Admin ─────────────────────────────────────────
+export function picRejectedTemplate(data: {
+	serviceName: string;
+	applicantName?: string | null;
+	trackingCode: string;
+	note?: string | null;
+	adminUrl?: string;
+}): string {
+	return wrapLayout(
+		'#c2410c',
+		`
+    <p class="greeting">Pengajuan ditolak oleh PIC.</p>
+    <p class="text">Pengajuan layanan <strong>${esc(data.serviceName)}</strong> atas nama <strong>${esc(data.applicantName || 'Pemohon')}</strong> ditolak oleh PIC dan memerlukan tindak lanjut Anda.</p>
+
+    <div class="info-block">
+      <p class="info-label">Kode Pelacakan</p>
+      <p class="info-code">${esc(data.trackingCode)}</p>
+    </div>
+
+    ${data.note ? `<div class="notes-box"><p class="notes-label">Alasan PIC</p><p class="notes-text">${esc(data.note)}</p></div>` : ''}
+
+    <hr class="divider">
+
+    <p class="text">Anda dapat menugaskan ulang kepada PIC lain, meminta revisi, atau menolak pengajuan.</p>
+
+    ${data.adminUrl ? `<div class="btn-wrapper"><a href="${data.adminUrl}" class="btn">Tindak Lanjuti</a></div>` : ''}
+    `
+	);
+}
+
+// ─── Template E8: Pengajuan Ditolak → Pengaju ─────────────────────────────────
+export function submissionRejectedTemplate(data: {
+	name: string;
+	serviceName: string;
+	trackingCode: string;
+	note?: string | null;
+	trackingUrl?: string;
+}): string {
+	return wrapLayout(
+		'#b91c1c',
+		`
+    <p class="greeting">Keputusan permohonan Anda.</p>
+    <p class="text">Halo <strong>${esc(data.name)}</strong>, permohonan Anda untuk layanan <strong>${esc(data.serviceName)}</strong> (kode: <strong>${esc(data.trackingCode)}</strong>) tidak dapat kami proses lebih lanjut.</p>
+
+    ${data.note ? `<div class="notes-box"><p class="notes-label">Alasan</p><p class="notes-text">${esc(data.note)}</p></div>` : ''}
+
+    <hr class="divider">
+
+    <p class="text">Jika Anda memiliki pertanyaan, silakan hubungi kantor kami. Anda tetap dapat mengajukan permohonan baru melalui portal layanan digital.</p>
+
+    ${data.trackingUrl ? `<p class="text-sm" style="margin-top:12px;">Lihat detail pengajuan <a href="${data.trackingUrl}" style="color:#b91c1c;">di sini</a>.</p>` : ''}
     `
 	);
 }
