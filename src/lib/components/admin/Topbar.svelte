@@ -23,7 +23,7 @@
 		try {
 			const res = await fetch('/api/notifications');
 			const data = await res.json();
-			notifications = data.notifications || [];
+			notifications = data.data?.notifications || [];
 		} catch (err) {
 			console.error('Failed to fetch notifications:', err);
 		}

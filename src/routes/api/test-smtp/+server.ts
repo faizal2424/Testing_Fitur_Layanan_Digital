@@ -6,9 +6,16 @@
 import { json } from '@sveltejs/kit';
 import { sendMail, verifySmtpConnection } from '$lib/server/mailer';
 import { requireSuperAdmin } from '$lib/server/auth';
+import { dev } from '$app/environment';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async (event) => {
+	// Guard: debug endpoint HANYA aktif di development.
+	// Di production 404 kecuali di-override dengan ALLOW_DEBUG_ENDPOINTS=true.
+	if (!dev && process.env.ALLOW_DEBUG_ENDPOINTS !== 'true') {
+		return new Response('Not Found', { status: 404 });
+	}
+
 	// Infrastructure/debug endpoint — only superadmin may trigger SMTP test emails
 	requireSuperAdmin(event);
 	const targetEmail = event.url.searchParams.get('to') ?? 'test@example.com';

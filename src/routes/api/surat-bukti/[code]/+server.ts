@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { error, json } from '@sveltejs/kit';
+import { notFound, forbidden, serverError } from '$lib/server/api-response';
 import type { RequestHandler } from './$types';
 import PDFDocumentModule from 'pdfkit';
 import { readFileSync, existsSync } from 'fs';
@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
         });
 
         if (!submission) {
-            throw error(404, 'Pengajuan tidak ditemukan');
+            return notFound('Pengajuan tidak ditemukan');
         }
 
         // ── Access protection ─────────────────────────────────
@@ -79,7 +79,7 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
         }
 
         if (!allowed) {
-            throw error(403, 'Akses ditolak. Tidak berwenang mengunduh surat bukti ini.');
+            return forbidden('Akses ditolak. Tidak berwenang mengunduh surat bukti ini.');
         }
 
         const pdfBuffer = await generateSuratBukti(submission);
@@ -95,9 +95,8 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
             }
         });
     } catch (err: any) {
-        if (err?.status) throw err;
         console.error('PDF generation error:', err);
-        return json({ message: 'Gagal generate PDF', error: err?.message }, { status: 500 });
+        return serverError('Gagal generate PDF.');
     }
 };
 

@@ -1,8 +1,8 @@
 import { fail, error } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db';
-import { NotificationService } from '$lib/server/notifications';
 import { getAllowedStatuses } from '$lib/utils/submissionFlow';
+import { enqueueNotification } from '$lib/server/jobs';
 import { checkOwnership } from '$lib/server/auth';
 import { putFile, evidenceKey, toPublicUrl, resolveFileUrl } from '$lib/server/storage';
 
@@ -375,7 +375,7 @@ export const actions: Actions = {
 			targetUserId = undefined;
 		}
 
-		await NotificationService.send({
+		await enqueueNotification({
 			userId: targetUserId,
 			title: notifTitle,
 			message: notifMessage,

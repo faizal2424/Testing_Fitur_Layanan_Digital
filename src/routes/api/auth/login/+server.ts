@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { ok, fail, serverError } from '$lib/server/api-response';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { verifyPassword, createSession, checkRateLimit } from '$lib/server/auth';
@@ -8,17 +8,14 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
 	const rateLimit = checkRateLimit(ip);
 	if (!rateLimit.allowed) {
-		return json(
-			{ success: false, error: 'Terlalu banyak percobaan login. Silakan coba lagi dalam 1 menit.' },
-			{ status: 429 }
-		);
+		return fail('Terlalu banyak percobaan login. Silakan coba lagi dalam 1 menit.', 429);
 	}
 
 	let body: any;
 	try {
 		body = await request.json();
 	} catch {
-		return json({ success: false, error: 'Request body harus berupa JSON.' }, { status: 400 });
+		return fail('Request body harus berupa JSON.', 400);
 	}
 
 	const username = body.username?.toString()?.trim() || '';
@@ -26,30 +23,31 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 	const remember = body.remember === true || body.remember === 'true';
 
 	if (!username || !password) {
-		return json({ success: false, error: 'Username dan password wajib diisi.' }, { status: 400 });
+		return fail('Username dan password wajib diisi.', 400);
 	}
 
-	const user = await db.users.findFirst({
-		where: { OR: [{ username }, { email: username }] },
-		include: { user_roles: { include: { roles: true } } }
-	});
+	const user = await db.users.findFirst({ where: { OR: [{ username }, { email: username }] }, include: { user_roles: { include: { roles: true } } } });
 
 	if (!user) {
-		return json({ success: false, error: 'Username atau password salah.' }, { status: 401 });
+		return fail('Username atau password salah.', 401);
 	}
 
 	const valid = await verifyPassword(password, user.password);
 	if (!valid) {
-		return json({ success: false, error: 'Username atau password salah.' }, { status: 401 });
+		return fail('Username atau password salah.', 401);
 	}
 
-	await createSession(user.id, cookies, remember);
+	try {
+		await createSession(user.id, cookies, remember);
+	} catch (err) {
+		console.error('[login] Gagal membuat sesi:', err);
+		return serverError('Gagal membuat sesi. Silakan coba lagi.');
+	}
 
 	const role = user.user_roles[0]?.roles.name.toLowerCase() || 'pic';
 	const redirectPath = role === 'pic' ? '/admin/pengajuan' : '/admin';
 
-	return json({
-		success: true,
+	return ok({
 		user: {
 			id: user.id.toString(),
 			name: user.name,
@@ -58,5 +56,5 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 			role,
 			redirectPath
 		}
-	});
+	}, 'Login berhasil.');
 };

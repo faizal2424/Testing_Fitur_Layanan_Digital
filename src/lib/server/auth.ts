@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import type { Cookies } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 
 const SESSION_COOKIE = 'session_id';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days maximum session life
@@ -38,11 +39,17 @@ export async function createSession(userId: bigint, cookies: Cookies, remember: 
 		}
 	});
 
+	// secure: aktif otomatis di production (HTTPS), nonaktif di development.
+	// Bisa di-override via env COOKIE_SECURE=true/false.
+	const secure =
+		process.env.COOKIE_SECURE === 'true' ||
+		(!dev && process.env.COOKIE_SECURE !== 'false');
+
 	cookies.set(SESSION_COOKIE, sessionId, {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'lax',
-		secure: false, // set to true in production with HTTPS
+		secure,
 		maxAge: maxAge
 	});
 

@@ -1,7 +1,6 @@
 import { db } from '$lib/server/db';
-import { NotificationService } from '$lib/server/notifications';
-import { sendMail } from '$lib/server/mailer';
 import { submissionReceivedTemplate } from '$lib/server/email-templates';
+import { enqueueEmail, enqueueNotification } from '$lib/server/jobs';
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { putFile, submissionKey, toPublicUrl } from '$lib/server/storage';
@@ -164,31 +163,25 @@ export const actions: Actions = {
                 }
             }
 
-            // Send notification to admins
-            await NotificationService.send({
+            // Enqueue notifikasi & email ke queue async (diproses worker)
+            await enqueueNotification({
                 title: 'Pengajuan Baru',
                 message: `Ada pengajuan baru untuk layanan "${service.name}" dari ${applicantName || 'Anonim'} (${trackingCode}).`,
                 type: 'info',
                 link: `/admin/pengajuan/${submission.id}`
             });
 
-            // Kirim email konfirmasi ke user jika email tersedia
             if (applicantEmail) {
-                try {
-                    await sendMail({
-                        to: applicantEmail,
-                        subject: `✅ Permohonan Diterima — ${service.name}`,
-                        html: submissionReceivedTemplate({
-                            name: applicantName || 'Pemohon',
-                            serviceName: service.name,
-                            submissionId: trackingCode,
-                            trackingUrl: `${new URL(request.url).origin}/tracking?code=${trackingCode}`
-                        })
-                    });
-                } catch (emailErr) {
-                    // Gagal kirim email tidak membatalkan pengajuan
-                    console.error('[Mailer] Gagal kirim email konfirmasi ke user:', emailErr);
-                }
+                await enqueueEmail({
+                    to: applicantEmail,
+                    subject: `✅ Permohonan Diterima — ${service.name}`,
+                    html: submissionReceivedTemplate({
+                        name: applicantName || 'Pemohon',
+                        serviceName: service.name,
+                        submissionId: trackingCode,
+                        trackingUrl: `${new URL(request.url).origin}/tracking?code=${trackingCode}`
+                    })
+                });
             }
 
             // PIC assignment and notifications will be sent later after Admin verification.
@@ -196,7 +189,12 @@ export const actions: Actions = {
             throw redirect(303, `/form/${params.id}/success?code=${trackingCode}`);
         } catch (err) {
             // Re-throw redirects
-            if (err && typeof err === 'object' && 'status' in err && (err as any).status === 303) {
+            if (
+                err &&
+                typeof err === 'object' &&
+                'status' in err &&
+                (err as { status?: number }).status === 303
+            ) {
                 throw err;
             }
             console.error('Submission error:', err);

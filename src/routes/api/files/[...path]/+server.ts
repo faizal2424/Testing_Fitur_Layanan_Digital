@@ -1,5 +1,5 @@
 import { getFile } from '$lib/server/storage';
-import { error } from '@sveltejs/kit';
+import { badRequest, forbidden, notFound } from '$lib/server/api-response';
 import type { RequestHandler } from './$types';
 
 /**
@@ -15,13 +15,13 @@ import type { RequestHandler } from './$types';
  */
 export const GET: RequestHandler = async ({ params, locals, url }) => {
 	const key = params.path;
-	if (!key) throw error(400, 'Path tidak valid.');
+	if (!key) return badRequest('Path tidak valid.');
 
 	const isEvidence = key.startsWith('evidence/');
 	const isSubmission = key.startsWith('submissions/');
 
 	if (!isEvidence && !isSubmission) {
-		throw error(403, 'Akses ditolak.');
+		return forbidden('Akses ditolak.');
 	}
 
 	// Extract tracking code from key: submissions/SVC-.../file or evidence/SVC-.../file
@@ -32,9 +32,9 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 	const isAuthenticatedStaff = !!user && ['admin', 'superadmin', 'pic'].includes(user.role);
 
 	// PIC access check: must own the submission or be on its team.
-	async function assertPicAccess(code: string | null): Promise<void> {
-		if (!code) throw error(403, 'Akses ditolak.');
-		if (!user || user.role !== 'pic') return;
+	async function assertPicAccess(code: string | null): Promise<boolean> {
+		if (!code) return false;
+		if (!user || user.role !== 'pic') return true;
 		const { db } = await import('$lib/server/db');
 		const submission = await db.service_submissions.findUnique({
 			where: { tracking_code: code },
@@ -43,35 +43,39 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 				submission_team_members: { select: { user_id: true } }
 			}
 		});
-		const isPrimary = submission?.assigned_to === BigInt(user.id);
-		const isTeam = submission?.submission_team_members.some((m) => m.user_id === BigInt(user.id));
-		if (!submission || (!isPrimary && !isTeam)) {
-			throw error(403, 'Akses ditolak. Anda bukan PIC pengajuan ini.');
-		}
+		const isPrimary = !!submission && submission.assigned_to === BigInt(user.id);
+		const isTeam =
+			!!submission &&
+			submission.submission_team_members.some((m) => m.user_id === BigInt(user.id));
+		return isPrimary || isTeam;
 	}
 
 	if (isEvidence) {
 		// Evidence is strictly staff-only (admin/superadmin/PIC via session).
 		if (!isAuthenticatedStaff) {
-			throw error(403, 'Akses ditolak. Hanya staf yang berwenang.');
+			return forbidden('Akses ditolak. Hanya staf yang berwenang.');
 		}
-		await assertPicAccess(trackingCode);
+		if (!(await assertPicAccess(trackingCode))) {
+			return forbidden('Akses ditolak. Anda bukan PIC pengajuan ini.');
+		}
 	}
 
 	if (isSubmission) {
 		if (isAuthenticatedStaff) {
-			await assertPicAccess(trackingCode);
+			if (!(await assertPicAccess(trackingCode))) {
+				return forbidden('Akses ditolak. Anda bukan PIC pengajuan ini.');
+			}
 		} else {
 			// Applicant fallback: `?code={trackingCode}` must match the key.
 			const queryCode = url.searchParams.get('code');
 			if (!trackingCode || !queryCode || queryCode !== trackingCode) {
-				throw error(403, 'Akses ditolak. Sertakan kode tracking yang valid.');
+				return forbidden('Akses ditolak. Sertakan kode tracking yang valid.');
 			}
 		}
 	}
 
 	const file = await getFile(key);
-	if (!file) throw error(404, 'File tidak ditemukan.');
+	if (!file) return notFound('File tidak ditemukan.');
 
 	const isPdf = key.toLowerCase().endsWith('.pdf');
 	const contentType =

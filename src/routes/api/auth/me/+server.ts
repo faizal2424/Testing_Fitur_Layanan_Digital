@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { ok, unauthorized } from '$lib/server/api-response';
 import type { RequestHandler } from './$types';
 import { getSessionUser } from '$lib/server/auth';
 
@@ -7,10 +7,10 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	const user = await getSessionUser(cookies);
 
 	if (!user) {
-		return json({ authenticated: false, user: null }, { status: 401 });
+		return unauthorized('Tidak terautentikasi.');
 	}
 
-	return json({
+	return ok({
 		authenticated: true,
 		user: {
 			id: user.id.toString(),
