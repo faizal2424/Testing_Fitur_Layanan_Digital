@@ -3,7 +3,12 @@ import { db } from '$lib/server/db';
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
 export interface NotificationPayload {
-	userId?: bigint;
+	/**
+	 * Id user penerima notifikasi.
+	 * Bisa `bigint` (langsung) atau `string` (setelah melewati queue,
+	 * karena JSON tidak mendukung bigint dan di-serialize sebagai string).
+	 */
+	userId?: bigint | string;
 	title: string;
 	message: string;
 	adminMessage?: string;
@@ -17,6 +22,11 @@ export const NotificationService = {
 	 */
 	async send(payload: NotificationPayload) {
 		const { userId, title, message, adminMessage, type = 'info', link } = payload;
+
+		// Normalisasi userId dari queue: JSON mengubah bigint → string,
+		// jadi bandingkan selalu dalam bentuk bigint agar konsisten
+		// dengan id user dari Prisma.
+		const normalizedUserId = userId != null ? BigInt(String(userId)) : undefined;
 
 		// 1. Get all admin/superadmin users
 		const admins = await db.users.findMany({
@@ -36,8 +46,8 @@ export const NotificationService = {
 		const targetIds = new Set<bigint>();
 
 		// 2. Add specific user if provided
-		if (userId) {
-			targetIds.add(userId);
+		if (normalizedUserId != null) {
+			targetIds.add(normalizedUserId);
 		}
 
 		// 3. Add all admins (they receive everything)
