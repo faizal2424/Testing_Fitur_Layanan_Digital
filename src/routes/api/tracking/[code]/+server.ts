@@ -1,18 +1,7 @@
 import { ok, badRequest, notFound, serverError } from '$lib/server/api-response';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-
-const statusLabels: Record<string, string> = {
-	baru: 'Diterima',
-	revisi: 'Perlu Revisi',
-	ditugaskan: 'Verifikasi',
-	diproses_pic: 'Proses',
-	diselesaikan_pic: 'Validasi',
-	selesai: 'Selesai',
-	ditolak_pengajuan: 'Pengajuan Ditangguhkan',
-	ditolak_pic: 'Ditolak PIC',
-	disetujui_pic: 'Disetujui PIC'
-};
+import { getPublicStatusLabel } from '$lib/constants/status';
 
 // GET /api/tracking/:code — endpoint publik
 export const GET: RequestHandler = async ({ params }) => {
@@ -51,7 +40,7 @@ export const GET: RequestHandler = async ({ params }) => {
 		return ok({
 			tracking_code: pengajuan.tracking_code,
 			status: pengajuan.status,
-			status_label: statusLabels[pengajuan.status] || pengajuan.status,
+			status_label: getPublicStatusLabel(pengajuan.status),
 			applicant_name: pengajuan.applicant_name || '-',
 			applicant_email: pengajuan.applicant_email || '-',
 			service_name: pengajuan.services.name,

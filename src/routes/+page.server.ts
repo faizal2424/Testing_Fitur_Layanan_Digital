@@ -1,6 +1,7 @@
 import { db } from '$lib/server/db';
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
+import { getPublicStatusLabel } from '$lib/constants/status';
 
 export const load: PageServerLoad = async ({ url }) => {
     const listLayanan = await db.services.findMany({
@@ -34,20 +35,10 @@ export const load: PageServerLoad = async ({ url }) => {
             });
 
             if (pengajuan) {
-                const statusLabels: Record<string, string> = {
-                    'baru': 'Diterima',
-                    'revisi': 'Perlu Revisi',
-                    'ditugaskan': 'Verifikasi',
-                    'diproses_pic': 'Proses',
-                    'diselesaikan_pic': 'Validasi',
-                    'selesai': 'Selesai',
-                    'ditolak_pengajuan': 'Pengajuan Ditangguhkan'
-                };
-
                 const result = {
                     ...pengajuan,
                     code: pengajuan.tracking_code,
-                    status_txt: statusLabels[pengajuan.status] || pengajuan.status,
+                    status_txt: getPublicStatusLabel(pengajuan.status),
                     service_name: pengajuan.services.name,
                     pic_phone: pengajuan.users?.phone || 'Menunggu Penugasan'
                 };
@@ -99,21 +90,10 @@ export const actions: Actions = {
                 return fail(404, { message: 'Data tidak ditemukan. Pastikan kode benar.' });
             }
 
-            // Map status code to readable text if needed, or just use the status string
-            const statusLabels: Record<string, string> = {
-                'baru': 'Diterima',
-                'revisi': 'Perlu Revisi',
-                'ditugaskan': 'Verifikasi',
-                'diproses_pic': 'Proses',
-                'diselesaikan_pic': 'Validasi',
-                'selesai': 'Selesai',
-                'ditolak_pengajuan': 'Pengajuan Ditangguhkan'
-            };
-
             const result = {
                 ...pengajuan,
                 code: pengajuan.tracking_code,
-                status_txt: statusLabels[pengajuan.status] || pengajuan.status,
+                status_txt: getPublicStatusLabel(pengajuan.status),
                 service_name: pengajuan.services.name,
                 pic_phone: pengajuan.users?.phone || 'Menunggu Penugasan'
             };

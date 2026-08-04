@@ -2,7 +2,7 @@ import { db } from '$lib/server/db';
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import PDFDocumentModule from 'pdfkit';
-import { statusLabels, getStatusLabel } from '$lib/utils/submissionFlow';
+import { getInternalStatusLabel } from '$lib/constants/status';
 
 // Handle ESM/CJS interop for pdfkit
 const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
@@ -225,7 +225,7 @@ async function generateListPDF(submissions: any[], filters: any): Promise<Buffer
                 (index + 1).toString(),
                 s.services.name,
                 opdName,
-                getStatusLabel(s.status).toUpperCase(),
+                getInternalStatusLabel(s.status).toUpperCase(),
                 formatDateStr(s.created_at),
                 formatDateStr(selesaiDate)
             ];

@@ -2,6 +2,7 @@ import { db } from '$lib/server/db';
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import PDFDocumentModule from 'pdfkit';
+import { getInternalStatusLabel } from '$lib/constants/status';
 
 const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
 
@@ -152,12 +153,6 @@ async function generateLogPDF(logs: any[], filters: any): Promise<Buffer> {
 		const colWidths = [25, 70, 70, 90, 85, 90, 90, 180, 65];
 		const headers = ['NO', 'TANGGAL', 'TRACKING', 'PEMOHON', 'STATUS DARI', 'STATUS KE', 'LAYANAN', 'CATATAN', 'OLEH'];
 
-		const statusLabels: Record<string, string> = {
-			baru: 'BARU', ditugaskan: 'DITUGASKAN', diproses_pic: 'DIPROSES PIC',
-			ditolak_pic: 'DITOLAK PIC', diselesaikan_pic: 'DISELESAIKAN PIC',
-			disetujui_pic: 'DISETUJUI PIC', ditolak_pengajuan: 'DITOLAK', selesai: 'SELESAI'
-		};
-
 		const drawTableHeader = (y: number) => {
 			doc.save();
 			doc.rect(40, y, CW, 28).fill('#d1d5db');
@@ -195,8 +190,8 @@ async function generateLogPDF(logs: any[], filters: any): Promise<Buffer> {
 				formatDate(l.created_at),
 				l.service_submissions.tracking_code,
 				l.service_submissions.applicant_name || '-',
-				l.status_from ? (statusLabels[l.status_from] || l.status_from.toUpperCase()) : '-',
-				l.status_to ? (statusLabels[l.status_to] || l.status_to.toUpperCase()) : '-',
+				l.status_from ? getInternalStatusLabel(l.status_from).toUpperCase() : '-',
+				l.status_to ? getInternalStatusLabel(l.status_to).toUpperCase() : '-',
 				l.service_submissions.services.name,
 				(l.note || '-').substring(0, 120),
 				l.users?.name || 'Sistem'

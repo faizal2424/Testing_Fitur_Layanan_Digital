@@ -1,6 +1,7 @@
 import { db } from '$lib/server/db';
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { getInternalStatusLabel } from '$lib/constants/status';
 
 export const GET: RequestHandler = async (event) => {
 	const { url, locals } = event;
@@ -61,12 +62,6 @@ export const GET: RequestHandler = async (event) => {
 		orderBy: { created_at: 'desc' }
 	});
 
-	const statusLabels: Record<string, string> = {
-		baru: 'Baru', ditugaskan: 'Ditugaskan', diproses_pic: 'Diproses PIC',
-		ditolak_pic: 'Ditolak PIC', diselesaikan_pic: 'Diselesaikan PIC',
-		disetujui_pic: 'Disetujui PIC', ditolak_pengajuan: 'Ditolak', selesai: 'Selesai'
-	};
-
 	const formatDate = (d: Date | null) => {
 		if (!d) return '';
 		return d.toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -78,8 +73,8 @@ export const GET: RequestHandler = async (event) => {
 		l.service_submissions.tracking_code,
 		l.service_submissions.applicant_name || '-',
 		l.service_submissions.services.name,
-		l.status_from ? (statusLabels[l.status_from] || l.status_from) : '-',
-		l.status_to ? (statusLabels[l.status_to] || l.status_to) : '-',
+		l.status_from ? getInternalStatusLabel(l.status_from) : '-',
+		l.status_to ? getInternalStatusLabel(l.status_to) : '-',
 		(l.note || '-').replace(/"/g, '""'),
 		l.users?.name || 'Sistem'
 	]);
