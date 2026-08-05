@@ -117,13 +117,43 @@ export const NOTIFICATION_POLICY: Record<string, NotificationPolicyRule> = {
 	},
 
 	// E9 — Revisi dikirim ulang oleh pengaju: email ke Admin (actionable), in-app ke Pengaju + Admin
-	'revisi->baru': {
+	'revisi->sudah_direvisi': {
 		eventKey: 'revision_submitted',
 		email: ['admin'],
 		inapp: ['pengaju', 'admin'],
 		inappType: 'info',
 		inappTitle: 'Revisi Dikirim',
 		description: 'Pengaju mengirim ulang form revisi — Admin harus verifikasi ulang'
+	},
+
+	// E2b — Ditugaskan dari hasil revisi (sudah_direvisi → ditugaskan)
+	'sudah_direvisi->ditugaskan': {
+		eventKey: 'assigned_to_pic',
+		email: ['pic'],
+		inapp: ['pengaju', 'admin', 'pic'],
+		inappType: 'info',
+		inappTitle: 'Ditugaskan ke PIC',
+		description: 'Penugasan PIC setelah Admin verifikasi hasil revisi'
+	},
+
+	// E6b — Reviewer minta revisi ulang dari status sudah_direvisi
+	'sudah_direvisi->revisi': {
+		eventKey: 'revision_requested',
+		email: ['pengaju'],
+		inapp: ['pengaju', 'admin'],
+		inappType: 'warning',
+		inappTitle: 'Perlu Revisi',
+		description: 'Reviewer meminta revisi ulang setelah memeriksa hasil revisi'
+	},
+
+	// E8b — Penolakan final dari status sudah_direvisi
+	'sudah_direvisi->ditolak_pengajuan': {
+		eventKey: 'submission_rejected',
+		email: ['pengaju'],
+		inapp: ['pengaju', 'admin'],
+		inappType: 'error',
+		inappTitle: 'Pengajuan Ditolak',
+		description: 'Penolakan final setelah revisi diperiksa dan tidak memenuhi syarat'
 	},
 
 	// E7 — Ditolak PIC: email ke Admin, in-app ke Admin + PIC

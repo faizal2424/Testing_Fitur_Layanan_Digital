@@ -205,8 +205,9 @@ export const actions: Actions = {
 					data: {
 						applicant_name: applicantName ?? existingSubmission.applicant_name,
 						applicant_email: applicantEmail ?? existingSubmission.applicant_email,
-						// Kembali ke "baru" (Menunggu Review Admin), PIC di-reset menunggu verifikasi ulang
-						status: 'baru',
+						// Kembali ke "Sudah Direvisi" — berbeda dari pengajuan baru 'baru', agar reviewer
+						// langsung tahu ini adalah hasil revisi yang siap ditinjau ulang.
+						status: 'sudah_direvisi',
 						assigned_to: null,
 						updated_at: new Date()
 					}
@@ -294,7 +295,7 @@ export const actions: Actions = {
 
 			const origin = new URL(request.url).origin;
 			const policySource = isRevision ? 'revisi' : 'submit';
-			const policyTo = isRevision ? 'baru' : 'baru';
+			const policyTo = isRevision ? 'sudah_direvisi' : 'baru';
 			const policy = getNotificationPolicy(policySource, policyTo);
 			const trackingCode = existingSubmission
 				? existingSubmission.tracking_code

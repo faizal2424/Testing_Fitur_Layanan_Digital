@@ -9,6 +9,7 @@
 export type SubmissionStatus =
 	| 'baru'
 	| 'revisi'
+	| 'sudah_direvisi'
 	| 'ditugaskan'
 	| 'diproses_pic'
 	| 'ditolak_pic'
@@ -23,6 +24,7 @@ export type SubmissionStatus =
 export const INTERNAL_STATUS_LABELS: Record<SubmissionStatus, string> = {
 	baru: 'Baru',
 	revisi: 'Perlu Revisi',
+	sudah_direvisi: 'Sudah Direvisi',
 	ditugaskan: 'Ditugaskan',
 	diproses_pic: 'Diproses PIC',
 	ditolak_pic: 'Ditolak PIC',
@@ -39,6 +41,7 @@ export const INTERNAL_STATUS_LABELS: Record<SubmissionStatus, string> = {
 export const PUBLIC_STATUS_LABELS: Record<SubmissionStatus, string> = {
 	baru: 'Diterima',
 	revisi: 'Perlu Revisi',
+	sudah_direvisi: 'Revisi Dikirim',
 	ditugaskan: 'Verifikasi',
 	diproses_pic: 'Proses',
 	ditolak_pic: 'Ditolak PIC',
@@ -54,11 +57,12 @@ export const PUBLIC_STATUS_LABELS: Record<SubmissionStatus, string> = {
 export const STATUS_COLORS: Record<SubmissionStatus, string> = {
 	baru: 'blue',
 	revisi: 'amber',
+	sudah_direvisi: 'teal',
 	ditugaskan: 'indigo',
 	diproses_pic: 'violet',
 	ditolak_pic: 'orange',
-	diselesaikan_pic: 'teal',
-	disetujui_pic: 'cyan',
+	diselesaikan_pic: 'cyan',
+	disetujui_pic: 'sky',
 	ditolak_pengajuan: 'red',
 	selesai: 'green'
 };
@@ -96,6 +100,9 @@ export function getAllowedStatuses(currentStatus: string, role: string): string[
 		switch (currentStatus) {
 			// Pengajuan baru diterima Admin untuk verifikasi data dan penugasan PIC
 			case 'baru':
+				return ['ditugaskan', 'revisi', 'ditolak_pengajuan'];
+			// Hasil revisi dari pengaju — Admin verifikasi ulang dan tugaskan ke PIC
+			case 'sudah_direvisi':
 				return ['ditugaskan', 'revisi', 'ditolak_pengajuan'];
 			// Setelah ditugaskan, penanganan selanjutnya menjadi tanggung jawab PIC
 			case 'ditugaskan':

@@ -227,7 +227,7 @@
 							<span class="info-label">Terakhir Diperbarui</span>
 							<span class="info-value">{formatDate(data.submission.updated_at)}</span>
 						</div>
-						{#if data.submission.status !== 'baru'}
+						{#if data.submission.status !== 'baru' && data.submission.status !== 'sudah_direvisi'}
 							<div class="info-item" style="grid-column: span 2;">
 								<span class="info-label">Anggota Tim</span>
 								<span class="info-value">
@@ -464,7 +464,7 @@
 						</div>
 
 						{#if data.userRole !== 'pic'}
-							{#if data.submission.status === 'baru' || data.submission.status === 'ditolak_pic'}
+							{#if data.submission.status === 'baru' || data.submission.status === 'sudah_direvisi' || data.submission.status === 'ditolak_pic'}
 								{#if selectedStatus === 'ditugaskan'}
 									{#if data.submission.service_pic_id}
 										<div class="pic-info-box" style="margin-top: 0.5rem; background: #f0fdf4; border-color: #bbf7d0; color: #16a34a;">
@@ -652,7 +652,7 @@
 									</small>
 								</div>
 							{/if}
-						{:else if data.submission.status !== 'baru' && data.submission.status !== 'ditugaskan'}
+						{:else if data.submission.status !== 'baru' && data.submission.status !== 'sudah_direvisi' && data.submission.status !== 'ditugaskan'}
 							<!-- Admin sees read-only list after assignment stage -->
 							<div class="form-group">
 								<span class="fake-label">Anggota Tim</span>

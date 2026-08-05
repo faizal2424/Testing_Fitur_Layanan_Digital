@@ -55,6 +55,7 @@
     selesai:            { pillLabel: 'Selesai',               pillClass: 'bg-red-50 text-red-700 border-red-100',     stepIndex: 4 },
     // Pengecualian
     revisi:             { pillLabel: 'Perlu Perbaikan Data',  pillClass: 'bg-amber-50 text-amber-700 border-amber-100', stepIndex: 1 },
+    sudah_direvisi:     { pillLabel: 'Revisi Dikirim',        pillClass: 'bg-teal-50 text-teal-700 border-teal-200',   stepIndex: 1 },
     ditolak_pic:        { pillLabel: 'Ditolak',               pillClass: 'bg-red-100 text-red-800 border-red-200',    stepIndex: -1 },
     ditolak_pengajuan:  { pillLabel: 'Ditolak',               pillClass: 'bg-red-100 text-red-800 border-red-200',    stepIndex: -1 },
   };
@@ -179,6 +180,7 @@
       {@const statusInfo = getStatusInfo(result.status)}
       {@const rejected = isRejected(result.status)}
       {@const isRevisi = result.status === 'revisi'}
+      {@const isSudahDirevisi = result.status === 'sudah_direvisi'}
       {@const rejectedAtStep = getRejectedAtStep(result)}
 
       <div 
@@ -235,6 +237,19 @@
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                             Perbaiki Data Sekarang
                         </a>
+                    </div>
+                </div>
+            {/if}
+
+            <!-- Banner: Sudah Direvisi -->
+            {#if isSudahDirevisi}
+                <div class="mb-6 p-5 bg-teal-50 border border-teal-200 rounded-2xl flex items-start gap-4" transition:fade>
+                    <div class="w-9 h-9 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 flex-shrink-0 mt-0.5">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-teal-800 font-bold text-sm mb-1">Revisi telah dikirim — sedang menunggu pemeriksaan petugas.</p>
+                        <p class="text-teal-700 text-sm">Perbaikan data Anda sudah kami terima. Tim akan segera meninjau dan menindaklanjuti permohonan Anda.</p>
                     </div>
                 </div>
             {/if}
@@ -300,7 +315,12 @@
                                     <div class="relative z-10 w-6 h-6 rounded-full border-2 bg-amber-500 border-amber-500 flex items-center justify-center scale-110 shadow-lg shadow-amber-200 transition-all duration-500">
                                         <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01" /></svg>
                                     </div>
-                                {:else if isPast || (isActive && !isRevisi)}
+                                {:else if isActive && isSudahDirevisi}
+                                    <!-- Teal: node aktif saat revisi sudah dikirim -->
+                                    <div class="relative z-10 w-6 h-6 rounded-full border-2 bg-teal-500 border-teal-500 flex items-center justify-center scale-110 shadow-lg shadow-teal-200 transition-all duration-500">
+                                        <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                                    </div>
+                                {:else if isPast || (isActive && !isRevisi && !isSudahDirevisi)}
                                     <!-- Merah + centang: sudah lewat atau aktif normal -->
                                     <div class="relative z-10 w-6 h-6 rounded-full border-2 bg-red-600 border-red-600 flex items-center justify-center scale-110 shadow-lg shadow-red-200 transition-all duration-500">
                                         <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
@@ -318,10 +338,12 @@
                                           (isPast || isActive) ? 'text-slate-900' : 'text-slate-300'}`}>
                                         {step.label}
                                     </p>
-                                    {#if isActive && !isRevisi && result.status !== 'selesai' && !rejected}
+                                    {#if isActive && !isRevisi && !isSudahDirevisi && result.status !== 'selesai' && !rejected}
                                         <p class="text-xs text-red-600 mt-1 font-medium animate-pulse">Sedang Berlangsung</p>
                                     {:else if isActive && isRevisi}
                                         <p class="text-xs text-amber-600 mt-1 font-medium animate-pulse">Menunggu Perbaikan Data</p>
+                                    {:else if isActive && isSudahDirevisi}
+                                        <p class="text-xs text-teal-600 mt-1 font-medium animate-pulse">Revisi Dikirim — Menunggu Pemeriksaan</p>
                                     {:else if isRejectedNode}
                                         <p class="text-xs text-red-500 mt-1 font-medium">Permohonan Ditolak</p>
                                     {/if}

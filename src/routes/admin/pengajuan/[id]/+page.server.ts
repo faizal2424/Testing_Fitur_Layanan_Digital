@@ -279,7 +279,9 @@ export const actions: Actions = {
 		let assignedPicName = '';
 		let targetPicId: bigint | null = null;
 
-		const isAssigningToPic = newStatus === 'ditugaskan' && (oldStatus === 'baru' || oldStatus === 'ditolak_pic');
+		const isAssigningToPic =
+			newStatus === 'ditugaskan' &&
+			(oldStatus === 'baru' || oldStatus === 'sudah_direvisi' || oldStatus === 'ditolak_pic');
 		if (isAssigningToPic) {
 			const servicePicId = submission.services.pic_id;
 			if (servicePicId) {
