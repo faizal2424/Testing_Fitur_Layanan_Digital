@@ -7,6 +7,7 @@
 
     $: code = data.trackingCode;
     $: submission = data.submission;
+    $: isRevision = data.isRevision;
 
     let copied = false;
     let isDownloading = false;
@@ -64,15 +65,23 @@
                 </svg>
             </div>
 
-            <h1 class="text-3xl font-bold text-slate-900 mb-3">Pengajuan Berhasil!</h1>
+            <h1 class="text-3xl font-bold text-slate-900 mb-3">
+                {isRevision ? 'Revisi Terkirim!' : 'Pengajuan Berhasil!'}
+            </h1>
             <p class="text-slate-500 mb-8 leading-relaxed">
-                Terima kasih, formulir pengajuan Anda telah kami terima. Gunakan kode di bawah ini untuk memantau status pengajuan Anda.
+                {#if isRevision}
+                    Terima kasih, revisi pengajuan Anda telah kami terima. Pengajuan Anda akan ditinjau kembali oleh admin. Gunakan kode di bawah ini untuk memantau status.
+                {:else}
+                    Terima kasih, formulir pengajuan Anda telah kami terima. Gunakan kode di bawah ini untuk memantau status pengajuan Anda.
+                {/if}
             </p>
 
             <!-- Tracking Code Box -->
             <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-6 relative group">
-                <p class="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2">Kode Pengajuan</p>
-                <p class="text-3xl font-mono font-bold text-slate-800 tracking-wider select-all">{code || 'ERROR'}</p>
+            <p class="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2">
+                {isRevision ? 'Kode Revisi' : 'Kode Pengajuan'}
+            </p>
+            <p class="text-3xl font-mono font-bold text-slate-800 tracking-wider select-all">{code || 'ERROR'}</p>
 
                 <button
                     on:click={copyToClipboard}

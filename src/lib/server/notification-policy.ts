@@ -116,6 +116,16 @@ export const NOTIFICATION_POLICY: Record<string, NotificationPolicyRule> = {
 		description: 'Revisi berulang'
 	},
 
+	// E9 — Revisi dikirim ulang oleh pengaju: email ke Admin (actionable), in-app ke Pengaju + Admin
+	'revisi->baru': {
+		eventKey: 'revision_submitted',
+		email: ['admin'],
+		inapp: ['pengaju', 'admin'],
+		inappType: 'info',
+		inappTitle: 'Revisi Dikirim',
+		description: 'Pengaju mengirim ulang form revisi — Admin harus verifikasi ulang'
+	},
+
 	// E7 — Ditolak PIC: email ke Admin, in-app ke Admin + PIC
 	'ditugaskan->ditolak_pic': {
 		eventKey: 'rejected_by_pic',

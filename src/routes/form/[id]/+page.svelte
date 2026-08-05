@@ -295,6 +295,55 @@
     if (!f?.errors) return '';
     return f.errors[fieldName] || '';
   }
+
+  // ── Revisi: prefill data existing dari link `?code=` ──
+  const isRevision = !!data.existing;
+
+  // Nilai existing per field (teks/select/radio/date)
+  function getPrefill(field: any): string {
+    if (!data.existing) return '';
+    const v = data.existing.values[String(field.id)];
+    return (v?.value ?? '') as string;
+  }
+
+  // File lama per field (saat revisi, tidak perlu unggah ulang)
+  function getOldFile(field: any): { filePath: string; name: string } | null {
+    if (!data.existing) return null;
+    const v = data.existing.values[String(field.id)];
+    if (!v?.filePath) return null;
+    const name = decodeURIComponent(v.filePath.split('/').pop() || 'File Lama');
+    return { filePath: v.filePath, name };
+  }
+
+  // Map field id → true jika user menandai "hapus file lama"
+  let oldFilesCleared: Record<string, boolean> = {};
+
+  function clearOldFile(field: any) {
+    const fieldKey = `field_${field.id}`;
+    oldFilesCleared[fieldKey] = true;
+    oldFilesCleared = oldFilesCleared;
+    // Hapus preview file baru jika ada
+    if (filePreviews[fieldKey]) {
+      if (filePreviews[fieldKey].url) URL.revokeObjectURL(filePreviews[fieldKey].url!);
+      delete filePreviews[fieldKey];
+      filePreviews = filePreviews;
+    }
+    const input = fileInputs[fieldKey];
+    if (input) input.value = '';
+  }
+
+  // Saat revisi: pre-select opsi dari nilai lama
+  $: if (isRevision) {
+    for (const field of data.service.service_form_fields) {
+      if (field.type === 'select') {
+        const val = getPrefill(field);
+        if (val) {
+          const opt = parseOptions(field.options).find((o) => o.value === val);
+          if (opt) selectedDisplay[field.id] = opt.label;
+        }
+      }
+    }
+  }
 </script>
 
 <svelte:head>
@@ -337,9 +386,29 @@
       
       <!-- Form Header -->
       <div class="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
-        <h2 class="text-lg font-bold text-slate-800">Isi Formulir Pengajuan</h2>
-        <p class="text-sm text-slate-400 mt-1">Lengkapi data berikut untuk mengajukan permohonan</p>
+        <h2 class="text-lg font-bold text-slate-800">
+          {isRevision ? 'Formulir Revisi Pengajuan' : 'Isi Formulir Pengajuan'}
+        </h2>
+        <p class="text-sm text-slate-400 mt-1">
+          {isRevision ? 'Perbarui data yang perlu direvisi, lalu kirim ulang' : 'Lengkapi data berikut untuk mengajukan permohonan'}
+        </p>
       </div>
+
+      <!-- Revision Banner -->
+      {#if isRevision}
+        <div class="mx-6 mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3" transition:fly={{ y: -10, duration: 200 }}>
+          <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div class="text-sm">
+            <p class="text-amber-800 font-semibold">Anda sedang mengisi ulang form revisi</p>
+            <p class="text-amber-700 mt-0.5">
+              Data sebelumnya sudah diisi otomatis. Ubah bagian yang diminta revisi, lalu kirim ulang.
+              Kode tracking: <span class="font-mono font-semibold">{data.existing?.trackingCode}</span>
+            </p>
+          </div>
+        </div>
+      {/if}
 
       <!-- Error Banner -->
       {#if form?.message}
@@ -364,6 +433,10 @@
         }}
         class="p-6 space-y-6"
       >
+        <!-- Hidden: kirim tracking code revisi agar server tahu ini adalah revisi, bukan pengajuan baru -->
+        {#if isRevision && data.existing?.trackingCode}
+          <input type="hidden" name="revision_code" value={data.existing.trackingCode} />
+        {/if}
         
         <!-- Dynamic Form Fields -->
         {#if data.service.service_form_fields.length > 0}
@@ -384,6 +457,7 @@
                       id="field_{field.id}"
                       name="field_{field.id}"
                       type="text"
+                      value={getPrefill(field) || undefined}
                       required={field.is_required}
                       placeholder={field.placeholder || ''}
                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 
@@ -397,6 +471,7 @@
                       id="field_{field.id}"
                       name="field_{field.id}"
                       type="email"
+                      value={getPrefill(field) || undefined}
                       required={field.is_required}
                       placeholder={field.placeholder || 'nama@email.com'}
                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 
@@ -410,6 +485,7 @@
                       id="field_{field.id}"
                       name="field_{field.id}"
                       type="number"
+                      value={getPrefill(field) || undefined}
                       required={field.is_required}
                       placeholder={field.placeholder || ''}
                       on:keydown={handleNumberKeyDown}
@@ -425,6 +501,7 @@
                       id="field_{field.id}"
                       name="field_{field.id}"
                       type="tel"
+                      value={getPrefill(field) || undefined}
                       required={field.is_required}
                       placeholder={field.placeholder || '08xxxxxxxxxx'}
                       on:keydown={handleTelpKeyDown}
@@ -441,6 +518,7 @@
                       id="field_{field.id}"
                       name="field_{field.id}"
                       type="date"
+                      value={getPrefill(field) || undefined}
                       required={field.is_required}
                       placeholder={field.placeholder || ''}
                       min={getDateMin(field) || undefined}
@@ -458,6 +536,7 @@
                     <textarea
                       id="field_{field.id}"
                       name="field_{field.id}"
+                      value={getPrefill(field) || undefined}
                       required={field.is_required}
                       placeholder={field.placeholder || ''}
                       rows="4"
@@ -473,13 +552,14 @@
                       <select
                         id="field_{field.id}"
                         name="field_{field.id}"
+                        value={getPrefill(field) || ''}
                         required={field.is_required}
                         class="sr-only"
                         aria-hidden="true"
                         tabindex="-1"
                       >
                         <option value="">— Pilih —</option>
-                        {#each parseOptions(field.options) as opt}
+                        {#each parseOptions(field.options) as opt (opt.value)}
                           <option value={opt.value}>{opt.label}</option>
                         {/each}
                       </select>
@@ -529,7 +609,7 @@
                           <!-- Options List -->
                           <div class="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
                             {#if getFilteredOptions(field.options, selectSearch[field.id] || '').length > 0}
-                              {#each getFilteredOptions(field.options, selectSearch[field.id] || '') as opt}
+                              {#each getFilteredOptions(field.options, selectSearch[field.id] || '') as opt (opt.value)}
                                 <button
                                   type="button"
                                   on:click={() => selectOption(field.id, opt)}
@@ -558,7 +638,7 @@
                   <!-- Radio -->
                   {:else if field.type === 'radio'}
                     <div class="flex flex-wrap gap-3 mt-1">
-                      {#each parseOptions(field.options) as opt, i}
+                      {#each parseOptions(field.options) as opt, i (opt.value)}
                         <label 
                           class="relative flex items-center gap-2.5 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer 
                             hover:border-red-200 hover:bg-red-50/30 transition-all text-sm has-[:checked]:bg-red-50 has-[:checked]:border-red-300 has-[:checked]:text-red-700"
@@ -567,6 +647,7 @@
                             type="radio"
                             name="field_{field.id}"
                             value={opt.value}
+                            checked={getPrefill(field) === opt.value}
                             required={field.is_required && i === 0}
                             class="text-red-600 focus:ring-red-500/20 border-slate-300"
                           />
@@ -604,12 +685,46 @@
                         id="field_{field.id}"
                         name="field_{field.id}"
                         type="file"
-                        required={field.is_required && !filePreviews[`field_${field.id}`]}
+                        required={field.is_required && !filePreviews[`field_${field.id}`] && !getOldFile(field)}
                         accept={getFileAccept(field)}
                         on:change={(e) => handleFileChange(e, field)}
                         bind:this={fileInputs[`field_${field.id}`]}
                         class="sr-only"
                       />
+
+                      <!-- Existing file during revision (kept unless user clears it) -->
+                      {#if isRevision && getOldFile(field) && !filePreviews[`field_${field.id}`] && !oldFilesCleared[`field_${field.id}`]}
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-xl overflow-hidden" transition:fly={{ y: 8, duration: 200 }}>
+                          <div class="flex items-center gap-4 p-4">
+                            <div class="w-12 h-12 bg-emerald-100 rounded-lg border border-emerald-200 flex items-center justify-center flex-shrink-0">
+                              <svg class="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                              </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                              <p class="text-xs text-emerald-700 font-semibold">File saat ini</p>
+                              <p class="text-sm font-semibold text-slate-700 truncate mt-0.5">{getOldFile(field)?.name}</p>
+                              <p class="text-xs text-slate-400 mt-0.5">File dipertahankan jika tidak diganti</p>
+                            </div>
+                            <button
+                              type="button"
+                              on:click={() => clearOldFile(field)}
+                              class="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-200 rounded-lg text-xs font-semibold text-emerald-700 
+                                hover:bg-emerald-50 transition-all flex-shrink-0"
+                            >
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Hapus File
+                            </button>
+                          </div>
+                        </div>
+                      {/if}
+
+                      <!-- Flag to server: user chose to remove old file during revision -->
+                      {#if oldFilesCleared[`field_${field.id}`]}
+                        <input type="hidden" name="field_{field.id}_clear_file" value="1" />
+                      {/if}
 
                       <!-- File Preview -->
                       {#if filePreviews[`field_${field.id}`]}
@@ -697,6 +812,7 @@
                       id="field_{field.id}"
                       name="field_{field.id}"
                       type="text"
+                      value={getPrefill(field) || undefined}
                       required={field.is_required}
                       placeholder={field.placeholder || ''}
                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 
@@ -748,7 +864,7 @@
                 <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 <span>Mengirim...</span>
               {:else}
-                <span>Ajukan Permohonan</span>
+                <span>{isRevision ? 'Kirim Revisi' : 'Ajukan Permohonan'}</span>
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>

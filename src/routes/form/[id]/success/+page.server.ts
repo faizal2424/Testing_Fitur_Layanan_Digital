@@ -28,8 +28,12 @@ export const load: PageServerLoad = async ({ url }) => {
         )
     );
 
+    // Flag direvisi vs pengajuan baru: redirect dari submit menyertakan `&revision=1`
+    const isRevision = url.searchParams.get('revision') === '1';
+
     return {
         submission: serialized,
-        trackingCode: code
+        trackingCode: code,
+        isRevision
     };
 };
